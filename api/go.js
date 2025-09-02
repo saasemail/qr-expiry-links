@@ -6,16 +6,15 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-export default async function handler(req, res) {
+export default async function handler(req) {
   try {
-    const { query } = req;
-    const { id } = query;
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
 
     if (!id) {
-      return res.status(400).send("Missing link ID");
+      return new Response("Missing link ID", { status: 400 });
     }
 
-    // Fetch link from DB
     const { data, error } = await supabase
       .from("links")
       .select("*")
@@ -23,21 +22,19 @@ export default async function handler(req, res) {
       .single();
 
     if (error || !data) {
-      return res.status(404).send("Link not found");
+      return new Response("Link not found", { status: 404 });
     }
 
-    // Check expiry
     const now = new Date();
     const expiresAt = new Date(data.expires_at);
 
     if (now > expiresAt) {
-      return res.status(410).send("This link has expired");
+      return new Response("This link has expired", { status: 410 });
     }
 
-    // Redirect
-    return res.redirect(302, data.url);
+    return Response.redirect(data.url, 302);
   } catch (err) {
     console.error("API Error:", err);
-    return res.status(500).send("Internal Server Error");
+    return new Response("Internal Server Error", { status: 500 });
   }
 }
