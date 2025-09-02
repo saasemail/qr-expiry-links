@@ -1,55 +1,55 @@
-!DOCTYPE html
-html lang=en
-head
-  meta charset=UTF-8 
-  meta name=viewport content=width=device-width, initial-scale=1.0 
-  titleQR Expiry Linkstitle
-  link rel=stylesheet href=styles.css 
-  link rel=preconnect href=httpsfonts.googleapis.com
-  link rel=preconnect href=httpsfonts.gstatic.com crossorigin
-  link href=httpsfonts.googleapis.comcss2family=Interwght@400;600;700&display=swap rel=stylesheet
-  script src=httpscdn.jsdelivr.netnpmqrcodebuildqrcode.min.jsscript
-head
-body
-  !-- Header --
-  nav class=navbar
-    h1QR Expiry Linksh1
-  nav
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR Expiry Links</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+</head>
+<body>
+  <!-- Header -->
+  <nav class="navbar">
+    <h1>QR Expiry Links</h1>
+  </nav>
 
-  div class=container
-    p class=subtitleGenerate shareable QR codes with automatic expiry.p
+  <div class="container">
+    <p class="subtitle">Generate shareable QR codes with automatic expiry.</p>
 
-    !-- Form --
-    section class=card
-      label
-        Enter URL
-        input type=url id=urlInput placeholder=httpsexample.com 
-      label
+    <!-- Form -->
+    <section class="card">
+      <label>
+        Enter URL:
+        <input type="url" id="urlInput" placeholder="https://example.com" />
+      </label>
 
-      label
-        Expiry (minutes)
-        input type=number id=expiryInput min=1 value=10 
-      label
+      <label>
+        Expiry (minutes):
+        <input type="number" id="expiryInput" min="1" value="10" />
+      </label>
 
-      div class=button-group
-        button id=generateBtn class=btn btn-primaryGenerate QRbutton
-      div
-    section
+      <div class="button-group">
+        <button id="generateBtn" class="btn btn-primary">Generate QR</button>
+      </div>
+    </section>
 
-    !-- Output --
-    section class=card hidden id=resultCard
-      h2Your Expiring Linkh2
-      canvas id=qrcodecanvas
-      pa id=generatedLink href=# target=_blankap
-      p class=hint id=expiryHintp
-    section
-  div
+    <!-- Output -->
+    <section class="card hidden" id="resultCard">
+      <h2>Your Expiring Link</h2>
+      <canvas id="qrcode"></canvas>
+      <p><a id="generatedLink" href="#" target="_blank"></a></p>
+      <p class="hint" id="expiryHint"></p>
+    </section>
+  </div>
 
-  !-- Footer --
-  footer class=footer
+  <!-- Footer -->
+  <footer class="footer">
     © 2025 QR Expiry Links — Simple no-login tool.
-  footer
+  </footer>
 
-  script src=ui.jsscript
-body
-html
+  <script src="ui.js"></script>
+</body>
+</html>
