@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redirecting...</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background-color: #0b0e13;
+      color: #e8edf5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      text-align: center;
+    }
+    .card {
+      background: #121723;
+      padding: 2rem;
+      border-radius: 1rem;
+      border: 1px solid #2c2f36;
+      max-width: 400px;
+    }
+    a {
+      color: #6ee7f9;
+    }
+  </style>
+</head>
+<body>
+  <div class="card" id="message">
+    Checking link...
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://xyfacudywygreaquvzjr.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2emp..."; 
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const messageEl = document.getElementById("message");
+
+    async function checkLink() {
+      const parts = window.location.pathname.split("/");
+      const linkId = parts[parts.length - 1];
+
+      if (!linkId) {
+        messageEl.textContent = "Invalid link.";
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("links")
+        .select("url, expires_at")
+        .eq("id", linkId)
+        .single();
+
+      if (error || !data) {
+        messageEl.textContent = "Link not found.";
+        return;
+      }
+
+      const expiresAt = new Date(data.expires_at);
+      const now = new Date();
+
+      if (now > expiresAt) {
+        messageEl.textContent = "This link has expired.";
+      } else {
+        window.location.href = data.url;
+      }
+    }
+
+    checkLink();
+  </script>
+</body>
+</html>
