@@ -1,0 +1,55 @@
+!DOCTYPE html
+html lang=en
+head
+  meta charset=UTF-8 
+  meta name=viewport content=width=device-width, initial-scale=1.0 
+  titleQR Expiry Linkstitle
+  link rel=stylesheet href=styles.css 
+  link rel=preconnect href=httpsfonts.googleapis.com
+  link rel=preconnect href=httpsfonts.gstatic.com crossorigin
+  link href=httpsfonts.googleapis.comcss2family=Interwght@400;600;700&display=swap rel=stylesheet
+  script src=httpscdn.jsdelivr.netnpmqrcodebuildqrcode.min.jsscript
+head
+body
+  !-- Header --
+  nav class=navbar
+    h1QR Expiry Linksh1
+  nav
+
+  div class=container
+    p class=subtitleGenerate shareable QR codes with automatic expiry.p
+
+    !-- Form --
+    section class=card
+      label
+        Enter URL
+        input type=url id=urlInput placeholder=httpsexample.com 
+      label
+
+      label
+        Expiry (minutes)
+        input type=number id=expiryInput min=1 value=10 
+      label
+
+      div class=button-group
+        button id=generateBtn class=btn btn-primaryGenerate QRbutton
+      div
+    section
+
+    !-- Output --
+    section class=card hidden id=resultCard
+      h2Your Expiring Linkh2
+      canvas id=qrcodecanvas
+      pa id=generatedLink href=# target=_blankap
+      p class=hint id=expiryHintp
+    section
+  div
+
+  !-- Footer --
+  footer class=footer
+    © 2025 QR Expiry Links — Simple no-login tool.
+  footer
+
+  script src=ui.jsscript
+body
+html
