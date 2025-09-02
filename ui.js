@@ -1,9 +1,8 @@
-// ui.js - QR Expiry Links
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-// Supabase setup
 const SUPABASE_URL = "https://xyfacudywygreaquvzjr.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2emp..."; 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const urlInput = document.getElementById("urlInput");
 const expiryInput = document.getElementById("expiryInput");
@@ -31,7 +30,7 @@ generateBtn.addEventListener("click", async () => {
 
   clearTimeout(expiryTimer);
 
-  const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + expiryMinutes * 60000).toISOString();
 
   const { data, error } = await supabase
     .from("links")
@@ -50,17 +49,16 @@ generateBtn.addEventListener("click", async () => {
   generatedLink.textContent = redirectUrl;
   generatedLink.href = redirectUrl;
 
-  QRCode.toCanvas(qrcodeCanvas, redirectUrl, { width: 200 }, function (error) {
-    if (error) console.error(error);
+  QRCode.toCanvas(qrcodeCanvas, redirectUrl, { width: 200 }, (err) => {
+    if (err) console.error(err);
   });
 
   resultCard.classList.remove("hidden");
-
   expiryHint.textContent = `This link will expire in ${expiryMinutes} minutes.`;
 
   expiryTimer = setTimeout(() => {
     qrcodeCanvas.getContext("2d").clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
     generatedLink.textContent = "";
     expiryHint.textContent = "This link has expired.";
-  }, expiryMinutes * 60 * 1000);
+  }, expiryMinutes * 60000);
 });
