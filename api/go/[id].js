@@ -7,10 +7,9 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default async function handler(req, res) {
   try {
-    // Vercel dynamic route param se zove po imenu fajla: [id].js → req.query.id
-    const id = req.query?.id;
+    const { id } = req.query;
 
-    if (!id) {
+    if (!id || typeof id !== "string") {
       return res.status(400).send("Missing link ID");
     }
 
@@ -31,9 +30,10 @@ export default async function handler(req, res) {
       return res.status(410).send("This link has expired");
     }
 
-    return res.redirect(302, data.url);
+    res.writeHead(302, { Location: data.url });
+    res.end();
   } catch (err) {
     console.error("API Error:", err);
-    return res.status(500).send("Internal Server Error");
+    res.status(500).send("Internal Server Error");
   }
 }
