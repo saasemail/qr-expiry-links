@@ -1,21 +1,23 @@
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = "https://xyfacudywygreaquvzjr.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjQ3MDcsImV4cCI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjQ3MDcsImV4cCI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default async function handler(req, res) {
   try {
+    // na Vercelu parametar dolazi kroz req.query
     const { id } = req.query;
 
-    if (!id || typeof id !== "string") {
+    if (!id) {
       return res.status(400).send("Missing link ID");
     }
 
     const { data, error } = await supabase
       .from("links")
-      .select("*")
+      .select("url, expires_at")
       .eq("id", id)
       .single();
 
@@ -30,10 +32,10 @@ export default async function handler(req, res) {
       return res.status(410).send("This link has expired");
     }
 
-    res.writeHead(302, { Location: data.url });
-    res.end();
+    // redirekcija na originalni URL
+    return res.redirect(302, data.url);
   } catch (err) {
     console.error("API Error:", err);
-    res.status(500).send("Internal Server Error");
+    return res.status(500).send("Internal Server Error");
   }
 }
