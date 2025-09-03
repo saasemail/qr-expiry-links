@@ -7,7 +7,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default async function handler(req, res) {
   try {
-    const { id } = req.query;  // sada [id].js automatski daje parametar
+    // Vercel dynamic route param se zove po imenu fajla: [id].js → req.query.id
+    const id = req.query?.id;
 
     if (!id) {
       return res.status(400).send("Missing link ID");
