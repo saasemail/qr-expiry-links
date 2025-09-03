@@ -7,9 +7,9 @@
     { "src": "ui.js", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/go/(.*)", "dest": "/api/go/[id].js" },
-    { "src": "/styles.css", "dest": "/styles.css" },
-    { "src": "/ui.js", "dest": "/ui.js" },
-    { "src": "/", "dest": "/index.html" }
+    { "src": "^/go/(?<id>[^/]+)$", "dest": "/api/go/$id" },
+    { "src": "^/styles.css$", "dest": "/styles.css" },
+    { "src": "^/ui.js$", "dest": "/ui.js" },
+    { "src": "^/$", "dest": "/index.html" }
   ]
 }
