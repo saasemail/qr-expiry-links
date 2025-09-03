@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+const { createClient } = require("@supabase/supabase-js");
 
 const SUPABASE_URL = "https://xyfacudywygreaquvzjr.supabase.co";
 const SUPABASE_ANON_KEY =
@@ -6,45 +6,29 @@ const SUPABASE_ANON_KEY =
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   try {
-    // ID iz query stringa (npr. /api/go?id=123) + fallback iz putanje
     let id = req?.query?.id;
     if (!id && req.url) {
       const m = req.url.match(/[?&]id=([^&]+)/);
       if (m) id = decodeURIComponent(m[1]);
-      if (!id) {
-        const m2 = req.url.match(/\/go\/([^/?#]+)/);
-        if (m2) id = m2[1];
-      }
     }
-
-    if (!id) {
-      return res.status(400).send("Missing link ID");
-    }
+    if (!id) return res.status(400).send("Missing link ID");
 
     const { data, error } = await supabase
-      .from("links")
-      .select("url, expires_at")
-      .eq("id", id)
-      .single();
+      .from("links").select("url, expires_at").eq("id", id).single();
 
-    if (error || !data) {
-      return res.status(404).send("Link not found");
-    }
+    if (error || !data) return res.status(404).send("Link not found");
 
-    const now = new Date();
-    const expiresAt = new Date(data.expires_at);
-    if (isNaN(expiresAt.getTime())) {
-      return res.status(500).send("Invalid expiry date on record");
-    }
-    if (now > expiresAt) {
-      return res.status(410).send("This link has expired");
-    }
+    const expiresAt = Date.parse(data.expires_at);
+    if (!Number.isFinite(expiresAt)) return res.status(500).send("Invalid expiry date on record");
+    if (Date.now() > expiresAt) return res.status(410).send("This link has expired");
 
-    return res.redirect(302, data.url);
-  } catch (err) {
-    console.error("API Error:", err);
-    return res.status(500).send("Internal Server Error");
+    res.setHeader("Cache-Control", "no-store");
+    res.writeHead(302, { Location: data.url });
+    res.end();
+  } catch (e) {
+    console.error("[go] ERROR", e);
+    res.status(500).send("Internal Server Error");
   }
-}
+};
