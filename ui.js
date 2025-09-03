@@ -1,11 +1,10 @@
-// ui.js - QR Expiry Links (using fetch instead of supabase-js SDK)
-
-const SUPABASE_URL = "https://xyfacudywygreaquvzjr.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjQ3MDcsImV4cCI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
+// ui.js — QR Expiry Links (Free vs Pro via /api/create)
 
 // DOM elements
 const urlInput = document.getElementById("urlInput");
 const expiryInput = document.getElementById("expiryInput");
+const tokenInput = document.getElementById("tokenInput"); // NEW (optional Pro code)
+
 const generateBtn = document.getElementById("generateBtn");
 
 const resultCard = document.getElementById("resultCard");
@@ -15,49 +14,52 @@ const expiryHint = document.getElementById("expiryHint");
 
 let expiryTimer;
 
-// helper: save link via Supabase REST API
-async function saveLink(url, expiresAt) {
-  const resp = await fetch(`${SUPABASE_URL}/rest/v1/links`, {
+function setLoading(state) {
+  generateBtn.disabled = state;
+  generateBtn.textContent = state ? "Generating..." : "Generate QR";
+}
+
+async function createLink(url, minutes, token) {
+  const resp = await fetch("/api/create", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      Prefer: "return=representation"
-    },
-    body: JSON.stringify([{ url, expires_at: expiresAt }])
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url, minutes, token }),
   });
 
   if (!resp.ok) {
-    const err = await resp.text();
-    throw new Error(err);
+    const text = await resp.text();
+    // Pokušaj parsiranja JSON-a sa porukom
+    try {
+      const maybeJson = JSON.parse(text);
+      throw new Error(maybeJson?.message || maybeJson || text || "Create failed");
+    } catch {
+      throw new Error(text || "Create failed");
+    }
   }
 
-  const data = await resp.json();
-  return data[0]; // vraća { id, url, expires_at }
+  return resp.json(); // { id, expires_at, plan, minutes }
 }
 
 generateBtn.addEventListener("click", async () => {
   const url = urlInput.value.trim();
-  const expiryMinutes = parseInt(expiryInput.value);
+  const minutes = parseInt(expiryInput.value, 10);
+  const token = (tokenInput?.value || "").trim();
 
-  if (!url) {
+  if (!/^https?:\/\//i.test(url)) {
     alert("Please enter a valid URL (include https://).");
     return;
   }
-  if (!expiryMinutes || expiryMinutes < 1) {
+  if (!Number.isFinite(minutes) || minutes < 1) {
     alert("Expiry must be at least 1 minute.");
     return;
   }
 
   clearTimeout(expiryTimer);
-
-  const expiresAt = new Date(Date.now() + expiryMinutes * 60000).toISOString();
+  setLoading(true);
 
   try {
-    const saved = await saveLink(url, expiresAt);
-
-    const linkId = saved.id;
+    const created = await createLink(url, minutes, token);
+    const linkId = created.id;
     const redirectUrl = `${window.location.origin}/go/${linkId}`;
 
     generatedLink.textContent = redirectUrl;
@@ -68,16 +70,19 @@ generateBtn.addEventListener("click", async () => {
     });
 
     resultCard.classList.remove("hidden");
-    expiryHint.textContent = `This link will expire in ${expiryMinutes} minutes.`;
+    expiryHint.textContent = `Plan: ${created.plan.toUpperCase()} • Expires in ${created.minutes} min`;
 
+    // Lokalni vizuelni tajmer (ne utiče na server)
     expiryTimer = setTimeout(() => {
-      qrcodeCanvas.getContext("2d").clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
+      const ctx = qrcodeCanvas.getContext("2d");
+      ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
       generatedLink.textContent = "";
       expiryHint.textContent = "This link has expired.";
-    }, expiryMinutes * 60000);
-
+    }, created.minutes * 60_000);
   } catch (err) {
-    console.error("Error saving link:", err);
-    alert("Error: " + err.message);
+    console.error("Create error:", err);
+    alert(err.message);
+  } finally {
+    setLoading(false);
   }
 });

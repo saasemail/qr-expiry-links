@@ -29,6 +29,12 @@
       <label>
         Expiry (minutes):
         <input type="number" id="expiryInput" min="1" value="10" />
+        <span class="hint">Free: up to 15 min • Pro: up to 7 days</span>
+      </label>
+
+      <label>
+        Pro code (optional):
+        <input type="text" id="tokenInput" placeholder="Enter Pro code if you have one" />
       </label>
 
       <div class="button-group">
@@ -40,7 +46,7 @@
     <section class="card hidden" id="resultCard">
       <h2>Your Expiring Link</h2>
       <canvas id="qrcode"></canvas>
-      <p><a id="generatedLink" href="#" target="_blank"></a></p>
+      <p><a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a></p>
       <p class="hint" id="expiryHint"></p>
     </section>
   </div>
