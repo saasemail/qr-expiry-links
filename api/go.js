@@ -8,15 +8,15 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default async function handler(req, res) {
   try {
-    // Primarno iz query parametara (Vercel stavlja dinamički segment ovde kada ruta radi)
+    // ID iz query stringa (npr. /api/go?id=123) + fallback iz putanje
     let id = req?.query?.id;
-
-    // Rezervni načini: parsiranje iz putanje ako iz nekog razloga query izostane
     if (!id && req.url) {
-      // /api/go/123  ili  /go/123
-      const m1 = req.url.match(/\/api\/go\/([^/?#]+)/);
-      const m2 = req.url.match(/\/go\/([^/?#]+)/);
-      id = (m1 && m1[1]) || (m2 && m2[1]) || id;
+      const m = req.url.match(/[?&]id=([^&]+)/);
+      if (m) id = decodeURIComponent(m[1]);
+      if (!id) {
+        const m2 = req.url.match(/\/go\/([^/?#]+)/);
+        if (m2) id = m2[1];
+      }
     }
 
     if (!id) {
@@ -35,16 +35,13 @@ export default async function handler(req, res) {
 
     const now = new Date();
     const expiresAt = new Date(data.expires_at);
-
     if (isNaN(expiresAt.getTime())) {
       return res.status(500).send("Invalid expiry date on record");
     }
-
     if (now > expiresAt) {
       return res.status(410).send("This link has expired");
     }
 
-    // 302 redirect ka originalnom URL-u
     return res.redirect(302, data.url);
   } catch (err) {
     console.error("API Error:", err);
