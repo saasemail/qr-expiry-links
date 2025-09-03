@@ -37,6 +37,11 @@
         <input type="text" id="tokenInput" placeholder="Enter Pro code" />
       </label>
 
+      <!-- Get Pro code button (scrolls to payment section) -->
+      <div class="button-group">
+        <a href="#pro" class="btn btn-primary" id="getProBtn">Get Pro code</a>
+      </div>
+
       <div class="button-group">
         <button id="generateBtn" class="btn btn-primary">Generate QR</button>
       </div>
@@ -48,6 +53,24 @@
       <canvas id="qrcode"></canvas>
       <p><a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a></p>
       <p class="hint" id="expiryHint"></p>
+    </section>
+
+    <!-- Payment / Pro section -->
+    <section class="card" id="pro">
+      <h2>Upgrade to Pro</h2>
+      <p class="hint">Unlock longer link duration and higher limits.</p>
+
+      <ul style="margin-left:1rem;">
+        <li><strong>Free:</strong> up to 15 min per link, 5 links/day</li>
+        <li><strong>Pro:</strong> up to 7 days per link, higher limits</li>
+      </ul>
+
+      <!-- Ovo dugme kasnije poveži na stvarni checkout ili partner link -->
+      <div class="button-group">
+        <a href="#" class="btn btn-primary" id="buyProBtn">Buy Pro (get code)</a>
+      </div>
+
+      <p class="hint">After purchase you'll receive a Pro code. Enter it in the field above.</p>
     </section>
   </div>
 
