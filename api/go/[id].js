@@ -1,4 +1,3 @@
-// api/go.js
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = "https://xyfacudywygreaquvzjr.supabase.co";
@@ -8,7 +7,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default async function handler(req, res) {
   try {
-    const { id } = req.query;
+    const { id } = req.query;  // sada [id].js automatski daje parametar
 
     if (!id) {
       return res.status(400).send("Missing link ID");

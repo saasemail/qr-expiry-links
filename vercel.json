@@ -4,9 +4,9 @@
     { "src": "index.html", "use": "@vercel/static" },
     { "src": "styles.css", "use": "@vercel/static" },
     { "src": "ui.js", "use": "@vercel/static" },
-    { "src": "api/go.js", "use": "@vercel/node" }
+    { "src": "api/go/[id].js", "use": "@vercel/node" }
   ],
   "routes": [
-    { "src": "/go/(.*)", "dest": "/api/go.js" }
+    { "src": "/go/(.*)", "dest": "/api/go/[id].js" }
   ]
 }
