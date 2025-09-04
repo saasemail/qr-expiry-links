@@ -161,3 +161,66 @@ downloadBtn?.addEventListener("click", () => {
     alert("Could not download QR.");
   }
 });
+
+// ----- Pro modal -----
+const proModal = document.getElementById("proModal");
+const getProBtn = document.getElementById("getProBtn");
+const closeProModal = document.getElementById("closeProModal");
+
+function openModal() {
+  if (!proModal) return;
+  proModal.classList.add("open");
+  proModal.setAttribute("aria-hidden", "false");
+  // focus first focusable element inside
+  const first = proModal.querySelector(".plan-select, .modal-close, button, a, input");
+  (first || proModal.querySelector(".modal-card"))?.focus();
+  document.addEventListener("keydown", onEsc);
+  document.addEventListener("keydown", trapTab);
+}
+
+function closeModal() {
+  if (!proModal) return;
+  proModal.classList.remove("open");
+  proModal.setAttribute("aria-hidden", "true");
+  document.removeEventListener("keydown", onEsc);
+  document.removeEventListener("keydown", trapTab);
+  getProBtn?.focus();
+}
+
+function onEsc(e) {
+  if (e.key === "Escape") closeModal();
+}
+
+function trapTab(e) {
+  if (e.key !== "Tab" || !proModal.classList.contains("open")) return;
+  const focusables = proModal.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
+  if (!focusables.length) return;
+  const first = focusables[0];
+  const last = focusables[focusables.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    last.focus();
+    e.preventDefault();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    first.focus();
+    e.preventDefault();
+  }
+}
+
+getProBtn?.addEventListener("click", (e) => {
+  e.preventDefault();
+  openModal();
+});
+
+closeProModal?.addEventListener("click", closeModal);
+proModal?.addEventListener("click", (e) => {
+  if (e.target && e.target.matches(".modal-overlay,[data-close='modal']")) closeModal();
+});
+
+// Optional: when user clicks a plan, close modal and focus the Pro code input
+document.querySelectorAll(".plan-select").forEach((btn) => {
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    closeModal();
+    tokenInput?.focus();
+  });
+});

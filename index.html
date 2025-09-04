@@ -36,7 +36,7 @@
       </label>
 
       <div class="button-group">
-        <a href="#pro" class="btn btn-primary" id="getProBtn">Get Pro code</a>
+        <button type="button" class="btn btn-primary" id="getProBtn">Get Pro code</button>
       </div>
 
       <div class="button-group">
@@ -47,74 +47,73 @@
     <section class="card hidden" id="resultCard">
       <h2>Your Expiring Link</h2>
       <canvas id="qrcode"></canvas>
-
       <div class="button-group gap">
         <button class="btn btn-ghost" id="copyBtn">Copy link</button>
         <button class="btn btn-ghost" id="downloadBtn">Download QR</button>
       </div>
-
       <p><a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a></p>
       <p class="countdown" id="countdown"></p>
       <p class="hint" id="expiryHint"></p>
-    </section>
-
-    <!-- Pro plans (discreet, collapsible) -->
-    <section class="card" id="pro">
-      <h2>Upgrade to Pro</h2>
-      <p class="hint">Free: 60 min • 1 link/day — Pro unlocks longer duration and higher limits.</p>
-
-      <details>
-        <summary style="cursor:pointer; user-select:none; outline:none;">
-          Plans &amp; pricing
-        </summary>
-
-        <!-- Simple, responsive layout without extra CSS files -->
-        <div style="display:grid; gap:1rem; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); margin-top:1rem;">
-          <!-- PRO 1 -->
-          <div class="card" style="margin:0; text-align:center;">
-            <h3 style="margin:0 0 .5rem 0;">Pro 1</h3>
-            <p class="hint" style="margin:.25rem 0;">Up to <strong>24h</strong> per link</p>
-            <p class="hint" style="margin:.25rem 0;"><strong>5</strong> links/day</p>
-            <p class="hint" style="margin:.25rem 0;">Access window: <strong>7 days</strong></p>
-            <p style="font-size:1.25rem; font-weight:700; margin:.75rem 0;">$9</p>
-            <div class="button-group" style="margin-top:.5rem;">
-              <a href="#" class="btn btn-primary">Get code</a>
-            </div>
-          </div>
-
-          <!-- PRO 2 -->
-          <div class="card" style="margin:0; text-align:center;">
-            <h3 style="margin:0 0 .5rem 0;">Pro 2</h3>
-            <p class="hint" style="margin:.25rem 0;">Up to <strong>7 days</strong> per link</p>
-            <p class="hint" style="margin:.25rem 0;"><strong>Unlimited</strong> links</p>
-            <p class="hint" style="margin:.25rem 0;">Access window: <strong>30 days</strong></p>
-            <p style="font-size:1.25rem; font-weight:700; margin:.75rem 0;">$19</p>
-            <div class="button-group" style="margin-top:.5rem;">
-              <a href="#" class="btn btn-primary">Get code</a>
-            </div>
-          </div>
-
-          <!-- PRO 3 -->
-          <div class="card" style="margin:0; text-align:center;">
-            <h3 style="margin:0 0 .5rem 0;">Pro 3 (Lifetime)</h3>
-            <p class="hint" style="margin:.25rem 0;">Up to <strong>30 days</strong> per link</p>
-            <p class="hint" style="margin:.25rem 0;"><strong>Unlimited</strong> links</p>
-            <p class="hint" style="margin:.25rem 0;">Access window: <strong>Lifetime</strong></p>
-            <p style="font-size:1.25rem; font-weight:700; margin:.75rem 0;">$49</p>
-            <div class="button-group" style="margin-top:.5rem;">
-              <a href="#" class="btn btn-primary">Get code</a>
-            </div>
-          </div>
-        </div>
-      </details>
-
-      <p class="hint" style="margin-top:1rem;">After purchase you'll receive a Pro code. Enter it in the field above.</p>
     </section>
   </div>
 
   <footer class="footer">
     © 2025 QR Expiry Links — Simple no-login tool.
   </footer>
+
+  <!-- Pro plans modal -->
+  <div class="modal" id="proModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="proModalTitle">
+    <div class="modal-overlay" data-close="modal"></div>
+    <div class="modal-card" tabindex="-1">
+      <div class="modal-header">
+        <h2 id="proModalTitle">Upgrade to Pro</h2>
+        <button class="modal-close" id="closeProModal" aria-label="Close">×</button>
+      </div>
+
+      <p class="hint" style="text-align:left;margin-top:.25rem;">
+        Free: 60 min • 1 link/day — Pro unlocks longer duration and higher limits.
+      </p>
+
+      <div class="plan-grid">
+        <div class="plan">
+          <h3>Pro 1</h3>
+          <ul>
+            <li>Up to <strong>24h</strong> per link</li>
+            <li><strong>5</strong> links/day</li>
+            <li>Access window: <strong>7 days</strong></li>
+          </ul>
+          <div class="price">$9</div>
+          <button class="btn btn-primary plan-select" data-tier="1">Get code</button>
+        </div>
+
+        <div class="plan">
+          <h3>Pro 2</h3>
+          <ul>
+            <li>Up to <strong>7 days</strong> per link</li>
+            <li><strong>Unlimited</strong> links</li>
+            <li>Access window: <strong>30 days</strong></li>
+          </ul>
+          <div class="price">$19</div>
+          <button class="btn btn-primary plan-select" data-tier="2">Get code</button>
+        </div>
+
+        <div class="plan">
+          <h3>Pro 3 (Lifetime)</h3>
+          <ul>
+            <li>Up to <strong>30 days</strong> per link</li>
+            <li><strong>Unlimited</strong> links</li>
+            <li>Access window: <strong>Lifetime</strong></li>
+          </ul>
+          <div class="price">$49</div>
+          <button class="btn btn-primary plan-select" data-tier="3">Get code</button>
+        </div>
+      </div>
+
+      <p class="hint" style="margin-top:1rem;">
+        After purchase you'll receive a Pro code. Enter it in the field above.
+      </p>
+    </div>
+  </div>
 
   <script type="module" src="ui.js"></script>
 </body>
