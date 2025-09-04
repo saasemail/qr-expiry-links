@@ -30,32 +30,32 @@ export default async function handler(req, res) {
       req.socket?.remoteAddress ||
       "unknown";
 
-    // Package policy defaults (FREE)
-    const FREE_MAX_MINUTES = 60;          // 1h
-    const FREE_DAILY_LIMIT = 1;           // 1 link/day
-    const TIER1_MAX = 60 * 24;            // 24h
-    const TIER2_MAX = 60 * 24 * 7;        // 7 days
-    const TIER3_MAX = 60 * 24 * 30;       // 30 days (lifetime per-link cap)
+    // Plans policy
+    const FREE_MAX_MINUTES = 60;           // 1h
+    const FREE_DAILY_LIMIT = 1;            // 1 link/day
+    const TIER1_MAX = 60 * 24;             // 24h
+    const TIER2_MAX = 60 * 24 * 7;         // 7 days
+    const TIER3_MAX = 60 * 24 * 30;        // 30 days
 
     let plan = "free";
     let tier = null;
     let maxMinutes = FREE_MAX_MINUTES;
     let dailyLimit = FREE_DAILY_LIMIT;
 
+    // PRO token (valid & not expired)
     if (token) {
       try {
-        const { data: tok } = await admin
+        const { data: tok, error } = await admin
           .from("tokens")
           .select("plan, tier, max_minutes, daily_limit, expires_at")
           .eq("token", token)
           .gt("expires_at", new Date().toISOString())
           .maybeSingle();
 
-        if (tok?.plan === "pro") {
+        if (!error && tok?.plan === "pro") {
           plan = "pro";
           tier = tok?.tier ?? null;
 
-          // Determine max per-link duration
           if (Number.isFinite(tok?.max_minutes)) {
             maxMinutes = tok.max_minutes;
           } else if (tier === 1) {
@@ -65,10 +65,9 @@ export default async function handler(req, res) {
           } else if (tier === 3) {
             maxMinutes = TIER3_MAX;
           } else {
-            maxMinutes = TIER2_MAX; // default Pro if tier missing
+            maxMinutes = TIER2_MAX;
           }
 
-          // Determine daily limit
           if (tok?.daily_limit === null) {
             dailyLimit = null;
           } else if (Number.isFinite(tok?.daily_limit)) {
@@ -76,7 +75,7 @@ export default async function handler(req, res) {
           } else if (tier === 1) {
             dailyLimit = 5;
           } else {
-            dailyLimit = null; // unlimited for tier2/tier3
+            dailyLimit = null;
           }
         }
       } catch (e) {
@@ -84,50 +83,61 @@ export default async function handler(req, res) {
       }
     }
 
-    // Enforce daily limit if applicable
+    // Daily limit (if any)
     if (dailyLimit !== null) {
       try {
         const dayStart = new Date();
         dayStart.setUTCHours(0, 0, 0, 0);
 
-        const { count } = await admin
+        const { count, error: cntErr } = await admin
           .from("links")
           .select("*", { count: "exact", head: true })
           .eq("creator_ip", ip)
           .gte("created_at", dayStart.toISOString());
 
-        if ((count ?? 0) >= dailyLimit) {
-          return res
-            .status(429)
-            .send(`Daily limit reached (${dailyLimit}/day).`);
+        if (!cntErr && (count ?? 0) >= dailyLimit) {
+          return res.status(429).send(`Daily limit reached (${dailyLimit}/day).`);
         }
       } catch (e) {
-        console.warn("[create] daily limit check skipped:", e?.message);
+        console.warn("[create] daily-limit check skipped:", e?.message);
       }
     }
 
-    // Clamp requested minutes to per-plan maximum
+    // Clamp minutes by plan
     if (Number.isFinite(maxMinutes) && minutes > maxMinutes) {
       minutes = maxMinutes;
     }
     const expiresAt = new Date(Date.now() + minutes * 60_000).toISOString();
 
-    // Insert with extended fields; fallback to minimal if schema lacks columns
+    // Try full insert first
     let row = null;
+    let firstErr = null;
     try {
-      const { data } = await admin
+      const { data, error } = await admin
         .from("links")
-        .insert([{ url, expires_at: expiresAt, creator_ip: ip, plan, tier }])
+        .insert([{ url, expires_at: expiresAt, creator_ip: ip, plan: plan || "free", tier }])
         .select("id, expires_at")
         .single();
+      if (error) throw error;
       row = data;
-    } catch {
-      const { data } = await admin
-        .from("links")
-        .insert([{ url, expires_at: expiresAt }])
-        .select("id, expires_at")
-        .single();
-      row = data;
+    } catch (e) {
+      firstErr = e;
+      console.error("[create] full insert error:", normalizeErr(e));
+    }
+
+    // Fallback: minimal insert (lets defaults kick in)
+    if (!row) {
+      try {
+        const { data, error } = await admin
+          .from("links")
+          .insert([{ url, expires_at: expiresAt, plan: plan || "free" }])
+          .select("id, expires_at")
+          .single();
+        if (error) throw error;
+        row = data;
+      } catch (e2) {
+        console.error("[create] minimal insert error:", normalizeErr(e2));
+      }
     }
 
     if (!row) {
@@ -140,7 +150,7 @@ export default async function handler(req, res) {
       .status(200)
       .send(JSON.stringify({ id: row.id, expires_at: row.expires_at, plan, tier, minutes }));
   } catch (e) {
-    console.error("[create] ERROR", e);
+    console.error("[create] ERROR", normalizeErr(e));
     return res.status(500).send("Internal Server Error");
   }
 }
@@ -157,4 +167,10 @@ function readJson(req) {
       }
     });
   });
+}
+
+function normalizeErr(e) {
+  if (!e) return "unknown";
+  if (e.message) return e.message;
+  try { return JSON.stringify(e); } catch { return String(e); }
 }
