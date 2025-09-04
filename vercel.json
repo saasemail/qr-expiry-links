@@ -1,4 +1,5 @@
 {
+  "version": 2,
   "rewrites": [
     { "source": "/go/:id", "destination": "/api/go?id=:id" }
   ]
