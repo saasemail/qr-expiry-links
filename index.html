@@ -11,7 +11,6 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 </head>
 <body>
-  <!-- Header -->
   <nav class="navbar">
     <h1>QR Expiry Links</h1>
   </nav>
@@ -19,7 +18,6 @@
   <div class="container">
     <p class="subtitle">Generate shareable QR codes with automatic expiry.</p>
 
-    <!-- Form -->
     <section class="card">
       <label>
         Enter URL:
@@ -29,7 +27,7 @@
       <label>
         Expiry (minutes):
         <input type="number" id="expiryInput" min="1" value="10" />
-        <span class="hint">Free: up to 15 min • Pro: up to 7 days</span>
+        <span class="hint">Free: up to 60 min • Pro1: up to 24h • Pro2: up to 7 days • Pro3: up to 30 days</span>
       </label>
 
       <label>
@@ -37,7 +35,6 @@
         <input type="text" id="tokenInput" placeholder="Enter Pro code" />
       </label>
 
-      <!-- Get Pro code button (scrolls to payment section) -->
       <div class="button-group">
         <a href="#pro" class="btn btn-primary" id="getProBtn">Get Pro code</a>
       </div>
@@ -47,39 +44,40 @@
       </div>
     </section>
 
-    <!-- Output -->
     <section class="card hidden" id="resultCard">
       <h2>Your Expiring Link</h2>
       <canvas id="qrcode"></canvas>
+
+      <div class="button-group gap">
+        <button class="btn btn-ghost" id="copyBtn">Copy link</button>
+        <button class="btn btn-ghost" id="downloadBtn">Download QR</button>
+      </div>
+
       <p><a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a></p>
+      <p class="countdown" id="countdown"></p>
       <p class="hint" id="expiryHint"></p>
     </section>
 
-    <!-- Payment / Pro section -->
     <section class="card" id="pro">
       <h2>Upgrade to Pro</h2>
       <p class="hint">Unlock longer link duration and higher limits.</p>
-
       <ul style="margin-left:1rem;">
-        <li><strong>Free:</strong> up to 15 min per link, 5 links/day</li>
-        <li><strong>Pro:</strong> up to 7 days per link, higher limits</li>
+        <li><strong>Free:</strong> up to 60 min per link, 1 link/day</li>
+        <li><strong>Pro 1:</strong> up to 24h per link, 5 links/day</li>
+        <li><strong>Pro 2:</strong> up to 7 days per link, unlimited links</li>
+        <li><strong>Pro 3 (lifetime):</strong> up to 30 days per link, unlimited links</li>
       </ul>
-
-      <!-- Ovo dugme kasnije poveži na stvarni checkout ili partner link -->
       <div class="button-group">
         <a href="#" class="btn btn-primary" id="buyProBtn">Buy Pro (get code)</a>
       </div>
-
       <p class="hint">After purchase you'll receive a Pro code. Enter it in the field above.</p>
     </section>
   </div>
 
-  <!-- Footer -->
   <footer class="footer">
     © 2025 QR Expiry Links — Simple no-login tool.
   </footer>
 
-  <!-- Scripts -->
   <script type="module" src="ui.js"></script>
 </body>
 </html>
