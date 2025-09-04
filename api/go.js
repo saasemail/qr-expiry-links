@@ -10,7 +10,8 @@ export default async function handler(req, res) {
       return res.status(500).send("Server not configured");
     }
 
-    // id can come from query (?id=) via rewrite, or from the pathname as a fallback
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+
     const u = new URL(req.url, `http://${req.headers.host}`);
     let id = u.searchParams.get("id");
     if (!id) {
@@ -19,7 +20,11 @@ export default async function handler(req, res) {
     }
     if (!id) return res.status(400).send("Missing link ID");
 
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    const ip =
+      (req.headers["x-forwarded-for"] || "").toString().split(",")[0].trim() ||
+      req.socket?.remoteAddress ||
+      "unknown";
+    const ua = (req.headers["user-agent"] || "").slice(0, 300);
 
     const { data, error } = await admin
       .from("links")
@@ -37,11 +42,32 @@ export default async function handler(req, res) {
       console.error("[go] invalid expires_at:", data.expires_at);
       return res.status(500).send("Invalid expiry on record");
     }
+
     if (Date.now() > expiresAt) {
+      try {
+        await admin.from("link_events").insert([{
+          link_id: id,
+          event: "expired",
+          ip,
+          user_agent: ua
+        }]);
+      } catch (e) {
+        console.warn("[go] event log (expired) failed:", e?.message || e);
+      }
       return res.status(410).send("This link has expired");
     }
 
-    // redirect
+    try {
+      await admin.from("link_events").insert([{
+        link_id: id,
+        event: "hit",
+        ip,
+        user_agent: ua
+      }]);
+    } catch (e) {
+      console.warn("[go] event log (hit) failed:", e?.message || e);
+    }
+
     res.setHeader("Cache-Control", "no-store");
     res.writeHead(302, { Location: data.url });
     res.end();

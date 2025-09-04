@@ -29,6 +29,7 @@ export default async function handler(req, res) {
       (req.headers["x-forwarded-for"] || "").toString().split(",")[0].trim() ||
       req.socket?.remoteAddress ||
       "unknown";
+    const ua = (req.headers["user-agent"] || "").slice(0, 300);
 
     // Plans policy
     const FREE_MAX_MINUTES = 60;           // 1h
@@ -109,7 +110,7 @@ export default async function handler(req, res) {
     }
     const expiresAt = new Date(Date.now() + minutes * 60_000).toISOString();
 
-    // Try full insert first
+    // Insert link
     let row = null;
     let firstErr = null;
     try {
@@ -125,7 +126,7 @@ export default async function handler(req, res) {
       console.error("[create] full insert error:", normalizeErr(e));
     }
 
-    // Fallback: minimal insert (lets defaults kick in)
+    // Fallback: minimal insert
     if (!row) {
       try {
         const { data, error } = await admin
@@ -143,6 +144,20 @@ export default async function handler(req, res) {
     if (!row) {
       console.error("[create] insert failed");
       return res.status(500).send("Create failed");
+    }
+
+    // Log event: create (best-effort)
+    try {
+      await admin.from("link_events").insert([{
+        link_id: row.id,
+        event: "create",
+        ip,
+        user_agent: ua,
+        plan,
+        tier
+      }]);
+    } catch (e) {
+      console.warn("[create] event log failed:", normalizeErr(e));
     }
 
     res.setHeader("Content-Type", "application/json");
