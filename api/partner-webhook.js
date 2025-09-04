@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 
 const TIER_LIMITS = {
-  1: { max_minutes: 60 * 24, daily_limit: 5, access_days: 7 },
+  1: { max_minutes: 60 * 24,     daily_limit: 5,    access_days: 7 },
   2: { max_minutes: 60 * 24 * 7, daily_limit: null, access_days: 30 },
   3: { max_minutes: 60 * 24 * 30, daily_limit: null, access_days: 36500 } // ~lifetime
 };
@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
     const SUPABASE_URL = process.env.SUPABASE_URL;
     const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const PARTNER_WEBHOOK_SECRET = process.env.PARTNER_WEBHOOK_SECRET; // set in Vercel env
+    const PARTNER_WEBHOOK_SECRET = process.env.PARTNER_WEBHOOK_SECRET;
 
     if (!SUPABASE_URL || !SERVICE_ROLE || !PARTNER_WEBHOOK_SECRET) {
       return res.status(500).send("Server not configured");
@@ -22,11 +22,15 @@ export default async function handler(req, res) {
 
     const raw = await readRaw(req);
     const sig = req.headers["x-signature"] || "";
-    const ok = verifyHmac(raw, PARTNER_WEBHOOK_SECRET, sig);
-    if (!ok) return res.status(401).send("Invalid signature");
+    if (!verifyHmac(raw, PARTNER_WEBHOOK_SECRET, sig)) {
+      return res.status(401).send("Invalid signature");
+    }
 
     const body = JSON.parse(raw);
-    const { order_id, tier, email } = body || {};
+    const { order_id, tier, email, session_id } = body || {};
+    const meta = body?.metadata || {};
+    const sessionId = String(session_id || meta.sessionId || "").trim() || null;
+
     if (!order_id || !tier || !TIER_LIMITS[tier]) {
       return res.status(400).send("Bad payload");
     }
@@ -39,7 +43,6 @@ export default async function handler(req, res) {
         ? new Date("9999-12-31T00:00:00.000Z").toISOString()
         : new Date(Date.now() + access_days * 24 * 60 * 60 * 1000).toISOString();
 
-    // generate token (hex)
     const token = crypto.randomBytes(16).toString("hex");
 
     const { error } = await admin.from("tokens").insert([{
@@ -48,13 +51,20 @@ export default async function handler(req, res) {
       tier,
       max_minutes,
       daily_limit,
-      expires_at
+      expires_at,
+      session_id: sessionId
     }]);
     if (error) throw error;
 
-    // You can notify partner back, or just return JSON
     res.setHeader("Content-Type", "application/json");
-    return res.status(200).send(JSON.stringify({ ok: true, token, order_id, tier, email: email || null }));
+    return res.status(200).send(JSON.stringify({
+      ok: true,
+      token,
+      order_id,
+      tier,
+      session_id: sessionId,
+      email: email || null
+    }));
   } catch (e) {
     console.error("[partner-webhook] ERROR", e?.message || e);
     return res.status(500).send("Internal Server Error");

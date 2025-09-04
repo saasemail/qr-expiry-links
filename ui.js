@@ -1,4 +1,4 @@
-// ui.js — QR Expiry Links (Free vs Pro via /api/create)
+// ui.js — QR Expiry Links (Free vs Pro via /api/create + checkout session flow)
 
 const urlInput = document.getElementById("urlInput");
 const expiryInput = document.getElementById("expiryInput");
@@ -14,9 +14,24 @@ const countdownEl = document.getElementById("countdown");
 const copyBtn = document.getElementById("copyBtn");
 const downloadBtn = document.getElementById("downloadBtn");
 
+// Pro modal
+const proModal = document.getElementById("proModal");
+const getProBtn = document.getElementById("getProBtn");
+const closeProModal = document.getElementById("closeProModal");
+
+// Success modal
+const successModal = document.getElementById("successModal");
+const closeSuccessModal = document.getElementById("closeSuccessModal");
+const successTokenEl = document.getElementById("successToken");
+const successCopyBtn = document.getElementById("successCopyBtn");
+const successApplyBtn = document.getElementById("successApplyBtn");
+const resendLink = document.getElementById("resendLink");
+
 let expiryTimer;
 let countdownTimer;
 let lastRedirectUrl = "";
+let statusPollTimer = null;
+let currentSessionId = null;
 
 function setLoading(state) {
   generateBtn.disabled = state;
@@ -31,6 +46,10 @@ async function createLink(url, minutes, token) {
   });
 
   if (!resp.ok) {
+    if (resp.status === 429) {
+      const msg = await resp.text();
+      throw new Error(msg || "Daily limit reached on your plan.");
+    }
     const text = await resp.text();
     try {
       const maybeJson = JSON.parse(text);
@@ -160,10 +179,6 @@ downloadBtn?.addEventListener("click", () => {
 });
 
 // ----- Pro modal -----
-const proModal = document.getElementById("proModal");
-const getProBtn = document.getElementById("getProBtn");
-const closeProModal = document.getElementById("closeProModal");
-
 function openModal() {
   if (!proModal) return;
   proModal.classList.add("open");
@@ -212,37 +227,147 @@ proModal?.addEventListener("click", (e) => {
   if (e.target && e.target.matches(".modal-overlay,[data-close='modal']")) closeModal();
 });
 
-// When user clicks a plan, call checkout hook; partner will replace this later.
+// When user clicks a plan: start checkout session and polling
 document.querySelectorAll(".plan-select").forEach((btn) => {
-  btn.addEventListener("click", (e) => {
+  btn.addEventListener("click", async (e) => {
     e.preventDefault();
     const tier = Number(btn.dataset.tier || 0);
-    if (tier) window.openCheckout?.(tier);
+    if (!tier) return;
+    await window.openCheckout?.(tier);
     closeModal();
     tokenInput?.focus();
   });
 });
 
-// ---- Partner checkout hook (fallback = email) ----
-window.openCheckout = function (tier) {
-  // Replace the email with your real contact.
-  const mail = "support@qr.expire.links.com";
+// ----- Partner checkout hook (session + polling) -----
+window.openCheckout = async function (tier) {
+  try {
+    const r = await fetch("/api/checkout-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tier })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const { session_id } = await r.json();
+    currentSessionId = session_id;
 
-  const subjects = {
-    1: "QR Expiry Links - Tier 1",
-    2: "QR Expiry Links - Tier 2",
-    3: "QR Expiry Links - Tier 3 (Lifetime)"
-  };
-  const bodies = {
-    1: "I want Tier 1 (24h per link, 5/day). Please send payment instructions and my Pro code.",
-    2: "I want Tier 2 (7 days per link, unlimited). Please send payment instructions and my Pro code.",
-    3: "I want Tier 3 (30 days per link, unlimited, lifetime access). Please send payment instructions and my Pro code."
-  };
-
-  const s = encodeURIComponent(subjects[tier] || "QR Expiry Links - Pro");
-  const b = encodeURIComponent(bodies[tier] || "Please send payment instructions and my Pro code.");
-  location.href = `mailto:${mail}?subject=${s}&body=${b}`;
-
-  // Later, partner can override this:
-  // window.openCheckout = (tier) => PartnerSDK.openCheckout({ tier })
+    startStatusPolling(session_id);
+  } catch (e) {
+    alert("Could not start checkout session.");
+    console.error(e);
+  }
 };
+
+function startStatusPolling(sessionId) {
+  stopStatusPolling();
+  let attempts = 0;
+  statusPollTimer = setInterval(async () => {
+    try {
+      attempts++;
+      const r = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(sessionId)}`);
+      if (!r.ok) return;
+      const data = await r.json();
+      if (data?.ready && data?.token) {
+        stopStatusPolling();
+        showSuccessModal(data.token, sessionId);
+      }
+      // Optional timeout: if (attempts > 120) stopStatusPolling();
+    } catch {
+      // ignore transient errors
+    }
+  }, 2000);
+}
+
+function stopStatusPolling() {
+  if (statusPollTimer) {
+    clearInterval(statusPollTimer);
+    statusPollTimer = null;
+  }
+}
+
+// ----- Success modal -----
+function openSuccess() {
+  if (!successModal) return;
+  successModal.classList.add("open");
+  successModal.setAttribute("aria-hidden", "false");
+  const first = successModal.querySelector(".modal-close, button, a, input");
+  (first || successModal.querySelector(".modal-card"))?.focus();
+  document.addEventListener("keydown", onEscSuccess);
+  document.addEventListener("keydown", trapTabSuccess);
+}
+
+function closeSuccess() {
+  if (!successModal) return;
+  successModal.classList.remove("open");
+  successModal.setAttribute("aria-hidden", "true");
+  document.removeEventListener("keydown", onEscSuccess);
+  document.removeEventListener("keydown", trapTabSuccess);
+}
+
+function onEscSuccess(e) {
+  if (e.key === "Escape") closeSuccess();
+}
+
+function trapTabSuccess(e) {
+  if (e.key !== "Tab" || !successModal.classList.contains("open")) return;
+  const focusables = successModal.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
+  if (!focusables.length) return;
+  const first = focusables[0];
+  const last = focusables[focusables.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    last.focus();
+    e.preventDefault();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    first.focus();
+    e.preventDefault();
+  }
+}
+
+function showSuccessModal(token, sessionId) {
+  successTokenEl.textContent = token;
+
+  try {
+    localStorage.setItem("pro_token", token);
+  } catch {}
+
+  if (resendLink) {
+    const subject = encodeURIComponent("QR Expiry Links - Resend my code");
+    const body = encodeURIComponent(`Hello,\nI completed the payment. My sessionId is: ${sessionId}\nPlease resend my Pro code.`);
+    resendLink.href = `mailto:support@example.com?subject=${subject}&body=${body}`;
+  }
+
+  openSuccess();
+}
+
+successCopyBtn?.addEventListener("click", async () => {
+  try {
+    const t = successTokenEl?.textContent || "";
+    if (!t) return;
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(t);
+      successCopyBtn.textContent = "Copied!";
+      setTimeout(() => (successCopyBtn.textContent = "Copy"), 1200);
+    }
+  } catch {}
+});
+
+successApplyBtn?.addEventListener("click", () => {
+  try {
+    const t = successTokenEl?.textContent || "";
+    if (!t) return;
+    tokenInput.value = t;
+    closeSuccess();
+    tokenInput.focus();
+  } catch {}
+});
+
+closeSuccessModal?.addEventListener("click", closeSuccess);
+successModal?.addEventListener("click", (e) => {
+  if (e.target && e.target.matches(".modal-overlay,[data-close='success']")) closeSuccess();
+});
+
+// Prefill from localStorage on load
+try {
+  const saved = localStorage.getItem("pro_token");
+  if (saved && tokenInput && !tokenInput.value) tokenInput.value = saved;
+} catch {}

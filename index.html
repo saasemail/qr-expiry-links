@@ -14,7 +14,6 @@
   <!-- Navbar -->
   <nav class="navbar">
     <h1>QR Expiry Links</h1>
-    <!-- Pricing button on the right; reuses existing modal opener via getProBtn click -->
     <button class="btn btn-ghost" style="margin-left:auto" onclick="document.getElementById('getProBtn')?.click()">
       Pricing
     </button>
@@ -33,7 +32,6 @@
       <label>
         Expiry (minutes):
         <input type="number" id="expiryInput" min="1" value="10" />
-        <!-- hint removed per request -->
       </label>
 
       <label>
@@ -54,12 +52,10 @@
     <section class="card hidden" id="resultCard">
       <h2>Your Expiring Link</h2>
       <canvas id="qrcode"></canvas>
-
       <div class="button-group gap">
         <button class="btn btn-ghost" id="copyBtn">Copy link</button>
         <button class="btn btn-ghost" id="downloadBtn">Download QR</button>
       </div>
-
       <p><a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a></p>
       <p class="countdown" id="countdown"></p>
       <p class="hint" id="expiryHint"></p>
@@ -121,6 +117,34 @@
 
       <p class="hint" style="margin-top:1rem;">
         After purchase you'll receive a Pro code. Enter it in the field above.
+      </p>
+    </div>
+  </div>
+
+  <!-- Success modal -->
+  <div class="modal" id="successModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="successModalTitle">
+    <div class="modal-overlay" data-close="success"></div>
+    <div class="modal-card" tabindex="-1">
+      <div class="modal-header">
+        <h2 id="successModalTitle">Pro code ready 🎉</h2>
+        <button class="modal-close" id="closeSuccessModal" aria-label="Close">×</button>
+      </div>
+
+      <p class="hint" style="text-align:left;margin-top:.25rem;">
+        Your Pro code is ready. You can copy it or apply directly.
+      </p>
+
+      <div class="card" style="margin:1rem 0; text-align:center;">
+        <code id="successToken" style="font-size:1.1rem; word-break:break-all;"></code>
+      </div>
+
+      <div class="button-group gap">
+        <button class="btn btn-ghost" id="successCopyBtn">Copy</button>
+        <button class="btn btn-primary" id="successApplyBtn">Apply</button>
+      </div>
+
+      <p class="hint" style="margin-top:1rem;">
+        Didn’t see the code appear? <a href="#" id="resendLink">Resend my code</a>
       </p>
     </div>
   </div>
