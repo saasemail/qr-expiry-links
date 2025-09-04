@@ -58,19 +58,57 @@
       <p class="hint" id="expiryHint"></p>
     </section>
 
+    <!-- Pro plans (discreet, collapsible) -->
     <section class="card" id="pro">
       <h2>Upgrade to Pro</h2>
-      <p class="hint">Unlock longer link duration and higher limits.</p>
-      <ul style="margin-left:1rem;">
-        <li><strong>Free:</strong> up to 60 min per link, 1 link/day</li>
-        <li><strong>Pro 1:</strong> up to 24h per link, 5 links/day</li>
-        <li><strong>Pro 2:</strong> up to 7 days per link, unlimited links</li>
-        <li><strong>Pro 3 (lifetime):</strong> up to 30 days per link, unlimited links</li>
-      </ul>
-      <div class="button-group">
-        <a href="#" class="btn btn-primary" id="buyProBtn">Buy Pro (get code)</a>
-      </div>
-      <p class="hint">After purchase you'll receive a Pro code. Enter it in the field above.</p>
+      <p class="hint">Free: 60 min • 1 link/day — Pro unlocks longer duration and higher limits.</p>
+
+      <details>
+        <summary style="cursor:pointer; user-select:none; outline:none;">
+          Plans &amp; pricing
+        </summary>
+
+        <!-- Simple, responsive layout without extra CSS files -->
+        <div style="display:grid; gap:1rem; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); margin-top:1rem;">
+          <!-- PRO 1 -->
+          <div class="card" style="margin:0; text-align:center;">
+            <h3 style="margin:0 0 .5rem 0;">Pro 1</h3>
+            <p class="hint" style="margin:.25rem 0;">Up to <strong>24h</strong> per link</p>
+            <p class="hint" style="margin:.25rem 0;"><strong>5</strong> links/day</p>
+            <p class="hint" style="margin:.25rem 0;">Access window: <strong>7 days</strong></p>
+            <p style="font-size:1.25rem; font-weight:700; margin:.75rem 0;">$9</p>
+            <div class="button-group" style="margin-top:.5rem;">
+              <a href="#" class="btn btn-primary">Get code</a>
+            </div>
+          </div>
+
+          <!-- PRO 2 -->
+          <div class="card" style="margin:0; text-align:center;">
+            <h3 style="margin:0 0 .5rem 0;">Pro 2</h3>
+            <p class="hint" style="margin:.25rem 0;">Up to <strong>7 days</strong> per link</p>
+            <p class="hint" style="margin:.25rem 0;"><strong>Unlimited</strong> links</p>
+            <p class="hint" style="margin:.25rem 0;">Access window: <strong>30 days</strong></p>
+            <p style="font-size:1.25rem; font-weight:700; margin:.75rem 0;">$19</p>
+            <div class="button-group" style="margin-top:.5rem;">
+              <a href="#" class="btn btn-primary">Get code</a>
+            </div>
+          </div>
+
+          <!-- PRO 3 -->
+          <div class="card" style="margin:0; text-align:center;">
+            <h3 style="margin:0 0 .5rem 0;">Pro 3 (Lifetime)</h3>
+            <p class="hint" style="margin:.25rem 0;">Up to <strong>30 days</strong> per link</p>
+            <p class="hint" style="margin:.25rem 0;"><strong>Unlimited</strong> links</p>
+            <p class="hint" style="margin:.25rem 0;">Access window: <strong>Lifetime</strong></p>
+            <p style="font-size:1.25rem; font-weight:700; margin:.75rem 0;">$49</p>
+            <div class="button-group" style="margin-top:.5rem;">
+              <a href="#" class="btn btn-primary">Get code</a>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <p class="hint" style="margin-top:1rem;">After purchase you'll receive a Pro code. Enter it in the field above.</p>
     </section>
   </div>
 
