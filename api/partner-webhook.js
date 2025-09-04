@@ -95,3 +95,47 @@ function timingSafeEqual(a, b) {
   if (ab.length !== bb.length) return false;
   return crypto.timingSafeEqual(ab, bb);
 }
+
+// ...gore ostaje isto...
+
+const body = JSON.parse(raw);
+const t = Number(body?.tier);             // <— kast
+const { order_id, email, session_id } = body || {};
+const meta = body?.metadata || {};
+const sessionId = String(session_id || meta.sessionId || "").trim() || null;
+
+if (!order_id || !t || !TIER_LIMITS[t]) {
+  return res.status(400).send("Bad payload");
+}
+
+const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+const { max_minutes, daily_limit, access_days } = TIER_LIMITS[t];
+
+// ...expires_at ostaje isto...
+
+const token = crypto.randomBytes(16).toString("hex");
+
+// Idempotentno: ako stigne dupli webhook sa istim session_id, ne puca
+const { error } = await admin
+  .from("tokens")
+  .upsert([{
+    token,
+    plan: "pro",
+    tier: t,
+    max_minutes,
+    daily_limit,
+    expires_at,
+    session_id: sessionId
+  }], { onConflict: "session_id", ignoreDuplicates: false });
+
+if (error) throw error;
+
+res.setHeader("Content-Type", "application/json");
+return res.status(200).send(JSON.stringify({
+  ok: true,
+  token,
+  order_id,
+  tier: t,
+  session_id: sessionId,
+  email: email || null
+}));
