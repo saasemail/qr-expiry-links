@@ -63,7 +63,6 @@ function startCountdown(isoExpires) {
     if (left <= 0) {
       clearInterval(countdownTimer);
       countdownEl.textContent = "Expired";
-      // Also clear visuals
       const ctx = qrcodeCanvas.getContext("2d");
       ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
       generatedLink.textContent = "";
@@ -109,7 +108,6 @@ generateBtn.addEventListener("click", async () => {
     const endLocal = new Date(created.expires_at);
     expiryHint.textContent = `Plan: ${(created.plan || "free").toUpperCase()} • Expires in ${created.minutes} min • Until ${endLocal.toLocaleString()}`;
 
-    // Visual timeout
     expiryTimer = setTimeout(() => {
       const ctx = qrcodeCanvas.getContext("2d");
       ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
@@ -118,7 +116,6 @@ generateBtn.addEventListener("click", async () => {
       countdownEl.textContent = "Expired";
     }, created.minutes * 60_000);
 
-    // Live countdown
     startCountdown(created.expires_at);
   } catch (err) {
     console.error("Create error:", err);
@@ -171,7 +168,6 @@ function openModal() {
   if (!proModal) return;
   proModal.classList.add("open");
   proModal.setAttribute("aria-hidden", "false");
-  // focus first focusable element inside
   const first = proModal.querySelector(".plan-select, .modal-close, button, a, input");
   (first || proModal.querySelector(".modal-card"))?.focus();
   document.addEventListener("keydown", onEsc);
@@ -216,11 +212,37 @@ proModal?.addEventListener("click", (e) => {
   if (e.target && e.target.matches(".modal-overlay,[data-close='modal']")) closeModal();
 });
 
-// Optional: when user clicks a plan, close modal and focus the Pro code input
+// When user clicks a plan, call checkout hook; partner will replace this later.
 document.querySelectorAll(".plan-select").forEach((btn) => {
   btn.addEventListener("click", (e) => {
     e.preventDefault();
+    const tier = Number(btn.dataset.tier || 0);
+    if (tier) window.openCheckout?.(tier);
     closeModal();
     tokenInput?.focus();
   });
 });
+
+// ---- Partner checkout hook (fallback = email) ----
+window.openCheckout = function (tier) {
+  // Replace the email with your real contact.
+  const mail = "support@qr.expire.links.com";
+
+  const subjects = {
+    1: "QR Expiry Links - Tier 1",
+    2: "QR Expiry Links - Tier 2",
+    3: "QR Expiry Links - Tier 3 (Lifetime)"
+  };
+  const bodies = {
+    1: "I want Tier 1 (24h per link, 5/day). Please send payment instructions and my Pro code.",
+    2: "I want Tier 2 (7 days per link, unlimited). Please send payment instructions and my Pro code.",
+    3: "I want Tier 3 (30 days per link, unlimited, lifetime access). Please send payment instructions and my Pro code."
+  };
+
+  const s = encodeURIComponent(subjects[tier] || "QR Expiry Links - Pro");
+  const b = encodeURIComponent(bodies[tier] || "Please send payment instructions and my Pro code.");
+  location.href = `mailto:${mail}?subject=${s}&body=${b}`;
+
+  // Later, partner can override this:
+  // window.openCheckout = (tier) => PartnerSDK.openCheckout({ tier })
+};
