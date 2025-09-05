@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Auth — QR Expiry Links</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container" style="max-width:520px;">
+    <section class="card" id="stateBox">
+      <h2 id="title">Authenticating…</h2>
+      <p class="hint" id="desc">Please wait a moment.</p>
+
+      <div id="resetBox" style="display:none; margin-top:1rem;">
+        <label>
+          New password
+          <input type="password" id="newPwd1" placeholder="New password" autocomplete="new-password" />
+        </label>
+        <label>
+          Repeat new password
+          <input type="password" id="newPwd2" placeholder="Repeat new password" autocomplete="new-password" />
+        </label>
+        <div class="button-group">
+          <button class="btn btn-primary" id="doReset">Update password</button>
+        </div>
+        <p class="hint" id="resetHint" style="text-align:center;"></p>
+      </div>
+
+      <div id="goHome" class="button-group" style="display:none; margin-top:1rem;">
+        <a class="btn btn-primary" href="/">Return to app</a>
+      </div>
+    </section>
+  </div>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    const SUPABASE_URL = window.NEXT_PUBLIC_SUPABASE_URL || "https://xyfacudywygreaquvzjr.supabase.co";
+    const SUPABASE_ANON_KEY = window.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjQ3MDcsImV4cCI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
+
+    const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const title = document.getElementById("title");
+    const desc  = document.getElementById("desc");
+    const resetBox = document.getElementById("resetBox");
+    const goHome = document.getElementById("goHome");
+    const newPwd1 = document.getElementById("newPwd1");
+    const newPwd2 = document.getElementById("newPwd2");
+    const doReset = document.getElementById("doReset");
+    const resetHint = document.getElementById("resetHint");
+
+    function showHome(msgTitle, msgDesc) {
+      title.textContent = msgTitle;
+      desc.textContent = msgDesc || "";
+      resetBox.style.display = "none";
+      goHome.style.display = "";
+    }
+
+    function showReset() {
+      title.textContent = "Reset password";
+      desc.textContent = "Enter a new password for your account.";
+      resetBox.style.display = "";
+      goHome.style.display = "none";
+    }
+
+    async function run() {
+      try {
+        // VAŽNO: prosledi ceo URL nazad Supabase-u da razmeni code/hash za sesiju
+        await supa.auth.exchangeCodeForSession(window.location.href);
+      } catch (e) {
+        // ako već postoji sesija, ovo može da baci grešku — ignorišemo
+      }
+
+      const url = new URL(window.location.href);
+      const type = url.searchParams.get("type") ||
+                   (url.hash.includes("type=recovery") ? "recovery" : null);
+
+      if (type === "recovery") {
+        showReset();
+      } else {
+        showHome("You're signed in", "You can safely return to the app.");
+        // opciono auto-redirect posle kratkog delay-a:
+        setTimeout(() => (window.location.href = "/"), 900);
+      }
+    }
+
+    doReset?.addEventListener("click", async () => {
+      resetHint.textContent = "";
+      const p1 = newPwd1.value;
+      const p2 = newPwd2.value;
+      if (!p1 || !p2) { resetHint.textContent = "Enter and repeat the new password."; return; }
+      if (p1 !== p2) { resetHint.textContent = "Passwords do not match."; return; }
+      if (p1.length < 6) { resetHint.textContent = "Password must be at least 6 characters."; return; }
+
+      try {
+        const { error } = await supa.auth.updateUser({ password: p1 });
+        if (error) { resetHint.textContent = error.message || "Could not update password."; return; }
+        showHome("Password updated", "You can now log in with your new password.");
+      } catch {
+        resetHint.textContent = "Could not update password.";
+      }
+    });
+
+    run();
+  </script>
+</body>
+</html>

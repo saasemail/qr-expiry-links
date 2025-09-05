@@ -103,31 +103,33 @@ supa.auth.onAuthStateChange(async (event) => {
   await refreshAuthUI();
 });
 
-// --- NEW: handle auth redirects (magic link, confirm signup, password recovery)
+// Handle auth redirects on THIS page too (if link ipak dođe na index)
 async function handleAuthRedirect() {
   try {
+    const search = new URLSearchParams(location.search);
+    const hasCode = !!search.get("code");
     const hasHash = location.hash && /access_token|type=recovery|refresh_token/i.test(location.hash);
-    const hasCode = new URLSearchParams(location.search).get("code");
-    if (hasHash || hasCode) {
-      const { error } = await supa.auth.exchangeCodeForSession();
-      // ignore error; even ako je već u sesiji
-      const isRecovery =
-        (hasHash && /type=recovery/i.test(location.hash)) ||
-        new URLSearchParams(location.search).get("type") === "recovery";
+    if (hasCode || hasHash) {
+      // VAŽNO: prosledi ceo URL
+      await supa.auth.exchangeCodeForSession(window.location.href);
 
-      // počisti URL (bez hash/query)
+      const isRecovery =
+        search.get("type") === "recovery" ||
+        (location.hash && /type=recovery/i.test(location.hash));
+
+      // očisti URL
       history.replaceState(null, "", location.origin + location.pathname);
 
       if (isRecovery) openModal(resetModal);
       await refreshAuthUI();
     }
   } catch {
-    // swallow
+    // ignore
   }
 }
 handleAuthRedirect();
 
-// Takođe, fallback: ako je hash ostao sa type=recovery, otvori modal
+// Takođe, fallback: ako je hash ostao sa type=recovery, otvori reset modal
 if (location.hash && location.hash.includes("type=recovery")) {
   setTimeout(() => openModal(resetModal), 300);
 }
@@ -217,7 +219,7 @@ signupSubmit?.addEventListener("click", async () => {
     const { data, error } = await supa.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: window.location.origin }
+      options: { emailRedirectTo: `${window.location.origin}/auth.html` }
     });
     if (error) {
       signupHint.textContent = error.message || "Sign up failed.";
@@ -245,7 +247,7 @@ forgotPwdLink?.addEventListener("click", async (e) => {
   const email = prompt("Enter your account email:");
   if (!email) return;
   const { error } = await supa.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin
+    redirectTo: `${window.location.origin}/auth.html?type=recovery`
   });
   if (error) {
     alert("Failed to send reset email: " + (error.message || "Unknown error"));
