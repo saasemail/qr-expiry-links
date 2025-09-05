@@ -43,7 +43,14 @@
     const SUPABASE_ANON_KEY = window.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjQ3MDcsImV4cCI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
 
-    const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        flowType: "pkce",
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false, // ručno obrađujemo URL
+      },
+    });
 
     const title = document.getElementById("title");
     const desc  = document.getElementById("desc");
@@ -78,23 +85,29 @@
       const params = url.searchParams;
       const hash = url.hash || "";
 
-      const code = params.get("code");
-      const isRecovery = params.get("type") === "recovery" || /type=recovery/i.test(hash);
-      const hasAccess = /access_token=/.test(hash) && /refresh_token=/.test(hash);
+      const type = params.get("type") || (hash.includes("type=recovery") ? "recovery" : null);
+      const codeInQuery = params.get("code");
+      const hasHashTokens = /access_token=/.test(hash) && /refresh_token=/.test(hash);
+      const linkError = params.get("error_description") || params.get("error");
 
       try {
-        if (code) {
-          await supa.auth.exchangeCodeForSession({ code });
-        } else if (hasAccess) {
+        if (linkError) {
+          showError(linkError);
+          return;
+        }
+
+        if (codeInQuery) {
+          const { error } = await supa.auth.exchangeCodeForSession(window.location.href);
+          if (error) throw error;
+        } else if (hasHashTokens) {
           const at = hash.match(/access_token=([^&]+)/)?.[1];
           const rt = hash.match(/refresh_token=([^&]+)/)?.[1];
           if (!at || !rt) throw new Error("Missing tokens in URL hash");
           await supa.auth.setSession({
             access_token: decodeURIComponent(at),
-            refresh_token: decodeURIComponent(rt)
+            refresh_token: decodeURIComponent(rt),
           });
         } else {
-          // Nema ničega — jasno prikaži
           showError("No auth parameters found in the URL.");
           return;
         }
@@ -102,7 +115,7 @@
         // očisti URL
         history.replaceState(null, "", location.origin + location.pathname);
 
-        if (isRecovery) {
+        if (type === "recovery") {
           showReset();
         } else {
           showHome("You're signed in", "You can safely return to the app.");

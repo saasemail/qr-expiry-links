@@ -12,7 +12,15 @@ const SUPABASE_ANON_KEY =
   (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjQ3MDcsImV4cCI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
 
-const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// PKCE + ručno procesiranje URL-a
+const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    flowType: "pkce",
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false, // sami obrađujemo URL
+  },
+});
 
 // Inputs / buttons
 const urlInput = document.getElementById("urlInput");
@@ -103,30 +111,34 @@ supa.auth.onAuthStateChange(async (event) => {
   await refreshAuthUI();
 });
 
-// --- Minimal redirect handler on index (u slučaju da link ponekad sleti ovde)
+// --- Obradi auth redirect i na index strani (ako link nekad sleti ovde)
 (async function maybeHandleAuthOnIndex() {
   try {
     const url = new URL(window.location.href);
     const params = url.searchParams;
     const hash = url.hash || "";
 
-    const code = params.get("code");
-    const isRecovery = params.get("type") === "recovery" || /type=recovery/i.test(hash);
-    const hasAccess = /access_token=/.test(hash) && /refresh_token=/.test(hash);
+    const type = params.get("type") || (hash.includes("type=recovery") ? "recovery" : null);
+    const codeInQuery = params.get("code");
+    const hasHashTokens = /access_token=/.test(hash) && /refresh_token=/.test(hash);
 
-    if (code) {
-      await supa.auth.exchangeCodeForSession({ code });
+    if (codeInQuery) {
+      const { error } = await supa.auth.exchangeCodeForSession(window.location.href);
+      if (error) throw error;
       history.replaceState(null, "", location.origin + location.pathname);
-      if (isRecovery) openModal(resetModal);
+      if (type === "recovery") openModal(resetModal);
       await refreshAuthUI();
-    } else if (hasAccess) {
+    } else if (hasHashTokens) {
       const at = hash.match(/access_token=([^&]+)/)?.[1];
       const rt = hash.match(/refresh_token=([^&]+)/)?.[1];
       if (at && rt) {
-        await supa.auth.setSession({ access_token: decodeURIComponent(at), refresh_token: decodeURIComponent(rt) });
+        await supa.auth.setSession({
+          access_token: decodeURIComponent(at),
+          refresh_token: decodeURIComponent(rt),
+        });
       }
       history.replaceState(null, "", location.origin + location.pathname);
-      if (isRecovery) openModal(resetModal);
+      if (type === "recovery") openModal(resetModal);
       await refreshAuthUI();
     }
   } catch (e) {
@@ -188,6 +200,9 @@ function setAuthTab(which) {
 // ---- Auth actions (email/password) ----
 loginSubmit?.addEventListener("click", async () => {
   loginHint.textContent = "";
+  loginSubmit.disabled = true;
+  const prevTxt = loginSubmit.textContent;
+  loginSubmit.textContent = "Logging in…";
   try {
     const email = loginEmail.value.trim();
     const password = loginPassword.value;
@@ -204,6 +219,9 @@ loginSubmit?.addEventListener("click", async () => {
     await refreshAuthUI();
   } catch (e) {
     loginHint.textContent = e?.message || "Login failed.";
+  } finally {
+    loginSubmit.disabled = false;
+    loginSubmit.textContent = prevTxt;
   }
 });
 
@@ -219,7 +237,7 @@ signupSubmit?.addEventListener("click", async () => {
     const { data, error } = await supa.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/auth.html` }
+      options: { emailRedirectTo: `${window.location.origin}/auth.html` },
     });
     if (error) {
       signupHint.textContent = error.message || "Sign up failed.";
@@ -247,7 +265,7 @@ forgotPwdLink?.addEventListener("click", async (e) => {
   const email = prompt("Enter your account email:");
   if (!email) return;
   const { error } = await supa.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/auth.html?type=recovery`
+    redirectTo: `${window.location.origin}/auth.html?type=recovery`,
   });
   if (error) {
     alert("Failed to send reset email: " + (error.message || "Unknown error"));
@@ -302,7 +320,7 @@ function setLoading(state) {
 }
 
 async function getAccessToken() {
-  const { data: { session} } = await supa.auth.getSession();
+  const { data: { session } } = await supa.auth.getSession();
   return session?.access_token || null;
 }
 
