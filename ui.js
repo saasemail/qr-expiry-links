@@ -97,18 +97,38 @@ async function refreshAuthUI() {
   }
 }
 
-// Handle auth state changes (incl. PASSWORD_RECOVERY)
+// Catch auth state changes (incl. PASSWORD_RECOVERY)
 supa.auth.onAuthStateChange(async (event) => {
-  if (event === "PASSWORD_RECOVERY") {
-    openModal(resetModal);
-  }
+  if (event === "PASSWORD_RECOVERY") openModal(resetModal);
   await refreshAuthUI();
 });
 
-// Also handle direct hash visit (?/#type=recovery ...)
+// --- NEW: handle auth redirects (magic link, confirm signup, password recovery)
+async function handleAuthRedirect() {
+  try {
+    const hasHash = location.hash && /access_token|type=recovery|refresh_token/i.test(location.hash);
+    const hasCode = new URLSearchParams(location.search).get("code");
+    if (hasHash || hasCode) {
+      const { error } = await supa.auth.exchangeCodeForSession();
+      // ignore error; even ako je već u sesiji
+      const isRecovery =
+        (hasHash && /type=recovery/i.test(location.hash)) ||
+        new URLSearchParams(location.search).get("type") === "recovery";
+
+      // počisti URL (bez hash/query)
+      history.replaceState(null, "", location.origin + location.pathname);
+
+      if (isRecovery) openModal(resetModal);
+      await refreshAuthUI();
+    }
+  } catch {
+    // swallow
+  }
+}
+handleAuthRedirect();
+
+// Takođe, fallback: ako je hash ostao sa type=recovery, otvori modal
 if (location.hash && location.hash.includes("type=recovery")) {
-  // Supabase will parse the hash and create a session automatically;
-  // open reset modal so user can set a new password.
   setTimeout(() => openModal(resetModal), 300);
 }
 
@@ -155,7 +175,6 @@ authModal?.addEventListener("click", (e) => {
 
 tabLogin?.addEventListener("click", () => setAuthTab("login"));
 tabSignup?.addEventListener("click", () => setAuthTab("signup"));
-
 function setAuthTab(which) {
   const login = which === "login";
   authLogin.style.display = login ? "" : "none";
@@ -226,7 +245,7 @@ forgotPwdLink?.addEventListener("click", async (e) => {
   const email = prompt("Enter your account email:");
   if (!email) return;
   const { error } = await supa.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + "/#reset"
+    redirectTo: window.location.origin
   });
   if (error) {
     alert("Failed to send reset email: " + (error.message || "Unknown error"));
@@ -362,7 +381,7 @@ generateBtn.addEventListener("click", async () => {
     return;
   }
 
-  // Optional pre-gate: if Pro intent and not logged in, open auth modal early
+  // Optional pre-gate for Pro
   const proIntent = minutes > 60 || !!token;
   const { data: { session } } = await supa.auth.getSession();
   if (proIntent && !session) {
