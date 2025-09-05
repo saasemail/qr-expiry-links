@@ -1,4 +1,4 @@
-// ui.js — Auth (Supabase), Pro gating, checkout session polling, create flow
+// ui.js — Auth (email/password + forgot/reset via Supabase), Pro gating, checkout polling, create flow
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -31,7 +31,7 @@ const downloadBtn = document.getElementById("downloadBtn");
 
 // Navbar auth
 const userBadge = document.getElementById("userBadge");
-const signInBtn = document.getElementById("signInBtn");
+const authOpenBtn = document.getElementById("authOpenBtn");
 const signOutBtn = document.getElementById("signOutBtn");
 
 // Pro modal
@@ -48,6 +48,33 @@ const successCopyBtn = document.getElementById("successCopyBtn");
 const successApplyBtn = document.getElementById("successApplyBtn");
 const resendLink = document.getElementById("resendLink");
 
+// Auth modal (email/password)
+const authModal = document.getElementById("authModal");
+const closeAuthModal = document.getElementById("closeAuthModal");
+const tabLogin = document.getElementById("tabLogin");
+const tabSignup = document.getElementById("tabSignup");
+const authLogin = document.getElementById("authLogin");
+const authSignup = document.getElementById("authSignup");
+
+const loginEmail = document.getElementById("loginEmail");
+const loginPassword = document.getElementById("loginPassword");
+const loginSubmit = document.getElementById("loginSubmit");
+const loginHint = document.getElementById("loginHint");
+
+const signupEmail = document.getElementById("signupEmail");
+const signupPassword = document.getElementById("signupPassword");
+const signupSubmit = document.getElementById("signupSubmit");
+const signupHint = document.getElementById("signupHint");
+
+// Reset modal
+const resetModal = document.getElementById("resetModal");
+const closeResetModal = document.getElementById("closeResetModal");
+const resetPassword = document.getElementById("resetPassword");
+const resetPassword2 = document.getElementById("resetPassword2");
+const resetSubmit = document.getElementById("resetSubmit");
+const resetHint = document.getElementById("resetHint");
+const forgotPwdLink = document.getElementById("forgotPwdLink");
+
 let expiryTimer;
 let countdownTimer;
 let lastRedirectUrl = "";
@@ -60,25 +87,132 @@ async function refreshAuthUI() {
   if (email) {
     userBadge.style.display = "";
     userBadge.textContent = email;
-    signInBtn.style.display = "none";
+    authOpenBtn.textContent = "Account";
     signOutBtn.style.display = "";
     proGateHint.style.display = "none";
   } else {
     userBadge.style.display = "none";
-    signInBtn.style.display = "";
+    authOpenBtn.textContent = "Sign in";
     signOutBtn.style.display = "none";
   }
 }
 
-signInBtn?.addEventListener("click", async () => {
-  const email = prompt("Enter your email to sign in (magic link):");
-  if (!email) return;
-  const { error } = await supa.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: window.location.origin }
-  });
-  if (error) alert("Sign-in failed: " + (error.message || "Unknown error"));
-  else alert("Check your email inbox for the magic link.");
+// Handle auth state changes (incl. PASSWORD_RECOVERY)
+supa.auth.onAuthStateChange(async (event) => {
+  if (event === "PASSWORD_RECOVERY") {
+    openModal(resetModal);
+  }
+  await refreshAuthUI();
+});
+
+// Also handle direct hash visit (?/#type=recovery ...)
+if (location.hash && location.hash.includes("type=recovery")) {
+  // Supabase will parse the hash and create a session automatically;
+  // open reset modal so user can set a new password.
+  setTimeout(() => openModal(resetModal), 300);
+}
+
+// ---- Auth modal open/close & tabs ----
+function openModal(modal) {
+  if (!modal) return;
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden", "false");
+  const first = modal.querySelector(".modal-close, button, a, input");
+  (first || modal.querySelector(".modal-card"))?.focus();
+  document.addEventListener("keydown", onEsc);
+  document.addEventListener("keydown", trapTab);
+}
+function closeModal(modal) {
+  if (!modal) return;
+  modal.classList.remove("open");
+  modal.setAttribute("aria-hidden", "true");
+  document.removeEventListener("keydown", onEsc);
+  document.removeEventListener("keydown", trapTab);
+}
+function onEsc(e) {
+  if (e.key === "Escape") {
+    closeModal(proModal);
+    closeModal(successModal);
+    closeModal(authModal);
+    closeModal(resetModal);
+  }
+}
+function trapTab(e) {
+  const open = document.querySelector(".modal.open");
+  if (!open || e.key !== "Tab") return;
+  const f = open.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first) { last.focus(); e.preventDefault(); }
+  else if (!e.shiftKey && document.activeElement === last) { first.focus(); e.preventDefault(); }
+}
+
+authOpenBtn?.addEventListener("click", (e) => { e.preventDefault(); openModal(authModal); });
+closeAuthModal?.addEventListener("click", () => closeModal(authModal));
+authModal?.addEventListener("click", (e) => {
+  if (e.target && e.target.matches(".modal-overlay,[data-close='auth']")) closeModal(authModal);
+});
+
+tabLogin?.addEventListener("click", () => setAuthTab("login"));
+tabSignup?.addEventListener("click", () => setAuthTab("signup"));
+
+function setAuthTab(which) {
+  const login = which === "login";
+  authLogin.style.display = login ? "" : "none";
+  authSignup.style.display = login ? "none" : "";
+  tabLogin.setAttribute("aria-selected", login ? "true" : "false");
+  tabSignup.setAttribute("aria-selected", !login ? "true" : "false");
+}
+
+// ---- Auth actions (email/password) ----
+loginSubmit?.addEventListener("click", async () => {
+  loginHint.textContent = "";
+  try {
+    const email = loginEmail.value.trim();
+    const password = loginPassword.value;
+    if (!email || !password) {
+      loginHint.textContent = "Enter email and password.";
+      return;
+    }
+    const { error } = await supa.auth.signInWithPassword({ email, password });
+    if (error) {
+      loginHint.textContent = error.message || "Login failed.";
+      return;
+    }
+    closeModal(authModal);
+    await refreshAuthUI();
+  } catch {
+    loginHint.textContent = "Login failed.";
+  }
+});
+
+signupSubmit?.addEventListener("click", async () => {
+  signupHint.textContent = "";
+  try {
+    const email = signupEmail.value.trim();
+    const password = signupPassword.value;
+    if (!email || !password) {
+      signupHint.textContent = "Enter email and password.";
+      return;
+    }
+    const { data, error } = await supa.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: window.location.origin }
+    });
+    if (error) {
+      signupHint.textContent = error.message || "Sign up failed.";
+      return;
+    }
+    if (data?.user && !data?.session) {
+      signupHint.textContent = "Check your inbox to confirm the email, then log in.";
+    } else {
+      closeModal(authModal);
+      await refreshAuthUI();
+    }
+  } catch {
+    signupHint.textContent = "Sign up failed.";
+  }
 });
 
 signOutBtn?.addEventListener("click", async () => {
@@ -86,7 +220,59 @@ signOutBtn?.addEventListener("click", async () => {
   await refreshAuthUI();
 });
 
-supa.auth.onAuthStateChange(refreshAuthUI);
+// ---- Forgot password ----
+forgotPwdLink?.addEventListener("click", async (e) => {
+  e.preventDefault();
+  const email = prompt("Enter your account email:");
+  if (!email) return;
+  const { error } = await supa.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + "/#reset"
+  });
+  if (error) {
+    alert("Failed to send reset email: " + (error.message || "Unknown error"));
+  } else {
+    alert("Check your inbox for the reset link.");
+  }
+});
+
+// ---- Reset password modal ----
+closeResetModal?.addEventListener("click", () => closeModal(resetModal));
+resetModal?.addEventListener("click", (e) => {
+  if (e.target && e.target.matches(".modal-overlay,[data-close='reset']")) closeModal(resetModal);
+});
+
+resetSubmit?.addEventListener("click", async () => {
+  resetHint.textContent = "";
+  const p1 = resetPassword.value;
+  const p2 = resetPassword2.value;
+  if (!p1 || !p2) {
+    resetHint.textContent = "Enter and repeat the new password.";
+    return;
+  }
+  if (p1 !== p2) {
+    resetHint.textContent = "Passwords do not match.";
+    return;
+  }
+  if (p1.length < 6) {
+    resetHint.textContent = "Password must be at least 6 characters.";
+    return;
+  }
+  try {
+    const { error } = await supa.auth.updateUser({ password: p1 });
+    if (error) {
+      resetHint.textContent = error.message || "Could not update password.";
+      return;
+    }
+    resetHint.textContent = "Password updated. You can now log in.";
+    setTimeout(() => {
+      closeModal(resetModal);
+      openModal(authModal);
+      setAuthTab("login");
+    }, 700);
+  } catch {
+    resetHint.textContent = "Could not update password.";
+  }
+});
 
 // ---- Helpers ----
 function setLoading(state) {
@@ -101,7 +287,6 @@ async function getAccessToken() {
 
 async function createLink(url, minutes, token) {
   const headers = { "Content-Type": "application/json" };
-  // Attach JWT if logged in (server will require it for Pro)
   const jwt = await getAccessToken();
   if (jwt) headers["Authorization"] = `Bearer ${jwt}`;
 
@@ -174,6 +359,15 @@ generateBtn.addEventListener("click", async () => {
   }
   if (!Number.isFinite(minutes) || minutes < 1) {
     alert("Expiry must be at least 1 minute.");
+    return;
+  }
+
+  // Optional pre-gate: if Pro intent and not logged in, open auth modal early
+  const proIntent = minutes > 60 || !!token;
+  const { data: { session } } = await supa.auth.getSession();
+  if (proIntent && !session) {
+    proGateHint.style.display = "";
+    openModal(authModal);
     return;
   }
 
@@ -250,46 +444,14 @@ downloadBtn?.addEventListener("click", () => {
   }
 });
 
-// ---- Pro modal (open/close) ----
-function openModal(modal) {
-  if (!modal) return;
-  modal.classList.add("open");
-  modal.setAttribute("aria-hidden", "false");
-  const first = modal.querySelector(".plan-select, .modal-close, button, a, input");
-  (first || modal.querySelector(".modal-card"))?.focus();
-  document.addEventListener("keydown", onEsc);
-  document.addEventListener("keydown", trapTab);
-}
-function closeModal(modal) {
-  if (!modal) return;
-  modal.classList.remove("open");
-  modal.setAttribute("aria-hidden", "true");
-  document.removeEventListener("keydown", onEsc);
-  document.removeEventListener("keydown", trapTab);
-}
-function onEsc(e) {
-  if (e.key === "Escape") {
-    closeModal(proModal);
-    closeModal(successModal);
-  }
-}
-function trapTab(e) {
-  const open = document.querySelector(".modal.open");
-  if (!open || e.key !== "Tab") return;
-  const f = open.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
-  if (!f.length) return;
-  const first = f[0], last = f[f.length - 1];
-  if (e.shiftKey && document.activeElement === first) { last.focus(); e.preventDefault(); }
-  else if (!e.shiftKey && document.activeElement === last) { first.focus(); e.preventDefault(); }
-}
-
+// ---- Pro modal open/close ----
 getProBtn?.addEventListener("click", (e) => { e.preventDefault(); openModal(proModal); });
 closeProModal?.addEventListener("click", () => closeModal(proModal));
 proModal?.addEventListener("click", (e) => {
   if (e.target && e.target.matches(".modal-overlay,[data-close='modal']")) closeModal(proModal);
 });
 
-// When user clicks a plan -> start checkout session (mock/partner) and poll
+// Plan selection -> checkout session + polling
 document.querySelectorAll(".plan-select").forEach((btn) => {
   btn.addEventListener("click", async (e) => {
     e.preventDefault();
