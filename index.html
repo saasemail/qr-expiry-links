@@ -14,9 +14,14 @@
   <!-- Navbar -->
   <nav class="navbar">
     <h1>QR Expiry Links</h1>
-    <button class="btn btn-ghost" style="margin-left:auto" onclick="document.getElementById('getProBtn')?.click()">
-      Pricing
-    </button>
+
+    <!-- Right: Pricing + Auth -->
+    <div style="margin-left:auto; display:flex; gap:.5rem; align-items:center;">
+      <button class="btn btn-ghost" onclick="document.getElementById('getProBtn')?.click()">Pricing</button>
+      <span id="userBadge" class="hint" style="display:none;"></span>
+      <button id="signInBtn" class="btn btn-ghost">Sign in</button>
+      <button id="signOutBtn" class="btn btn-ghost" style="display:none;">Sign out</button>
+    </div>
   </nav>
 
   <div class="container">
@@ -46,6 +51,10 @@
       <div class="button-group">
         <button id="generateBtn" class="btn btn-primary">Generate QR</button>
       </div>
+
+      <p class="hint" id="proGateHint" style="display:none; text-align:center; margin-top:.5rem;">
+        Sign in is required to use Pro features.
+      </p>
     </section>
 
     <!-- Output -->

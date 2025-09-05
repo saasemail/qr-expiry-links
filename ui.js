@@ -1,11 +1,26 @@
-// ui.js — QR Expiry Links (Free vs Pro via /api/create + checkout session flow)
+// ui.js — Auth (Supabase), Pro gating, checkout session polling, create flow
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const SUPABASE_URL =
+  window.NEXT_PUBLIC_SUPABASE_URL ||
+  (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_SUPABASE_URL) ||
+  "https://xyfacudywygreaquvzjr.supabase.co";
+
+const SUPABASE_ANON_KEY =
+  window.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjQ3MDcsImV4cCI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
+
+const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Inputs / buttons
 const urlInput = document.getElementById("urlInput");
 const expiryInput = document.getElementById("expiryInput");
 const tokenInput = document.getElementById("tokenInput");
-
 const generateBtn = document.getElementById("generateBtn");
 
+// Result
 const resultCard = document.getElementById("resultCard");
 const qrcodeCanvas = document.getElementById("qrcode");
 const generatedLink = document.getElementById("generatedLink");
@@ -14,10 +29,16 @@ const countdownEl = document.getElementById("countdown");
 const copyBtn = document.getElementById("copyBtn");
 const downloadBtn = document.getElementById("downloadBtn");
 
+// Navbar auth
+const userBadge = document.getElementById("userBadge");
+const signInBtn = document.getElementById("signInBtn");
+const signOutBtn = document.getElementById("signOutBtn");
+
 // Pro modal
 const proModal = document.getElementById("proModal");
 const getProBtn = document.getElementById("getProBtn");
 const closeProModal = document.getElementById("closeProModal");
+const proGateHint = document.getElementById("proGateHint");
 
 // Success modal
 const successModal = document.getElementById("successModal");
@@ -31,35 +52,84 @@ let expiryTimer;
 let countdownTimer;
 let lastRedirectUrl = "";
 let statusPollTimer = null;
-let currentSessionId = null;
 
+// ---- Auth UI ----
+async function refreshAuthUI() {
+  const { data: { session } } = await supa.auth.getSession();
+  const email = session?.user?.email;
+  if (email) {
+    userBadge.style.display = "";
+    userBadge.textContent = email;
+    signInBtn.style.display = "none";
+    signOutBtn.style.display = "";
+    proGateHint.style.display = "none";
+  } else {
+    userBadge.style.display = "none";
+    signInBtn.style.display = "";
+    signOutBtn.style.display = "none";
+  }
+}
+
+signInBtn?.addEventListener("click", async () => {
+  const email = prompt("Enter your email to sign in (magic link):");
+  if (!email) return;
+  const { error } = await supa.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: window.location.origin }
+  });
+  if (error) alert("Sign-in failed: " + (error.message || "Unknown error"));
+  else alert("Check your email inbox for the magic link.");
+});
+
+signOutBtn?.addEventListener("click", async () => {
+  await supa.auth.signOut();
+  await refreshAuthUI();
+});
+
+supa.auth.onAuthStateChange(refreshAuthUI);
+
+// ---- Helpers ----
 function setLoading(state) {
   generateBtn.disabled = state;
   generateBtn.textContent = state ? "Generating..." : "Generate QR";
 }
 
+async function getAccessToken() {
+  const { data: { session} } = await supa.auth.getSession();
+  return session?.access_token || null;
+}
+
 async function createLink(url, minutes, token) {
+  const headers = { "Content-Type": "application/json" };
+  // Attach JWT if logged in (server will require it for Pro)
+  const jwt = await getAccessToken();
+  if (jwt) headers["Authorization"] = `Bearer ${jwt}`;
+
   const resp = await fetch("/api/create", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ url, minutes, token }),
   });
 
   if (!resp.ok) {
+    if (resp.status === 401) {
+      proGateHint.style.display = "";
+      throw new Error("Login required for Pro features.");
+    }
     if (resp.status === 429) {
       const msg = await resp.text();
-      throw new Error(msg || "Daily limit reached on your plan.");
+      throw new Error(msg || "Daily limit reached.");
     }
     const text = await resp.text();
     try {
-      const maybeJson = JSON.parse(text);
-      throw new Error(maybeJson?.message || maybeJson || text || "Create failed");
+      const maybe = JSON.parse(text);
+      throw new Error(maybe?.message || text || "Create failed");
     } catch {
       throw new Error(text || "Create failed");
     }
   }
 
-  return resp.json(); // { id, expires_at, plan, tier, minutes }
+  return resp.json();
 }
 
 function formatCountdown(ms) {
@@ -92,6 +162,7 @@ function startCountdown(isoExpires) {
   }, 1000);
 }
 
+// ---- Generate flow ----
 generateBtn.addEventListener("click", async () => {
   const url = urlInput.value.trim();
   const minutes = parseInt(expiryInput.value, 10);
@@ -144,6 +215,7 @@ generateBtn.addEventListener("click", async () => {
   }
 });
 
+// Copy & Download
 copyBtn?.addEventListener("click", async () => {
   try {
     if (!lastRedirectUrl) return;
@@ -159,7 +231,7 @@ copyBtn?.addEventListener("click", async () => {
       document.execCommand("copy");
       document.body.removeChild(ta);
     }
-  } catch (e) {
+  } catch {
     alert("Could not copy link.");
   }
 });
@@ -173,73 +245,63 @@ downloadBtn?.addEventListener("click", () => {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-  } catch (e) {
+  } catch {
     alert("Could not download QR.");
   }
 });
 
-// ----- Pro modal -----
-function openModal() {
-  if (!proModal) return;
-  proModal.classList.add("open");
-  proModal.setAttribute("aria-hidden", "false");
-  const first = proModal.querySelector(".plan-select, .modal-close, button, a, input");
-  (first || proModal.querySelector(".modal-card"))?.focus();
+// ---- Pro modal (open/close) ----
+function openModal(modal) {
+  if (!modal) return;
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden", "false");
+  const first = modal.querySelector(".plan-select, .modal-close, button, a, input");
+  (first || modal.querySelector(".modal-card"))?.focus();
   document.addEventListener("keydown", onEsc);
   document.addEventListener("keydown", trapTab);
 }
-
-function closeModal() {
-  if (!proModal) return;
-  proModal.classList.remove("open");
-  proModal.setAttribute("aria-hidden", "true");
+function closeModal(modal) {
+  if (!modal) return;
+  modal.classList.remove("open");
+  modal.setAttribute("aria-hidden", "true");
   document.removeEventListener("keydown", onEsc);
   document.removeEventListener("keydown", trapTab);
-  getProBtn?.focus();
 }
-
 function onEsc(e) {
-  if (e.key === "Escape") closeModal();
-}
-
-function trapTab(e) {
-  if (e.key !== "Tab" || !proModal.classList.contains("open")) return;
-  const focusables = proModal.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
-  if (!focusables.length) return;
-  const first = focusables[0];
-  const last = focusables[focusables.length - 1];
-  if (e.shiftKey && document.activeElement === first) {
-    last.focus();
-    e.preventDefault();
-  } else if (!e.shiftKey && document.activeElement === last) {
-    first.focus();
-    e.preventDefault();
+  if (e.key === "Escape") {
+    closeModal(proModal);
+    closeModal(successModal);
   }
 }
+function trapTab(e) {
+  const open = document.querySelector(".modal.open");
+  if (!open || e.key !== "Tab") return;
+  const f = open.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first) { last.focus(); e.preventDefault(); }
+  else if (!e.shiftKey && document.activeElement === last) { first.focus(); e.preventDefault(); }
+}
 
-getProBtn?.addEventListener("click", (e) => {
-  e.preventDefault();
-  openModal();
-});
-
-closeProModal?.addEventListener("click", closeModal);
+getProBtn?.addEventListener("click", (e) => { e.preventDefault(); openModal(proModal); });
+closeProModal?.addEventListener("click", () => closeModal(proModal));
 proModal?.addEventListener("click", (e) => {
-  if (e.target && e.target.matches(".modal-overlay,[data-close='modal']")) closeModal();
+  if (e.target && e.target.matches(".modal-overlay,[data-close='modal']")) closeModal(proModal);
 });
 
-// When user clicks a plan: start checkout session and polling
+// When user clicks a plan -> start checkout session (mock/partner) and poll
 document.querySelectorAll(".plan-select").forEach((btn) => {
   btn.addEventListener("click", async (e) => {
     e.preventDefault();
     const tier = Number(btn.dataset.tier || 0);
     if (!tier) return;
     await window.openCheckout?.(tier);
-    closeModal();
+    closeModal(proModal);
     tokenInput?.focus();
   });
 });
 
-// ----- Partner checkout hook (session + polling) -----
+// ---- Partner checkout hook ----
 window.openCheckout = async function (tier) {
   try {
     const r = await fetch("/api/checkout-session", {
@@ -249,8 +311,6 @@ window.openCheckout = async function (tier) {
     });
     if (!r.ok) throw new Error(await r.text());
     const { session_id } = await r.json();
-    currentSessionId = session_id;
-
     startStatusPolling(session_id);
   } catch (e) {
     alert("Could not start checkout session.");
@@ -260,10 +320,8 @@ window.openCheckout = async function (tier) {
 
 function startStatusPolling(sessionId) {
   stopStatusPolling();
-  let attempts = 0;
   statusPollTimer = setInterval(async () => {
     try {
-      attempts++;
       const r = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(sessionId)}`);
       if (!r.ok) return;
       const data = await r.json();
@@ -271,103 +329,62 @@ function startStatusPolling(sessionId) {
         stopStatusPolling();
         showSuccessModal(data.token, sessionId);
       }
-      // Optional timeout: if (attempts > 120) stopStatusPolling();
-    } catch {
-      // ignore transient errors
-    }
+    } catch {}
   }, 2000);
 }
-
 function stopStatusPolling() {
-  if (statusPollTimer) {
-    clearInterval(statusPollTimer);
-    statusPollTimer = null;
-  }
+  if (statusPollTimer) { clearInterval(statusPollTimer); statusPollTimer = null; }
 }
 
-// ----- Success modal -----
-function openSuccess() {
-  if (!successModal) return;
-  successModal.classList.add("open");
-  successModal.setAttribute("aria-hidden", "false");
-  const first = successModal.querySelector(".modal-close, button, a, input");
-  (first || successModal.querySelector(".modal-card"))?.focus();
-  document.addEventListener("keydown", onEscSuccess);
-  document.addEventListener("keydown", trapTabSuccess);
+// ---- Success modal ----
+function openSuccess(modal) {
+  if (!modal) return;
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden", "false");
+  const first = modal.querySelector(".modal-close, button, a, input");
+  (first || modal.querySelector(".modal-card"))?.focus();
+  document.addEventListener("keydown", onEsc);
+  document.addEventListener("keydown", trapTab);
 }
-
-function closeSuccess() {
-  if (!successModal) return;
-  successModal.classList.remove("open");
-  successModal.setAttribute("aria-hidden", "true");
-  document.removeEventListener("keydown", onEscSuccess);
-  document.removeEventListener("keydown", trapTabSuccess);
-}
-
-function onEscSuccess(e) {
-  if (e.key === "Escape") closeSuccess();
-}
-
-function trapTabSuccess(e) {
-  if (e.key !== "Tab" || !successModal.classList.contains("open")) return;
-  const focusables = successModal.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
-  if (!focusables.length) return;
-  const first = focusables[0];
-  const last = focusables[focusables.length - 1];
-  if (e.shiftKey && document.activeElement === first) {
-    last.focus();
-    e.preventDefault();
-  } else if (!e.shiftKey && document.activeElement === last) {
-    first.focus();
-    e.preventDefault();
-  }
-}
+function closeSuccess() { closeModal(successModal); }
 
 function showSuccessModal(token, sessionId) {
   successTokenEl.textContent = token;
-
-  try {
-    localStorage.setItem("pro_token", token);
-  } catch {}
-
+  try { localStorage.setItem("pro_token", token); } catch {}
   if (resendLink) {
     const subject = encodeURIComponent("QR Expiry Links - Resend my code");
     const body = encodeURIComponent(`Hello,\nI completed the payment. My sessionId is: ${sessionId}\nPlease resend my Pro code.`);
     resendLink.href = `mailto:support@example.com?subject=${subject}&body=${body}`;
   }
-
-  openSuccess();
+  openSuccess(successModal);
 }
 
 successCopyBtn?.addEventListener("click", async () => {
   try {
     const t = successTokenEl?.textContent || "";
     if (!t) return;
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(t);
-      successCopyBtn.textContent = "Copied!";
-      setTimeout(() => (successCopyBtn.textContent = "Copy"), 1200);
-    }
+    await navigator.clipboard.writeText(t);
+    successCopyBtn.textContent = "Copied!";
+    setTimeout(() => (successCopyBtn.textContent = "Copy"), 1200);
   } catch {}
 });
-
 successApplyBtn?.addEventListener("click", () => {
-  try {
-    const t = successTokenEl?.textContent || "";
-    if (!t) return;
-    tokenInput.value = t;
-    closeSuccess();
-    tokenInput.focus();
-  } catch {}
+  const t = successTokenEl?.textContent || "";
+  if (!t) return;
+  tokenInput.value = t;
+  closeSuccess();
+  tokenInput.focus();
 });
-
 closeSuccessModal?.addEventListener("click", closeSuccess);
 successModal?.addEventListener("click", (e) => {
   if (e.target && e.target.matches(".modal-overlay,[data-close='success']")) closeSuccess();
 });
 
-// Prefill from localStorage on load
+// Prefill saved pro token
 try {
   const saved = localStorage.getItem("pro_token");
   if (saved && tokenInput && !tokenInput.value) tokenInput.value = saved;
 } catch {}
+
+// Initial auth render
+refreshAuthUI();
