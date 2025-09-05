@@ -130,6 +130,24 @@
     </div>
   </div>
 
+  <!-- Auth modal (Google only) -->
+  <div class="modal" id="authModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="authModalTitle">
+    <div class="modal-overlay" data-close="auth"></div>
+    <div class="modal-card" tabindex="-1">
+      <div class="modal-header" style="justify-content:space-between; gap:.75rem; flex-wrap:wrap;">
+        <h2 id="authModalTitle">Account</h2>
+        <button class="modal-close" id="closeAuthModal" aria-label="Close" type="button">×</button>
+      </div>
+
+      <div class="card" style="margin:0; text-align:center;">
+        <p class="hint" style="margin-bottom:.75rem;">Use Google to unlock Pro limits.</p>
+        <div class="button-group" style="justify-content:center;">
+          <button id="googleLoginBtn" class="btn btn-primary" type="button">Continue with Google</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Success modal -->
   <div class="modal" id="successModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="successModalTitle">
     <div class="modal-overlay" data-close="success"></div>
@@ -155,80 +173,6 @@
       <p class="hint" style="margin-top:1rem;">
         Didn’t see the code appear? <a href="#" id="resendLink">Resend my code</a>
       </p>
-    </div>
-  </div>
-
-  <!-- Auth modal (email + password + forgot) -->
-  <div class="modal" id="authModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="authModalTitle">
-    <div class="modal-overlay" data-close="auth"></div>
-    <div class="modal-card" tabindex="-1">
-      <div class="modal-header" style="justify-content:space-between; gap:.75rem; flex-wrap:wrap;">
-        <h2 id="authModalTitle">Account</h2>
-        <div style="display:flex; gap:.5rem;">
-          <button id="tabLogin" class="btn btn-ghost" aria-selected="true" type="button">Log in</button>
-          <button id="tabSignup" class="btn btn-ghost" type="button">Sign up</button>
-        </div>
-        <button class="modal-close" id="closeAuthModal" aria-label="Close" type="button">×</button>
-      </div>
-
-      <div id="authLogin" class="card" style="margin:0;">
-        <label>
-          Email
-          <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email" />
-        </label>
-        <label>
-          Password
-          <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" />
-        </label>
-        <div class="button-group">
-          <button id="loginSubmit" class="btn btn-primary" type="button">Log in</button>
-        </div>
-        <p class="hint" id="loginHint" style="text-align:center;"></p>
-        <p class="hint" style="text-align:center;margin-top:.5rem;">
-          <a href="#" id="forgotPwdLink">Forgot password?</a>
-        </p>
-      </div>
-
-      <div id="authSignup" class="card" style="margin:0; display:none;">
-        <label>
-          Email
-          <input type="email" id="signupEmail" placeholder="you@example.com" autocomplete="email" />
-        </label>
-        <label>
-          Password
-          <input type="password" id="signupPassword" placeholder="Create a password" autocomplete="new-password" />
-        </label>
-        <div class="button-group">
-          <button id="signupSubmit" class="btn btn-primary" type="button">Create account</button>
-        </div>
-        <p class="hint" id="signupHint" style="text-align:center;"></p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Reset password modal -->
-  <div class="modal" id="resetModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="resetModalTitle">
-    <div class="modal-overlay" data-close="reset"></div>
-    <div class="modal-card" tabindex="-1">
-      <div class="modal-header">
-        <h2 id="resetModalTitle">Reset password</h2>
-        <button class="modal-close" id="closeResetModal" aria-label="Close" type="button">×</button>
-      </div>
-
-      <div class="card" style="margin:0;">
-        <label>
-          New password
-          <input type="password" id="resetPassword" placeholder="New password" autocomplete="new-password" />
-        </label>
-        <label>
-          Repeat new password
-          <input type="password" id="resetPassword2" placeholder="Repeat new password" autocomplete="new-password" />
-        </label>
-        <div class="button-group">
-          <button id="resetSubmit" class="btn btn-primary" type="button">Update password</button>
-        </div>
-        <p class="hint" id="resetHint" style="text-align:center;"></p>
-      </div>
     </div>
   </div>
 

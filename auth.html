@@ -12,23 +12,8 @@
 <body>
   <div class="container" style="max-width:520px;">
     <section class="card" id="stateBox">
-      <h2 id="title">Authenticating…</h2>
+      <h2 id="title">Completing sign-in…</h2>
       <p class="hint" id="desc">Please wait a moment.</p>
-
-      <div id="resetBox" style="display:none; margin-top:1rem;">
-        <label>
-          New password
-          <input type="password" id="newPwd1" placeholder="New password" autocomplete="new-password" />
-        </label>
-        <label>
-          Repeat new password
-          <input type="password" id="newPwd2" placeholder="Repeat new password" autocomplete="new-password" />
-        </label>
-        <div class="button-group">
-          <button class="btn btn-primary" id="doReset" type="button">Update password</button>
-        </div>
-        <p class="hint" id="resetHint" style="text-align:center;"></p>
-      </div>
 
       <div id="goHome" class="button-group" style="display:none; margin-top:1rem;">
         <a class="btn btn-primary" href="/">Return to app</a>
@@ -42,104 +27,40 @@
     const SUPABASE_URL = "https://xyfacudywygreaquvzjr.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjQ3MDcsImV4cCI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
 
-    // Dozvoli SDK-u da automatski pokupi #access_token iz URL-a (magic link)
+    // SDK će automatski pokupiti access_token iz URL hash-a i setovati sesiju
     const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
     });
 
     const title = document.getElementById("title");
     const desc  = document.getElementById("desc");
-    const resetBox = document.getElementById("resetBox");
     const goHome = document.getElementById("goHome");
-    const newPwd1 = document.getElementById("newPwd1");
-    const newPwd2 = document.getElementById("newPwd2");
-    const doReset = document.getElementById("doReset");
-    const resetHint = document.getElementById("resetHint");
 
     const setMsg = (t, d="") => { title.textContent = t; desc.textContent = d; };
-    const showHome  = (t, d) => { setMsg(t,d); resetBox.style.display="none"; goHome.style.display=""; };
-    const showReset = ()     => { setMsg("Reset password","Enter a new password for your account."); resetBox.style.display=""; goHome.style.display="none"; };
-    const showError = (m)    => { setMsg("Auth error", m || "Could not complete authentication."); resetBox.style.display="none"; goHome.style.display=""; };
 
-    // map tipova iz ?type= u verifyOtp tipove
-    const mapType = (t) => {
-      if (!t) return "signup"; // default za email potvrdu
-      const x = t.toLowerCase();
-      if (x === "recovery") return "recovery";
-      if (x === "signup" || x === "confirmation" || x === "verify") return "signup";
-      if (x === "magiclink" || x === "magic_link") return "magiclink";
-      if (x === "email_change") return "email_change";
-      return "signup";
-    };
-
-    async function finishAuth() {
+    async function finish() {
       try {
-        const url = new URL(window.location.href);
-        const params = url.searchParams;
-        const hash = url.hash || "";
-
-        const typeParam = params.get("type") || (hash.includes("type=recovery") ? "recovery" : null);
-        const code = params.get("code");      // ?code=... (email OTP tok)
-        const email = params.get("email");    // mi ćemo ga dodati u redirectTo
-        const hasHashTokens = /access_token=/.test(hash);
-
-        // 1) Ako je magic link (#access_token=...), SDK će sam setovati sesiju
-        let { data: { session } } = await supa.auth.getSession();
-        if (!session && hasHashTokens) {
-          // daj SDK-u tren da obradi URL
-          await new Promise(r => setTimeout(r, 300));
-          ({ data: { session } } = await supa.auth.getSession());
-        }
-
-        // 2) Ako je ?code=..., verifikuj OTP (ZAHTEVA email!)
-        if (!session && code) {
-          if (!email) throw new Error("Missing email in redirect. Please re-try from the app.");
-          const { data, error } = await supa.auth.verifyOtp({
-            type: mapType(typeParam),
-            token_hash: code,
-            email,
-          });
-          if (error) throw error;
-          // verifyOtp obično vrati session (ili makar potvrdi nalog)
-          ({ data: { session } } = await supa.auth.getSession());
-        }
-
-        // Počisti URL (bez tokena/parametara)
-        history.replaceState(null, "", location.origin + location.pathname);
-
-        if (mapType(typeParam) === "recovery") {
-          showReset();
-          return;
-        }
+        // daj SDK-u mrvu vremena da isčita URL i postavi sesiju
+        await new Promise(r => setTimeout(r, 250));
+        const { data: { session } } = await supa.auth.getSession();
 
         if (session) {
-          showHome("You're signed in", "You can safely return to the app.");
-          setTimeout(() => (window.location.href = "/"), 900);
+          setMsg("You're signed in", "You can safely return to the app.");
+          setTimeout(() => (window.location.href = "/"), 800);
         } else {
-          // potvrđen nalog ali bez aktivne sesije — sve ok
-          showHome("Email confirmed", "You can now sign in.");
+          setMsg("Signed in", "You can return to the app.");
+          goHome.style.display = "";
         }
+
+        // počisti URL
+        history.replaceState(null, "", location.origin + location.pathname);
       } catch (e) {
-        showError(e?.message || "Authentication failed.");
+        setMsg("Auth error", e?.message || "Could not complete authentication.");
+        goHome.style.display = "";
       }
     }
 
-    doReset?.addEventListener("click", async () => {
-      resetHint.textContent = "";
-      const p1 = newPwd1.value, p2 = newPwd2.value;
-      if (!p1 || !p2) { resetHint.textContent = "Enter and repeat the new password."; return; }
-      if (p1 !== p2) { resetHint.textContent = "Passwords do not match."; return; }
-      if (p1.length < 6) { resetHint.textContent = "Password must be at least 6 characters."; return; }
-      try {
-        const { error } = await supa.auth.updateUser({ password: p1 });
-        if (error) { resetHint.textContent = error.message || "Could not update password."; return; }
-        showHome("Password updated", "You can now log in with your new password.");
-      } catch (e) {
-        resetHint.textContent = e?.message || "Could not update password.";
-      }
-    });
-
-    finishAuth();
+    finish();
   </script>
 </body>
 </html>
