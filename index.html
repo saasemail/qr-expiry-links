@@ -19,8 +19,8 @@
     <div style="margin-left:auto; display:flex; gap:.5rem; align-items:center;">
       <button class="btn btn-ghost" onclick="document.getElementById('getProBtn')?.click()">Pricing</button>
       <span id="userBadge" class="hint" style="display:none;"></span>
-      <button id="authOpenBtn" class="btn btn-ghost">Sign in</button>
-      <button id="signOutBtn" class="btn btn-ghost" style="display:none;">Sign out</button>
+      <button id="authOpenBtn" class="btn btn-ghost" type="button">Sign in</button>
+      <button id="signOutBtn" class="btn btn-ghost" style="display:none;" type="button">Sign out</button>
     </div>
   </nav>
 
@@ -49,7 +49,7 @@
       </div>
 
       <div class="button-group">
-        <button id="generateBtn" class="btn btn-primary">Generate QR</button>
+        <button id="generateBtn" class="btn btn-primary" type="button">Generate QR</button>
       </div>
 
       <p class="hint" id="proGateHint" style="display:none; text-align:center; margin-top:.5rem;">
@@ -62,8 +62,8 @@
       <h2>Your Expiring Link</h2>
       <canvas id="qrcode"></canvas>
       <div class="button-group gap">
-        <button class="btn btn-ghost" id="copyBtn">Copy link</button>
-        <button class="btn btn-ghost" id="downloadBtn">Download QR</button>
+        <button class="btn btn-ghost" id="copyBtn" type="button">Copy link</button>
+        <button class="btn btn-ghost" id="downloadBtn" type="button">Download QR</button>
       </div>
       <p><a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a></p>
       <p class="countdown" id="countdown"></p>
@@ -82,7 +82,7 @@
     <div class="modal-card" tabindex="-1">
       <div class="modal-header">
         <h2 id="proModalTitle">Upgrade to Pro</h2>
-        <button class="modal-close" id="closeProModal" aria-label="Close">×</button>
+        <button class="modal-close" id="closeProModal" aria-label="Close" type="button">×</button>
       </div>
 
       <p class="hint" style="text-align:left;margin-top:.25rem;">
@@ -98,7 +98,7 @@
             <li>Access window: <strong>7 days</strong></li>
           </ul>
           <div class="price">$9.99</div>
-          <button class="btn btn-primary plan-select" data-tier="1" onclick="window.openCheckout(1)">Get code</button>
+          <button class="btn btn-primary plan-select" data-tier="1" onclick="window.openCheckout(1)" type="button">Get code</button>
         </div>
 
         <div class="plan">
@@ -109,7 +109,7 @@
             <li>Access window: <strong>30 days</strong></li>
           </ul>
           <div class="price">$19.99</div>
-          <button class="btn btn-primary plan-select" data-tier="2" onclick="window.openCheckout(2)">Get code</button>
+          <button class="btn btn-primary plan-select" data-tier="2" onclick="window.openCheckout(2)" type="button">Get code</button>
         </div>
 
         <div class="plan">
@@ -120,7 +120,7 @@
             <li>Access window: <strong>Lifetime</strong></li>
           </ul>
           <div class="price">$49.99</div>
-          <button class="btn btn-primary plan-select" data-tier="3" onclick="window.openCheckout(3)">Get code</button>
+          <button class="btn btn-primary plan-select" data-tier="3" onclick="window.openCheckout(3)" type="button">Get code</button>
         </div>
       </div>
 
@@ -136,7 +136,7 @@
     <div class="modal-card" tabindex="-1">
       <div class="modal-header">
         <h2 id="successModalTitle">Pro code ready 🎉</h2>
-        <button class="modal-close" id="closeSuccessModal" aria-label="Close">×</button>
+        <button class="modal-close" id="closeSuccessModal" aria-label="Close" type="button">×</button>
       </div>
 
       <p class="hint" style="text-align:left;margin-top:.25rem;">
@@ -148,8 +148,8 @@
       </div>
 
       <div class="button-group gap">
-        <button class="btn btn-ghost" id="successCopyBtn">Copy</button>
-        <button class="btn btn-primary" id="successApplyBtn">Apply</button>
+        <button class="btn btn-ghost" id="successCopyBtn" type="button">Copy</button>
+        <button class="btn btn-primary" id="successApplyBtn" type="button">Apply</button>
       </div>
 
       <p class="hint" style="margin-top:1rem;">
@@ -165,10 +165,10 @@
       <div class="modal-header" style="justify-content:space-between; gap:.75rem; flex-wrap:wrap;">
         <h2 id="authModalTitle">Account</h2>
         <div style="display:flex; gap:.5rem;">
-          <button id="tabLogin" class="btn btn-ghost" aria-selected="true">Log in</button>
-          <button id="tabSignup" class="btn btn-ghost">Sign up</button>
+          <button id="tabLogin" class="btn btn-ghost" aria-selected="true" type="button">Log in</button>
+          <button id="tabSignup" class="btn btn-ghost" type="button">Sign up</button>
         </div>
-        <button class="modal-close" id="closeAuthModal" aria-label="Close">×</button>
+        <button class="modal-close" id="closeAuthModal" aria-label="Close" type="button">×</button>
       </div>
 
       <div id="authLogin" class="card" style="margin:0;">
@@ -181,7 +181,7 @@
           <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" />
         </label>
         <div class="button-group">
-          <button id="loginSubmit" class="btn btn-primary">Log in</button>
+          <button id="loginSubmit" class="btn btn-primary" type="button">Log in</button>
         </div>
         <p class="hint" id="loginHint" style="text-align:center;"></p>
         <p class="hint" style="text-align:center;margin-top:.5rem;">
@@ -199,7 +199,7 @@
           <input type="password" id="signupPassword" placeholder="Create a password" autocomplete="new-password" />
         </label>
         <div class="button-group">
-          <button id="signupSubmit" class="btn btn-primary">Create account</button>
+          <button id="signupSubmit" class="btn btn-primary" type="button">Create account</button>
         </div>
         <p class="hint" id="signupHint" style="text-align:center;"></p>
       </div>
@@ -212,7 +212,7 @@
     <div class="modal-card" tabindex="-1">
       <div class="modal-header">
         <h2 id="resetModalTitle">Reset password</h2>
-        <button class="modal-close" id="closeResetModal" aria-label="Close">×</button>
+        <button class="modal-close" id="closeResetModal" aria-label="Close" type="button">×</button>
       </div>
 
       <div class="card" style="margin:0;">
@@ -225,7 +225,7 @@
           <input type="password" id="resetPassword2" placeholder="Repeat new password" autocomplete="new-password" />
         </label>
         <div class="button-group">
-          <button id="resetSubmit" class="btn btn-primary">Update password</button>
+          <button id="resetSubmit" class="btn btn-primary" type="button">Update password</button>
         </div>
         <p class="hint" id="resetHint" style="text-align:center;"></p>
       </div>

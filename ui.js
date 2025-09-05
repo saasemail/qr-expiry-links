@@ -103,36 +103,36 @@ supa.auth.onAuthStateChange(async (event) => {
   await refreshAuthUI();
 });
 
-// Handle auth redirects on THIS page too (if link ipak dođe na index)
-async function handleAuthRedirect() {
+// --- Minimal redirect handler on index (u slučaju da link ponekad sleti ovde)
+(async function maybeHandleAuthOnIndex() {
   try {
-    const search = new URLSearchParams(location.search);
-    const hasCode = !!search.get("code");
-    const hasHash = location.hash && /access_token|type=recovery|refresh_token/i.test(location.hash);
-    if (hasCode || hasHash) {
-      // VAŽNO: prosledi ceo URL
-      await supa.auth.exchangeCodeForSession(window.location.href);
+    const url = new URL(window.location.href);
+    const params = url.searchParams;
+    const hash = url.hash || "";
 
-      const isRecovery =
-        search.get("type") === "recovery" ||
-        (location.hash && /type=recovery/i.test(location.hash));
+    const code = params.get("code");
+    const isRecovery = params.get("type") === "recovery" || /type=recovery/i.test(hash);
+    const hasAccess = /access_token=/.test(hash) && /refresh_token=/.test(hash);
 
-      // očisti URL
+    if (code) {
+      await supa.auth.exchangeCodeForSession({ code });
       history.replaceState(null, "", location.origin + location.pathname);
-
+      if (isRecovery) openModal(resetModal);
+      await refreshAuthUI();
+    } else if (hasAccess) {
+      const at = hash.match(/access_token=([^&]+)/)?.[1];
+      const rt = hash.match(/refresh_token=([^&]+)/)?.[1];
+      if (at && rt) {
+        await supa.auth.setSession({ access_token: decodeURIComponent(at), refresh_token: decodeURIComponent(rt) });
+      }
+      history.replaceState(null, "", location.origin + location.pathname);
       if (isRecovery) openModal(resetModal);
       await refreshAuthUI();
     }
-  } catch {
-    // ignore
+  } catch (e) {
+    console.warn("[index auth redirect]", e?.message || e);
   }
-}
-handleAuthRedirect();
-
-// Takođe, fallback: ako je hash ostao sa type=recovery, otvori reset modal
-if (location.hash && location.hash.includes("type=recovery")) {
-  setTimeout(() => openModal(resetModal), 300);
-}
+})();
 
 // ---- Auth modal open/close & tabs ----
 function openModal(modal) {
@@ -202,8 +202,8 @@ loginSubmit?.addEventListener("click", async () => {
     }
     closeModal(authModal);
     await refreshAuthUI();
-  } catch {
-    loginHint.textContent = "Login failed.";
+  } catch (e) {
+    loginHint.textContent = e?.message || "Login failed.";
   }
 });
 
@@ -231,8 +231,8 @@ signupSubmit?.addEventListener("click", async () => {
       closeModal(authModal);
       await refreshAuthUI();
     }
-  } catch {
-    signupHint.textContent = "Sign up failed.";
+  } catch (e) {
+    signupHint.textContent = e?.message || "Sign up failed.";
   }
 });
 
@@ -290,8 +290,8 @@ resetSubmit?.addEventListener("click", async () => {
       openModal(authModal);
       setAuthTab("login");
     }, 700);
-  } catch {
-    resetHint.textContent = "Could not update password.";
+  } catch (e) {
+    resetHint.textContent = e?.message || "Could not update password.";
   }
 });
 

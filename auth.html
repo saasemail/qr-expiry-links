@@ -25,7 +25,7 @@
           <input type="password" id="newPwd2" placeholder="Repeat new password" autocomplete="new-password" />
         </label>
         <div class="button-group">
-          <button class="btn btn-primary" id="doReset">Update password</button>
+          <button class="btn btn-primary" id="doReset" type="button">Update password</button>
         </div>
         <p class="hint" id="resetHint" style="text-align:center;"></p>
       </div>
@@ -60,32 +60,56 @@
       resetBox.style.display = "none";
       goHome.style.display = "";
     }
-
     function showReset() {
       title.textContent = "Reset password";
       desc.textContent = "Enter a new password for your account.";
       resetBox.style.display = "";
       goHome.style.display = "none";
     }
+    function showError(msg) {
+      title.textContent = "Auth error";
+      desc.textContent = msg || "Could not complete authentication.";
+      resetBox.style.display = "none";
+      goHome.style.display = "";
+    }
 
-    async function run() {
-      try {
-        // VAŽNO: prosledi ceo URL nazad Supabase-u da razmeni code/hash za sesiju
-        await supa.auth.exchangeCodeForSession(window.location.href);
-      } catch (e) {
-        // ako već postoji sesija, ovo može da baci grešku — ignorišemo
-      }
-
+    async function completeFromUrl() {
       const url = new URL(window.location.href);
-      const type = url.searchParams.get("type") ||
-                   (url.hash.includes("type=recovery") ? "recovery" : null);
+      const params = url.searchParams;
+      const hash = url.hash || "";
 
-      if (type === "recovery") {
-        showReset();
-      } else {
-        showHome("You're signed in", "You can safely return to the app.");
-        // opciono auto-redirect posle kratkog delay-a:
-        setTimeout(() => (window.location.href = "/"), 900);
+      const code = params.get("code");
+      const isRecovery = params.get("type") === "recovery" || /type=recovery/i.test(hash);
+      const hasAccess = /access_token=/.test(hash) && /refresh_token=/.test(hash);
+
+      try {
+        if (code) {
+          await supa.auth.exchangeCodeForSession({ code });
+        } else if (hasAccess) {
+          const at = hash.match(/access_token=([^&]+)/)?.[1];
+          const rt = hash.match(/refresh_token=([^&]+)/)?.[1];
+          if (!at || !rt) throw new Error("Missing tokens in URL hash");
+          await supa.auth.setSession({
+            access_token: decodeURIComponent(at),
+            refresh_token: decodeURIComponent(rt)
+          });
+        } else {
+          // Nema ničega — jasno prikaži
+          showError("No auth parameters found in the URL.");
+          return;
+        }
+
+        // očisti URL
+        history.replaceState(null, "", location.origin + location.pathname);
+
+        if (isRecovery) {
+          showReset();
+        } else {
+          showHome("You're signed in", "You can safely return to the app.");
+          setTimeout(() => (window.location.href = "/"), 900);
+        }
+      } catch (e) {
+        showError(e?.message || "Authentication failed.");
       }
     }
 
@@ -101,12 +125,12 @@
         const { error } = await supa.auth.updateUser({ password: p1 });
         if (error) { resetHint.textContent = error.message || "Could not update password."; return; }
         showHome("Password updated", "You can now log in with your new password.");
-      } catch {
-        resetHint.textContent = "Could not update password.";
+      } catch (e) {
+        resetHint.textContent = e?.message || "Could not update password.";
       }
     });
 
-    run();
+    completeFromUrl();
   </script>
 </body>
 </html>
