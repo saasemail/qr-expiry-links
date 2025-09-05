@@ -39,17 +39,12 @@
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-    const SUPABASE_URL = window.NEXT_PUBLIC_SUPABASE_URL || "https://xyfacudywygreaquvzjr.supabase.co";
-    const SUPABASE_ANON_KEY = window.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjQ3MDcsImV4cCI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
+    const SUPABASE_URL = "https://xyfacudywygreaquvzjr.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjQ3MDcsImV4cCI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
 
+    // Dozvoli SDK-u da automatski pokupi #access_token iz URL-a (magic link)
     const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        flowType: "pkce",
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: false, // ručno obrađujemo URL
-      },
+      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
     });
 
     const title = document.getElementById("title");
@@ -61,65 +56,68 @@
     const doReset = document.getElementById("doReset");
     const resetHint = document.getElementById("resetHint");
 
-    function showHome(msgTitle, msgDesc) {
-      title.textContent = msgTitle;
-      desc.textContent = msgDesc || "";
-      resetBox.style.display = "none";
-      goHome.style.display = "";
-    }
-    function showReset() {
-      title.textContent = "Reset password";
-      desc.textContent = "Enter a new password for your account.";
-      resetBox.style.display = "";
-      goHome.style.display = "none";
-    }
-    function showError(msg) {
-      title.textContent = "Auth error";
-      desc.textContent = msg || "Could not complete authentication.";
-      resetBox.style.display = "none";
-      goHome.style.display = "";
-    }
+    const setMsg = (t, d="") => { title.textContent = t; desc.textContent = d; };
+    const showHome  = (t, d) => { setMsg(t,d); resetBox.style.display="none"; goHome.style.display=""; };
+    const showReset = ()     => { setMsg("Reset password","Enter a new password for your account."); resetBox.style.display=""; goHome.style.display="none"; };
+    const showError = (m)    => { setMsg("Auth error", m || "Could not complete authentication."); resetBox.style.display="none"; goHome.style.display=""; };
 
-    async function completeFromUrl() {
-      const url = new URL(window.location.href);
-      const params = url.searchParams;
-      const hash = url.hash || "";
+    // map tipova iz ?type= u verifyOtp tipove
+    const mapType = (t) => {
+      if (!t) return "signup"; // default za email potvrdu
+      const x = t.toLowerCase();
+      if (x === "recovery") return "recovery";
+      if (x === "signup" || x === "confirmation" || x === "verify") return "signup";
+      if (x === "magiclink" || x === "magic_link") return "magiclink";
+      if (x === "email_change") return "email_change";
+      return "signup";
+    };
 
-      const type = params.get("type") || (hash.includes("type=recovery") ? "recovery" : null);
-      const codeInQuery = params.get("code");
-      const hasHashTokens = /access_token=/.test(hash) && /refresh_token=/.test(hash);
-      const linkError = params.get("error_description") || params.get("error");
-
+    async function finishAuth() {
       try {
-        if (linkError) {
-          showError(linkError);
-          return;
+        const url = new URL(window.location.href);
+        const params = url.searchParams;
+        const hash = url.hash || "";
+
+        const typeParam = params.get("type") || (hash.includes("type=recovery") ? "recovery" : null);
+        const code = params.get("code");      // ?code=... (email OTP tok)
+        const email = params.get("email");    // mi ćemo ga dodati u redirectTo
+        const hasHashTokens = /access_token=/.test(hash);
+
+        // 1) Ako je magic link (#access_token=...), SDK će sam setovati sesiju
+        let { data: { session } } = await supa.auth.getSession();
+        if (!session && hasHashTokens) {
+          // daj SDK-u tren da obradi URL
+          await new Promise(r => setTimeout(r, 300));
+          ({ data: { session } } = await supa.auth.getSession());
         }
 
-        if (codeInQuery) {
-          const { error } = await supa.auth.exchangeCodeForSession(window.location.href);
-          if (error) throw error;
-        } else if (hasHashTokens) {
-          const at = hash.match(/access_token=([^&]+)/)?.[1];
-          const rt = hash.match(/refresh_token=([^&]+)/)?.[1];
-          if (!at || !rt) throw new Error("Missing tokens in URL hash");
-          await supa.auth.setSession({
-            access_token: decodeURIComponent(at),
-            refresh_token: decodeURIComponent(rt),
+        // 2) Ako je ?code=..., verifikuj OTP (ZAHTEVA email!)
+        if (!session && code) {
+          if (!email) throw new Error("Missing email in redirect. Please re-try from the app.");
+          const { data, error } = await supa.auth.verifyOtp({
+            type: mapType(typeParam),
+            token_hash: code,
+            email,
           });
-        } else {
-          showError("No auth parameters found in the URL.");
-          return;
+          if (error) throw error;
+          // verifyOtp obično vrati session (ili makar potvrdi nalog)
+          ({ data: { session } } = await supa.auth.getSession());
         }
 
-        // očisti URL
+        // Počisti URL (bez tokena/parametara)
         history.replaceState(null, "", location.origin + location.pathname);
 
-        if (type === "recovery") {
+        if (mapType(typeParam) === "recovery") {
           showReset();
-        } else {
+          return;
+        }
+
+        if (session) {
           showHome("You're signed in", "You can safely return to the app.");
           setTimeout(() => (window.location.href = "/"), 900);
+        } else {
+          // potvrđen nalog ali bez aktivne sesije — sve ok
+          showHome("Email confirmed", "You can now sign in.");
         }
       } catch (e) {
         showError(e?.message || "Authentication failed.");
@@ -128,12 +126,10 @@
 
     doReset?.addEventListener("click", async () => {
       resetHint.textContent = "";
-      const p1 = newPwd1.value;
-      const p2 = newPwd2.value;
+      const p1 = newPwd1.value, p2 = newPwd2.value;
       if (!p1 || !p2) { resetHint.textContent = "Enter and repeat the new password."; return; }
       if (p1 !== p2) { resetHint.textContent = "Passwords do not match."; return; }
       if (p1.length < 6) { resetHint.textContent = "Password must be at least 6 characters."; return; }
-
       try {
         const { error } = await supa.auth.updateUser({ password: p1 });
         if (error) { resetHint.textContent = error.message || "Could not update password."; return; }
@@ -143,7 +139,7 @@
       }
     });
 
-    completeFromUrl();
+    finishAuth();
   </script>
 </body>
 </html>
