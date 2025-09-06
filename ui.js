@@ -1,18 +1,9 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// ui.js — QR Expiry Links (Free vs Pro via /api/create)
 
-const SUPABASE_URL = "https://xyfacudywygreaquvzjr.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjQ3MDcsImV4cCI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
-
-const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
-});
-
-console.log("[ui] BOOT ok");
-
-// elements
 const urlInput = document.getElementById("urlInput");
 const expiryInput = document.getElementById("expiryInput");
 const tokenInput = document.getElementById("tokenInput");
+
 const generateBtn = document.getElementById("generateBtn");
 
 const resultCard = document.getElementById("resultCard");
@@ -23,166 +14,122 @@ const countdownEl = document.getElementById("countdown");
 const copyBtn = document.getElementById("copyBtn");
 const downloadBtn = document.getElementById("downloadBtn");
 
-const userBadge = document.getElementById("userBadge");
-const authOpenBtn = document.getElementById("authOpenBtn");
-const signOutBtn = document.getElementById("signOutBtn");
-
+// Pro modal
 const proModal = document.getElementById("proModal");
 const getProBtn = document.getElementById("getProBtn");
 const closeProModal = document.getElementById("closeProModal");
-const proGateHint = document.getElementById("proGateHint");
 
+// Success modal
 const successModal = document.getElementById("successModal");
 const closeSuccessModal = document.getElementById("closeSuccessModal");
-const successTokenEl = document.getElementById("successToken");
-const successCopyBtn = document.getElementById("successCopyBtn");
-const successApplyBtn = document.getElementById("successApplyBtn");
+const successCode = document.getElementById("successCode");
+const copyCodeBtn = document.getElementById("copyCodeBtn");
+const applyCodeBtn = document.getElementById("applyCodeBtn");
 const resendLink = document.getElementById("resendLink");
 
-const authModal = document.getElementById("authModal");
-const closeAuthModal = document.getElementById("closeAuthModal");
-const googleLoginBtn = document.getElementById("googleLoginBtn");
+let expiryTimer;
+let countdownTimer;
+let lastRedirectUrl = "";
 
-let expiryTimer, countdownTimer, lastRedirectUrl = "", statusPollTimer = null;
-
-// auth UI
-async function refreshAuthUI() {
-  const { data: { session } } = await supa.auth.getSession();
-  console.log("[ui] session:", session ? { user: session.user?.email } : null);
-  const email = session?.user?.email;
-  if (email) {
-    userBadge.style.display = "";
-    userBadge.textContent = email;
-    authOpenBtn.textContent = "Account";
-    signOutBtn.style.display = "";
-    proGateHint.style.display = "none";
-  } else {
-    userBadge.style.display = "none";
-    authOpenBtn.textContent = "Sign in";
-    signOutBtn.style.display = "none";
-  }
+// Helpers
+function setLoading(state) {
+  generateBtn.disabled = state;
+  generateBtn.textContent = state ? "Generating..." : "Generate QR";
 }
-supa.auth.onAuthStateChange(async () => { await refreshAuthUI(); });
-window.addEventListener("load", refreshAuthUI);
-
-// modals
-function openModal(m){ if(!m) return; m.classList.add("open"); m.setAttribute("aria-hidden","false"); document.addEventListener("keydown", onEsc); document.addEventListener("keydown", trapTab); }
-function closeModal(m){ if(!m) return; m.classList.remove("open"); m.setAttribute("aria-hidden","true"); document.removeEventListener("keydown", onEsc); document.removeEventListener("keydown", trapTab); }
-function onEsc(e){ if(e.key==="Escape"){ [proModal,successModal,authModal].forEach(closeModal); } }
-function trapTab(e){ const open=document.querySelector(".modal.open"); if(!open||e.key!=="Tab") return; const f=open.querySelectorAll("button,[href],input,select,textarea,[tabindex]:not([tabindex='-1'])"); if(!f.length) return; const first=f[0],last=f[f.length-1]; if(e.shiftKey&&document.activeElement===first){last.focus();e.preventDefault();} else if(!e.shiftKey&&document.activeElement===last){first.focus();e.preventDefault();} }
-
-authOpenBtn?.addEventListener("click",(e)=>{e.preventDefault();openModal(authModal);});
-closeAuthModal?.addEventListener("click",()=>closeModal(authModal));
-authModal?.addEventListener("click",(e)=>{ if(e.target && e.target.matches(".modal-overlay,[data-close='auth']")) closeModal(authModal); });
-
-// Google OAuth
-googleLoginBtn?.addEventListener("click", async () => {
-  try {
-    await supa.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth.html`, queryParams: { prompt: "select_account" } }
-    });
-  } catch (e) {
-    alert(e?.message || "Google sign-in failed.");
-  }
-});
-
-signOutBtn?.addEventListener("click", async () => {
-  await supa.auth.signOut();
-  await refreshAuthUI();
-});
-
-// helpers
-function setLoading(state){ if(!generateBtn) return; generateBtn.disabled = state; generateBtn.textContent = state ? "Generating..." : "Generate QR"; }
-async function getAccessToken(){ const { data:{ session } } = await supa.auth.getSession(); return session?.access_token || null; }
 
 async function createLink(url, minutes, token) {
-  const headers = { "Content-Type": "application/json" };
-  const jwt = await getAccessToken();
-  if (jwt) headers["Authorization"] = `Bearer ${jwt}`;
-
   const resp = await fetch("/api/create", {
     method: "POST",
-    headers,
-    body: JSON.stringify({ url, minutes, token })
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url, minutes, token }),
   });
 
   if (!resp.ok) {
-    if (resp.status === 401) { proGateHint.style.display = ""; openModal(authModal); throw new Error("Login required for Pro features."); }
-    if (resp.status === 404) { throw new Error("/api/create not found (backend route missing)."); }
-    if (resp.status === 429) { const msg = await resp.text(); throw new Error(msg || "Daily limit reached."); }
     const text = await resp.text();
-    try { const maybe = JSON.parse(text); throw new Error(maybe?.message || text || "Create failed"); }
-    catch { throw new Error(text || "Create failed"); }
+    try {
+      const maybeJson = JSON.parse(text);
+      throw new Error(maybeJson?.message || maybeJson || text || "Create failed");
+    } catch {
+      throw new Error(text || "Create failed");
+    }
   }
-  return resp.json();
+
+  return resp.json(); // { id, expires_at, plan, tier, minutes }
 }
 
-function formatCountdown(ms){
-  if(ms<=0) return "00:00:00";
-  const sec=Math.floor(ms/1000);
-  const d=Math.floor(sec/86400);
-  const h=Math.floor((sec%86400)/3600);
-  const m=Math.floor((sec%3600)/60);
-  const s=sec%60;
-  const pad=n=>String(n).padStart(2,"0");
-  return d>0 ? `${d}d ${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(h)}:${pad(m)}:${pad(s)}`;
+function formatCountdown(ms) {
+  if (ms <= 0) return "00:00:00";
+  const sec = Math.floor(ms / 1000);
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  const pad = (n) => String(n).padStart(2, "0");
+  if (d > 0) return `${d}d ${pad(h)}:${pad(m)}:${pad(s)}`;
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
 }
-function clearQR(){ try{ const ctx=qrcodeCanvas?.getContext?.("2d"); if(ctx) ctx.clearRect(0,0,qrcodeCanvas.width,qrcodeCanvas.height);}catch{} }
 
-function startCountdown(iso){
-  const end=new Date(iso).getTime();
+function startCountdown(isoExpires) {
+  const end = new Date(isoExpires).getTime();
   clearInterval(countdownTimer);
-  countdownTimer=setInterval(()=>{
-    const left=end-Date.now();
-    if(left<=0){
+  countdownTimer = setInterval(() => {
+    const left = end - Date.now();
+    if (left <= 0) {
       clearInterval(countdownTimer);
-      countdownEl.textContent="Expired";
-      clearQR();
-      generatedLink.textContent="";
-      expiryHint.textContent="This link has expired.";
+      countdownEl.textContent = "Expired";
+      const ctx = qrcodeCanvas.getContext("2d");
+      ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
+      generatedLink.textContent = "";
+      expiryHint.textContent = "This link has expired.";
       return;
     }
-    countdownEl.textContent=formatCountdown(left);
+    countdownEl.textContent = formatCountdown(left);
   }, 1000);
 }
 
-// Generate flow
-generateBtn?.addEventListener("click", async () => {
+// ------ Generate flow ------
+generateBtn.addEventListener("click", async () => {
   const url = urlInput.value.trim();
   const minutes = parseInt(expiryInput.value, 10);
   const token = (tokenInput?.value || "").trim();
 
-  if (!/^https?:\/\//i.test(url)) { alert("Please enter a valid URL (include https://)."); return; }
-  if (!Number.isFinite(minutes) || minutes < 1) { alert("Expiry must be at least 1 minute."); return; }
+  if (!/^https?:\/\//i.test(url)) {
+    alert("Please enter a valid URL (include https://).");
+    return;
+  }
+  if (!Number.isFinite(minutes) || minutes < 1) {
+    alert("Expiry must be at least 1 minute.");
+    return;
+  }
 
-  const proIntent = minutes > 60 || !!token;
-  const { data: { session } } = await supa.auth.getSession();
-  if (proIntent && !session) { proGateHint.style.display = ""; openModal(authModal); return; }
+  clearTimeout(expiryTimer);
+  clearInterval(countdownTimer);
+  setLoading(true);
 
-  clearTimeout(expiryTimer); clearInterval(countdownTimer); setLoading(true);
   try {
     const created = await createLink(url, minutes, token);
-    const redirectUrl = `${window.location.origin}/go/${created.id}`;
+    const linkId = created.id;
+    const redirectUrl = `${window.location.origin}/go/${linkId}`;
     lastRedirectUrl = redirectUrl;
 
     generatedLink.textContent = redirectUrl;
     generatedLink.href = redirectUrl;
 
-    if (window.QRCode && qrcodeCanvas) {
-      QRCode.toCanvas(qrcodeCanvas, redirectUrl, { width: 200 }, (err) => { if (err) console.error(err); });
-    }
+    QRCode.toCanvas(qrcodeCanvas, redirectUrl, { width: 200 }, (err) => {
+      if (err) console.error(err);
+    });
 
     resultCard.classList.remove("hidden");
     const endLocal = new Date(created.expires_at);
     expiryHint.textContent = `Plan: ${(created.plan || "free").toUpperCase()} • Expires in ${created.minutes} min • Until ${endLocal.toLocaleString()}`;
 
     expiryTimer = setTimeout(() => {
-      clearQR();
-      generatedLink.textContent="";
-      expiryHint.textContent="This link has expired.";
-      countdownEl.textContent="Expired";
-    }, created.minutes*60_000);
+      const ctx = qrcodeCanvas.getContext("2d");
+      ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
+      generatedLink.textContent = "";
+      expiryHint.textContent = "This link has expired.";
+      countdownEl.textContent = "Expired";
+    }, created.minutes * 60_000);
 
     startCountdown(created.expires_at);
   } catch (err) {
@@ -193,89 +140,202 @@ generateBtn?.addEventListener("click", async () => {
   }
 });
 
-// copy & download
+// Copy & download
 copyBtn?.addEventListener("click", async () => {
   try {
     if (!lastRedirectUrl) return;
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(lastRedirectUrl);
-      copyBtn.textContent="Copied!";
-      setTimeout(()=>copyBtn.textContent="Copy link",1200);
+      copyBtn.textContent = "Copied!";
+      setTimeout(() => (copyBtn.textContent = "Copy link"), 1200);
     } else {
-      const ta=document.createElement("textarea");
-      ta.value=lastRedirectUrl; document.body.appendChild(ta); ta.select();
-      document.execCommand("copy"); document.body.removeChild(ta);
+      const ta = document.createElement("textarea");
+      ta.value = lastRedirectUrl;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
     }
-  } catch { alert("Could not copy link."); }
+  } catch {
+    alert("Could not copy link.");
+  }
 });
+
 downloadBtn?.addEventListener("click", () => {
   try {
-    const url=qrcodeCanvas.toDataURL("image/png");
-    const a=document.createElement("a"); a.href=url; a.download="qr-link.png";
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  } catch { alert("Could not download QR."); }
+    const url = qrcodeCanvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "qr-link.png";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch {
+    alert("Could not download QR.");
+  }
 });
 
-// Pro modal & checkout polling (isti kao ranije)
-getProBtn?.addEventListener("click",(e)=>{e.preventDefault();openModal(proModal);});
-closeProModal?.addEventListener("click",()=>closeModal(proModal));
-proModal?.addEventListener("click",(e)=>{if(e.target&&e.target.matches(".modal-overlay,[data-close='modal']"))closeModal(proModal);});
+// ------ Pro modal ------
+function openModal(modal) {
+  if (!modal) return;
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden", "false");
+  const first = modal.querySelector(".plan-select, .modal-close, button, a, input");
+  (first || modal.querySelector(".modal-card"))?.focus();
+  document.addEventListener("keydown", onEsc);
+  document.addEventListener("keydown", trapTab);
+}
 
-document.querySelectorAll(".plan-select").forEach((btn)=>{
-  btn.addEventListener("click", async (e)=>{
-    e.preventDefault();
-    const tier = Number(btn.dataset.tier||0);
-    if(!tier) return;
-    await window.openCheckout?.(tier);
+function closeModal(modal) {
+  if (!modal) return;
+  modal.classList.remove("open");
+  modal.setAttribute("aria-hidden", "true");
+  document.removeEventListener("keydown", onEsc);
+  document.removeEventListener("keydown", trapTab);
+}
+
+function onEsc(e) {
+  if (e.key === "Escape") {
     closeModal(proModal);
-    tokenInput?.focus();
+    closeModal(successModal);
+  }
+}
+
+function trapTab(e) {
+  const open = document.querySelector(".modal.open");
+  if (!open || e.key !== "Tab") return;
+  const focusables = open.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
+  if (!focusables.length) return;
+  const first = focusables[0];
+  const last = focusables[focusables.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    last.focus();
+    e.preventDefault();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    first.focus();
+    e.preventDefault();
+  }
+}
+
+getProBtn?.addEventListener("click", (e) => {
+  e.preventDefault();
+  openModal(proModal);
+});
+
+closeProModal?.addEventListener("click", () => closeModal(proModal));
+proModal?.addEventListener("click", (e) => {
+  if (e.target && e.target.matches(".modal-overlay,[data-close='modal']")) closeModal(proModal);
+});
+
+// When user clicks a plan -> start checkout session (simulate partner)
+document.querySelectorAll(".plan-select").forEach((btn) => {
+  btn.addEventListener("click", async (e) => {
+    e.preventDefault();
+    const tier = Number(btn.dataset.tier || 0);
+    try {
+      const r = await fetch(`/api/checkout-session?tier=${tier}`);
+      if (r.ok) {
+        const js = await r.json(); // { session_id }
+        const sid = js?.session_id;
+        // Redirect with session_id in query; partner would do this after payment.
+        const base = location.origin + location.pathname;
+        location.href = `${base}?session_id=${encodeURIComponent(sid)}`;
+      } else {
+        // Fallback – open email (same kao ranije)
+        const mail = "support@qr.expire.links.com";
+        const subjects = {1:"QR Expiry Links - Tier 1",2:"QR Expiry Links - Tier 2",3:"QR Expiry Links - Tier 3 (Lifetime)"};
+        const bodies   = {
+          1:"I want Tier 1 (24h per link, 5/day). Please send payment instructions and my Pro code.",
+          2:"I want Tier 2 (7 days per link, unlimited). Please send payment instructions and my Pro code.",
+          3:"I want Tier 3 (30 days per link, unlimited, lifetime). Please send payment instructions and my Pro code."
+        };
+        const s = encodeURIComponent(subjects[tier] || "QR Expiry Links - Pro");
+        const b = encodeURIComponent(bodies[tier] || "Please send payment instructions and my Pro code.");
+        location.href = `mailto:${mail}?subject=${s}&body=${b}`;
+      }
+    } catch {
+      // same fallback
+      const mail = "support@qr.expire.links.com";
+      location.href = `mailto:${mail}?subject=QR%20Expiry%20Links%20-%20Pro&body=Please%20send%20payment%20instructions%20and%20my%20Pro%20code.`;
+    } finally {
+      closeModal(proModal);
+      tokenInput?.focus();
+    }
   });
 });
 
-window.openCheckout = async function (tier) {
-  try {
-    const r = await fetch("/api/checkout-session",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({tier})
-    });
-    if(!r.ok) throw new Error(await r.text());
-    const { session_id } = await r.json();
-    startStatusPolling(session_id);
-  } catch(e){
-    alert("Could not start checkout session.");
-    console.error(e);
-  }
-};
-function startStatusPolling(sessionId){
-  stopStatusPolling();
-  statusPollTimer=setInterval(async()=>{
-    try{
-      const r=await fetch(`/api/checkout-status?session_id=${encodeURIComponent(sessionId)}`);
-      if(!r.ok) return;
-      const data=await r.json();
-      if(data?.ready&&data?.token){
-        stopStatusPolling();
-        showSuccessModal(data.token,sessionId);
-      }
-    }catch{}
-  },2000);
-}
-function stopStatusPolling(){ if(statusPollTimer){ clearInterval(statusPollTimer); statusPollTimer=null; } }
+// ------ Success modal workflow ------
 
-function openSuccess(m){ if(!m) return; m.classList.add("open"); m.setAttribute("aria-hidden","false"); document.addEventListener("keydown", onEsc); document.addEventListener("keydown", trapTab); }
-function closeSuccess(){ closeModal(successModal); }
-function showSuccessModal(token,sessionId){
-  successTokenEl.textContent=token;
-  try{ localStorage.setItem("pro_token",token);}catch{}
-  if(resendLink){
-    const subject=encodeURIComponent("QR Expiry Links - Resend my code");
-    const body=encodeURIComponent(`Hello,\nI completed the payment. My sessionId is: ${sessionId}\nPlease resend my Pro code.`);
-    resendLink.href=`mailto:support@example.com?subject=${subject}&body=${body}`;
-  }
-  openSuccess(successModal);
+// open & close
+function openSuccess(token) {
+  if (!token) return;
+  successCode.value = token;
+  try { localStorage.setItem("pro_code", token); } catch {}
+  openModal(successModal);
 }
-successCopyBtn?.addEventListener("click", async ()=>{ try{ const t=successTokenEl?.textContent||""; if(!t) return; await navigator.clipboard.writeText(t); successCopyBtn.textContent="Copied!"; setTimeout(()=>successCopyBtn.textContent="Copy",1200);}catch{} });
-successApplyBtn?.addEventListener("click", ()=>{ const t=successTokenEl?.textContent||""; if(!t) return; tokenInput.value=t; closeSuccess(); tokenInput.focus(); });
-closeSuccessModal?.addEventListener("click", closeSuccess);
-try{ const saved=localStorage.getItem("pro_token"); if(saved&&tokenInput&&!tokenInput.value) tokenInput.value=saved; }catch{}
+
+closeSuccessModal?.addEventListener("click", () => closeModal(successModal));
+successModal?.addEventListener("click", (e) => {
+  if (e.target && e.target.matches(".modal-overlay,[data-close='modal']")) closeModal(successModal);
+});
+
+copyCodeBtn?.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(successCode.value || "");
+    copyCodeBtn.textContent = "Copied!";
+    setTimeout(() => (copyCodeBtn.textContent = "Copy"), 1200);
+  } catch {
+    alert("Could not copy.");
+  }
+});
+
+applyCodeBtn?.addEventListener("click", () => {
+  tokenInput.value = successCode.value || "";
+  closeModal(successModal);
+  generateBtn?.focus();
+});
+
+// Prefill from localStorage on load
+try {
+  const saved = localStorage.getItem("pro_code");
+  if (saved && !tokenInput.value) tokenInput.value = saved;
+} catch {}
+
+// Polling for session_id in URL
+function getQueryParam(name) {
+  return new URLSearchParams(location.search).get(name);
+}
+
+async function pollStatus(sessionId, { tries = 30, interval = 2000 } = {}) {
+  for (let i = 0; i < tries; i++) {
+    try {
+      const r = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(sessionId)}`);
+      if (r.ok) {
+        const js = await r.json(); // { ok, token? }
+        if (js?.ok && js?.token) return js.token;
+      }
+    } catch { /* ignore */ }
+    await new Promise((res) => setTimeout(res, interval));
+  }
+  return null;
+}
+
+// On load: if ?session_id=... then poll backend, show modal with token
+(async () => {
+  const sid = getQueryParam("session_id");
+  if (sid) {
+    const token = await pollStatus(sid);
+    if (token) {
+      openSuccess(token);
+      // optionally clean the URL
+      const base = location.origin + location.pathname;
+      history.replaceState({}, "", base);
+    }
+  }
+})();
+
+// “Resend my code” placeholder (može da gaš do admin API-ja kasnije)
+resendLink?.addEventListener("click", (e) => {
+  e.preventDefault();
+  alert("Please contact support to resend your code. (Admin endpoint coming next.)");
+});

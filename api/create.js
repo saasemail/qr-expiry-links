@@ -31,12 +31,14 @@ export default async function handler(req, res) {
       "unknown";
     const ua = (req.headers["user-agent"] || "").slice(0, 300);
 
-    const FREE_MAX_MINUTES = 60;
-    const FREE_DAILY_LIMIT = 1;
-    const TIER1_MAX = 60 * 24;
-    const TIER2_MAX = 60 * 24 * 7;
-    const TIER3_MAX = 60 * 24 * 30;
+    // Limits
+    const FREE_MAX_MINUTES = 60;         // 1h
+    const FREE_DAILY_LIMIT = 1;          // 1/day
+    const TIER1_MAX = 60 * 24;           // 24h
+    const TIER2_MAX = 60 * 24 * 7;       // 7 days
+    const TIER3_MAX = 60 * 24 * 30;      // 30 days
 
+    // If Pro intent (minutes > FREE_MAX or has token) => require login
     const proIntent = minutes > FREE_MAX_MINUTES || !!token;
     let userId = null;
 
@@ -55,6 +57,7 @@ export default async function handler(req, res) {
     let maxMinutes = FREE_MAX_MINUTES;
     let dailyLimit = FREE_DAILY_LIMIT;
 
+    // Pro token lookup
     if (token) {
       try {
         const { data: tok, error } = await admin
@@ -95,6 +98,7 @@ export default async function handler(req, res) {
       }
     }
 
+    // Daily limit
     if (dailyLimit !== null) {
       try {
         const dayStart = new Date();
@@ -108,7 +112,7 @@ export default async function handler(req, res) {
         if (plan === "free") {
           query = query.eq("creator_ip", ip);
         } else if (userId) {
-          // If you later add a creator_user_id column, filter here.
+          // If you later add column creator_user_id uuid, uncomment next line:
           // query = query.eq("creator_user_id", userId);
         }
 
@@ -121,13 +125,18 @@ export default async function handler(req, res) {
       }
     }
 
+    // Clamp minutes
     if (Number.isFinite(maxMinutes) && minutes > maxMinutes) minutes = maxMinutes;
     const expiresAt = new Date(Date.now() + minutes * 60_000).toISOString();
 
+    // Insert link (try with optional creator_user_id first)
     let row = null;
 
     try {
       const payload = { url, expires_at: expiresAt, creator_ip: ip, plan: plan || "free", tier };
+      // If you added this column in DB, you can include it:
+      // if (userId) payload.creator_user_id = userId;
+
       const { data, error } = await admin
         .from("links")
         .insert([payload])
@@ -155,6 +164,7 @@ export default async function handler(req, res) {
 
     if (!row) return res.status(500).send("Create failed");
 
+    // Best-effort event log
     try {
       await admin.from("link_events").insert([{
         link_id: row.id,
