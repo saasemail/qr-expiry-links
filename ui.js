@@ -3,12 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = "https://xyfacudywygreaquvzjr.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjQ3MDcsImV4cCI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
 
-// Let the SDK auto-read #access_token if a redirect lands on index.
 const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
 });
 
-// --- DOM refs ---
+console.log("[ui] BOOT ok");
+
 const urlInput = document.getElementById("urlInput");
 const expiryInput = document.getElementById("expiryInput");
 const tokenInput = document.getElementById("tokenInput");
@@ -38,17 +38,16 @@ const successCopyBtn = document.getElementById("successCopyBtn");
 const successApplyBtn = document.getElementById("successApplyBtn");
 const resendLink = document.getElementById("resendLink");
 
-// Auth modal (Google only)
 const authModal = document.getElementById("authModal");
 const closeAuthModal = document.getElementById("closeAuthModal");
 const googleLoginBtn = document.getElementById("googleLoginBtn");
 
-// State
 let expiryTimer, countdownTimer, lastRedirectUrl = "", statusPollTimer = null;
 
 // ---- Auth UI ----
 async function refreshAuthUI() {
   const { data: { session } } = await supa.auth.getSession();
+  console.log("[ui] session:", session ? { user: session.user?.email } : null);
   const email = session?.user?.email;
   if (email) {
     userBadge.style.display = "";
@@ -62,38 +61,17 @@ async function refreshAuthUI() {
     signOutBtn.style.display = "none";
   }
 }
-supa.auth.onAuthStateChange(async () => { await refreshAuthUI(); });
-refreshAuthUI(); // initial
+supa.auth.onAuthStateChange(async (evt) => {
+  console.log("[ui] auth state change:", evt);
+  await refreshAuthUI();
+});
+refreshAuthUI();
 
-// ---- Modals boilerplate ----
-function openModal(m){
-  if(!m) return;
-  m.classList.add("open");
-  m.setAttribute("aria-hidden","false");
-  document.addEventListener("keydown", onEsc);
-  document.addEventListener("keydown", trapTab);
-}
-function closeModal(m){
-  if(!m) return;
-  m.classList.remove("open");
-  m.setAttribute("aria-hidden","true");
-  document.removeEventListener("keydown", onEsc);
-  document.removeEventListener("keydown", trapTab);
-}
-function onEsc(e){
-  if(e.key==="Escape"){
-    [proModal,successModal,authModal].forEach(closeModal);
-  }
-}
-function trapTab(e){
-  const open=document.querySelector(".modal.open");
-  if(!open||e.key!=="Tab") return;
-  const f=open.querySelectorAll("button,[href],input,select,textarea,[tabindex]:not([tabindex='-1'])");
-  if(!f.length) return;
-  const first=f[0],last=f[f.length-1];
-  if(e.shiftKey&&document.activeElement===first){last.focus();e.preventDefault();}
-  else if(!e.shiftKey&&document.activeElement===last){first.focus();e.preventDefault();}
-}
+// ---- Modals ----
+function openModal(m){ if(!m) return; m.classList.add("open"); m.setAttribute("aria-hidden","false"); document.addEventListener("keydown", onEsc); document.addEventListener("keydown", trapTab); }
+function closeModal(m){ if(!m) return; m.classList.remove("open"); m.setAttribute("aria-hidden","true"); document.removeEventListener("keydown", onEsc); document.removeEventListener("keydown", trapTab); }
+function onEsc(e){ if(e.key==="Escape"){ [proModal,successModal,authModal].forEach(closeModal); } }
+function trapTab(e){ const open=document.querySelector(".modal.open"); if(!open||e.key!=="Tab") return; const f=open.querySelectorAll("button,[href],input,select,textarea,[tabindex]:not([tabindex='-1'])"); if(!f.length) return; const first=f[0],last=f[f.length-1]; if(e.shiftKey&&document.activeElement===first){last.focus();e.preventDefault();} else if(!e.shiftKey&&document.activeElement===last){first.focus();e.preventDefault();} }
 
 authOpenBtn?.addEventListener("click",(e)=>{e.preventDefault();openModal(authModal);});
 closeAuthModal?.addEventListener("click",()=>closeModal(authModal));
@@ -106,7 +84,6 @@ googleLoginBtn?.addEventListener("click", async () => {
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth.html`, queryParams: { prompt: "select_account" } }
     });
-    // redirect -> Google -> auth.html (SDK completes session)
   } catch (e) {
     alert(e?.message || "Google sign-in failed.");
   }
@@ -118,14 +95,8 @@ signOutBtn?.addEventListener("click", async () => {
 });
 
 // ---- Helpers ----
-function setLoading(state){
-  generateBtn.disabled = state;
-  generateBtn.textContent = state ? "Generating..." : "Generate QR";
-}
-async function getAccessToken(){
-  const { data:{ session } } = await supa.auth.getSession();
-  return session?.access_token || null;
-}
+function setLoading(state){ generateBtn.disabled = state; generateBtn.textContent = state ? "Generating..." : "Generate QR"; }
+async function getAccessToken(){ const { data:{ session } } = await supa.auth.getSession(); return session?.access_token || null; }
 
 async function createLink(url, minutes, token) {
   const headers = { "Content-Type": "application/json" };
@@ -140,6 +111,7 @@ async function createLink(url, minutes, token) {
 
   if (!resp.ok) {
     if (resp.status === 401) { proGateHint.style.display = ""; throw new Error("Login required for Pro features."); }
+    if (resp.status === 404) { throw new Error("/api/create not found (backend route missing)."); }
     if (resp.status === 429) { const msg = await resp.text(); throw new Error(msg || "Daily limit reached."); }
     const text = await resp.text();
     try { const maybe = JSON.parse(text); throw new Error(maybe?.message || text || "Create failed"); }
@@ -186,14 +158,12 @@ generateBtn?.addEventListener("click", async () => {
   if (!/^https?:\/\//i.test(url)) { alert("Please enter a valid URL (include https://)."); return; }
   if (!Number.isFinite(minutes) || minutes < 1) { alert("Expiry must be at least 1 minute."); return; }
 
-  // Pro gating: >60 min or using Pro token
+  // Pro gating: >60 min ili pro token
   const proIntent = minutes > 60 || !!token;
   const { data: { session } } = await supa.auth.getSession();
   if (proIntent && !session) { proGateHint.style.display = ""; openModal(authModal); return; }
 
-  clearTimeout(expiryTimer);
-  clearInterval(countdownTimer);
-  setLoading(true);
+  clearTimeout(expiryTimer); clearInterval(countdownTimer); setLoading(true);
   try {
     const created = await createLink(url, minutes, token);
     const redirectUrl = `${window.location.origin}/go/${created.id}`;
@@ -241,22 +211,15 @@ copyBtn?.addEventListener("click", async () => {
       document.execCommand("copy");
       document.body.removeChild(ta);
     }
-  } catch {
-    alert("Could not copy link.");
-  }
+  } catch { alert("Could not copy link."); }
 });
 downloadBtn?.addEventListener("click", () => {
   try {
     const url=qrcodeCanvas.toDataURL("image/png");
     const a=document.createElement("a");
-    a.href=url;
-    a.download="qr-link.png";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  } catch {
-    alert("Could not download QR.");
-  }
+    a.href=url; a.download="qr-link.png";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  } catch { alert("Could not download QR."); }
 });
 
 // Pro modal
@@ -264,7 +227,7 @@ getProBtn?.addEventListener("click",(e)=>{e.preventDefault();openModal(proModal)
 closeProModal?.addEventListener("click",()=>closeModal(proModal));
 proModal?.addEventListener("click",(e)=>{if(e.target&&e.target.matches(".modal-overlay,[data-close='modal']"))closeModal(proModal);});
 
-// Checkout polling (same behavior as before)
+// Checkout polling (kao ranije)
 document.querySelectorAll(".plan-select").forEach((btn)=>{
   btn.addEventListener("click", async (e)=>{
     e.preventDefault();
@@ -306,18 +269,10 @@ function startStatusPolling(sessionId){
     }catch{}
   },2000);
 }
-function stopStatusPolling(){
-  if(statusPollTimer){ clearInterval(statusPollTimer); statusPollTimer=null; }
-}
+function stopStatusPolling(){ if(statusPollTimer){ clearInterval(statusPollTimer); statusPollTimer=null; } }
 
 // Success modal
-function openSuccess(m){
-  if(!m) return;
-  m.classList.add("open");
-  m.setAttribute("aria-hidden","false");
-  document.addEventListener("keydown", onEsc);
-  document.addEventListener("keydown", trapTab);
-}
+function openSuccess(m){ if(!m) return; m.classList.add("open"); m.setAttribute("aria-hidden","false"); document.addEventListener("keydown", onEsc); document.addEventListener("keydown", trapTab); }
 function closeSuccess(){ closeModal(successModal); }
 function showSuccessModal(token,sessionId){
   successTokenEl.textContent=token;
@@ -329,29 +284,10 @@ function showSuccessModal(token,sessionId){
   }
   openSuccess(successModal);
 }
-successCopyBtn?.addEventListener("click", async ()=>{
-  try{
-    const t=successTokenEl?.textContent||"";
-    if(!t) return;
-    await navigator.clipboard.writeText(t);
-    successCopyBtn.textContent="Copied!";
-    setTimeout(()=>successCopyBtn.textContent="Copy",1200);
-  }catch{}
-});
-successApplyBtn?.addEventListener("click", ()=>{
-  const t=successTokenEl?.textContent||"";
-  if(!t) return;
-  tokenInput.value=t;
-  closeSuccess();
-  tokenInput.focus();
-});
+successCopyBtn?.addEventListener("click", async ()=>{ try{ const t=successTokenEl?.textContent||""; if(!t) return; await navigator.clipboard.writeText(t); successCopyBtn.textContent="Copied!"; setTimeout(()=>successCopyBtn.textContent="Copy",1200);}catch{} });
+successApplyBtn?.addEventListener("click", ()=>{ const t=successTokenEl?.textContent||""; if(!t) return; tokenInput.value=t; closeSuccess(); tokenInput.focus(); });
 closeSuccessModal?.addEventListener("click", closeSuccess);
-successModal?.addEventListener("click",(e)=>{
-  if(e.target&&e.target.matches(".modal-overlay,[data-close='success']")) closeSuccess();
-});
+successModal?.addEventListener("click",(e)=>{ if(e.target&&e.target.matches(".modal-overlay,[data-close='success']")) closeSuccess(); });
 
 // Prefill saved pro token
-try{
-  const saved=localStorage.getItem("pro_token");
-  if(saved&&tokenInput&&!tokenInput.value) tokenInput.value=saved;
-}catch{}
+try{ const saved=localStorage.getItem("pro_token"); if(saved&&tokenInput&&!tokenInput.value) tokenInput.value=saved; }catch{}
