@@ -1,16 +1,10 @@
 {
   "version": 2,
   "builds": [
-    { "src": "index.html", "use": "@vercel/static" },
-    { "src": "auth.html", "use": "@vercel/static" },
+    { "src": "api/**/*.js", "use": "@vercel/node" },
+    { "src": "*.html", "use": "@vercel/static" },
     { "src": "styles.css", "use": "@vercel/static" },
-    { "src": "ui.js", "use": "@vercel/static" },
-
-    { "src": "api/create.js", "use": "@vercel/node" },
-    { "src": "api/go.js", "use": "@vercel/node" },
-    { "src": "api/checkout-session.js", "use": "@vercel/node" },
-    { "src": "api/checkout-status.js", "use": "@vercel/node" },
-    { "src": "api/partner-webhook.js", "use": "@vercel/node" }
+    { "src": "ui.js", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/go/([^/]+)$", "dest": "/api/go.js?id=$1" }
