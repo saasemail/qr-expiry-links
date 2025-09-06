@@ -14,7 +14,6 @@
     <section class="card" id="stateBox">
       <h2 id="title">Completing sign-in…</h2>
       <p class="hint" id="desc">Please wait a moment.</p>
-
       <div id="goHome" class="button-group" style="display:none; margin-top:1rem;">
         <a class="btn btn-primary" href="/">Return to app</a>
       </div>
@@ -27,7 +26,7 @@
     const SUPABASE_URL = "https://xyfacudywygreaquvzjr.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjQ3MDcsImV4cCI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
 
-    // SDK će automatski pokupiti access_token iz URL hash-a i setovati sesiju
+    // The SDK will auto-read #access_token and set the session.
     const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
     });
@@ -35,12 +34,11 @@
     const title = document.getElementById("title");
     const desc  = document.getElementById("desc");
     const goHome = document.getElementById("goHome");
-
     const setMsg = (t, d="") => { title.textContent = t; desc.textContent = d; };
 
     async function finish() {
       try {
-        // daj SDK-u mrvu vremena da isčita URL i postavi sesiju
+        // tiny delay so SDK parses the URL hash
         await new Promise(r => setTimeout(r, 250));
         const { data: { session } } = await supa.auth.getSession();
 
@@ -52,7 +50,6 @@
           goHome.style.display = "";
         }
 
-        // počisti URL
         history.replaceState(null, "", location.origin + location.pathname);
       } catch (e) {
         setMsg("Auth error", e?.message || "Could not complete authentication.");
