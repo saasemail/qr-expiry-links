@@ -26,9 +26,8 @@
     const SUPABASE_URL = "https://xyfacudywygreaquvzjr.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjQ3MDcsImV4cCI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
 
-    // The SDK will auto-read #access_token and set the session.
     const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
+      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: false },
     });
 
     const title = document.getElementById("title");
@@ -38,19 +37,38 @@
 
     async function finish() {
       try {
-        // tiny delay so SDK parses the URL hash
-        await new Promise(r => setTimeout(r, 250));
-        const { data: { session } } = await supa.auth.getSession();
+        // Mala pauza da se URL stabilizuje.
+        await new Promise(r => setTimeout(r, 150));
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get("code");
+        const hasHashToken = window.location.hash.includes("access_token=");
 
+        if (code) {
+          // PKCE code flow (čest slučaj) – eksplicitna razmena koda
+          try {
+            await supa.auth.exchangeCodeForSession({ code });
+          } catch (e1) {
+            // Fallback: neki build-ovi prihvataju ceo URL
+            await supa.auth.exchangeCodeForSession(window.location.href);
+          }
+        } else if (hasHashToken) {
+          // Implicit flow (#access_token) – SDK će pročitati hash ako ga prekopiramo
+          // detectSessionInUrl=false ovde, pa ručno pozivamo:
+          await supa.auth.setSessionFromUrl({ storeSession: true });
+        }
+
+        // Očisti query/hash iz URL-a
+        history.replaceState(null, "", location.origin + location.pathname);
+
+        // Provera sesije i povratak na app
+        const { data: { session } } = await supa.auth.getSession();
         if (session) {
           setMsg("You're signed in", "You can safely return to the app.");
-          setTimeout(() => (window.location.href = "/"), 800);
+          setTimeout(() => (window.location.href = "/"), 600);
         } else {
           setMsg("Signed in", "You can return to the app.");
           goHome.style.display = "";
         }
-
-        history.replaceState(null, "", location.origin + location.pathname);
       } catch (e) {
         setMsg("Auth error", e?.message || "Could not complete authentication.");
         goHome.style.display = "";
@@ -59,8 +77,6 @@
 
     finish();
   </script>
-
-  <!-- cache-busted app script -->
-  <script type="module" src="ui.js?v=fix1"></script>
+  <!-- VAŽNO: ne učitavati ui.js na auth strani -->
 </body>
 </html>

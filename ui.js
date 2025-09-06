@@ -9,6 +9,7 @@ const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
 console.log("[ui] BOOT ok");
 
+// Elements
 const urlInput = document.getElementById("urlInput");
 const expiryInput = document.getElementById("expiryInput");
 const tokenInput = document.getElementById("tokenInput");
@@ -61,11 +62,8 @@ async function refreshAuthUI() {
     signOutBtn.style.display = "none";
   }
 }
-supa.auth.onAuthStateChange(async (evt) => {
-  console.log("[ui] auth state change:", evt);
-  await refreshAuthUI();
-});
-refreshAuthUI();
+supa.auth.onAuthStateChange(async () => { await refreshAuthUI(); });
+window.addEventListener("load", refreshAuthUI);
 
 // ---- Modals ----
 function openModal(m){ if(!m) return; m.classList.add("open"); m.setAttribute("aria-hidden","false"); document.addEventListener("keydown", onEsc); document.addEventListener("keydown", trapTab); }
@@ -95,7 +93,7 @@ signOutBtn?.addEventListener("click", async () => {
 });
 
 // ---- Helpers ----
-function setLoading(state){ generateBtn.disabled = state; generateBtn.textContent = state ? "Generating..." : "Generate QR"; }
+function setLoading(state){ if(!generateBtn) return; generateBtn.disabled = state; generateBtn.textContent = state ? "Generating..." : "Generate QR"; }
 async function getAccessToken(){ const { data:{ session } } = await supa.auth.getSession(); return session?.access_token || null; }
 
 async function createLink(url, minutes, token) {
@@ -110,7 +108,7 @@ async function createLink(url, minutes, token) {
   });
 
   if (!resp.ok) {
-    if (resp.status === 401) { proGateHint.style.display = ""; throw new Error("Login required for Pro features."); }
+    if (resp.status === 401) { proGateHint.style.display = ""; openModal(authModal); throw new Error("Login required for Pro features."); }
     if (resp.status === 404) { throw new Error("/api/create not found (backend route missing)."); }
     if (resp.status === 429) { const msg = await resp.text(); throw new Error(msg || "Daily limit reached."); }
     const text = await resp.text();
@@ -131,6 +129,13 @@ function formatCountdown(ms){
   return d>0 ? `${d}d ${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(h)}:${pad(m)}:${pad(s)}`;
 }
 
+function clearQR(){
+  try{
+    const ctx=qrcodeCanvas?.getContext?.("2d");
+    if(ctx){ ctx.clearRect(0,0,qrcodeCanvas.width,qrcodeCanvas.height); }
+  }catch{}
+}
+
 function startCountdown(iso){
   const end=new Date(iso).getTime();
   clearInterval(countdownTimer);
@@ -139,8 +144,7 @@ function startCountdown(iso){
     if(left<=0){
       clearInterval(countdownTimer);
       countdownEl.textContent="Expired";
-      const ctx=qrcodeCanvas.getContext("2d");
-      ctx.clearRect(0,0,qrcodeCanvas.width,qrcodeCanvas.height);
+      clearQR();
       generatedLink.textContent="";
       expiryHint.textContent="This link has expired.";
       return;
@@ -172,15 +176,16 @@ generateBtn?.addEventListener("click", async () => {
     generatedLink.textContent = redirectUrl;
     generatedLink.href = redirectUrl;
 
-    QRCode.toCanvas(qrcodeCanvas, redirectUrl, { width: 200 }, (err) => { if (err) console.error(err); });
+    if (window.QRCode && qrcodeCanvas) {
+      QRCode.toCanvas(qrcodeCanvas, redirectUrl, { width: 200 }, (err) => { if (err) console.error(err); });
+    }
 
     resultCard.classList.remove("hidden");
     const endLocal = new Date(created.expires_at);
     expiryHint.textContent = `Plan: ${(created.plan || "free").toUpperCase()} • Expires in ${created.minutes} min • Until ${endLocal.toLocaleString()}`;
 
     expiryTimer = setTimeout(() => {
-      const ctx=qrcodeCanvas.getContext("2d");
-      ctx.clearRect(0,0,qrcodeCanvas.width,qrcodeCanvas.height);
+      clearQR();
       generatedLink.textContent="";
       expiryHint.textContent="This link has expired.";
       countdownEl.textContent="Expired";
@@ -227,7 +232,7 @@ getProBtn?.addEventListener("click",(e)=>{e.preventDefault();openModal(proModal)
 closeProModal?.addEventListener("click",()=>closeModal(proModal));
 proModal?.addEventListener("click",(e)=>{if(e.target&&e.target.matches(".modal-overlay,[data-close='modal']"))closeModal(proModal);});
 
-// Checkout polling (kao ranije)
+// Checkout polling
 document.querySelectorAll(".plan-select").forEach((btn)=>{
   btn.addEventListener("click", async (e)=>{
     e.preventDefault();

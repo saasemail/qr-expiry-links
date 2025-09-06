@@ -1,6 +1,18 @@
 {
   "version": 2,
-  "rewrites": [
-    { "source": "/go/:id", "destination": "/api/go?id=:id" }
+  "builds": [
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "styles.css", "use": "@vercel/static" },
+    { "src": "ui.js", "use": "@vercel/static" },
+
+    { "src": "api/create.js", "use": "@vercel/node" },
+    { "src": "api/go.js", "use": "@vercel/node" },
+    { "src": "api/checkout-session.js", "use": "@vercel/node" },
+    { "src": "api/checkout-status.js", "use": "@vercel/node" },
+    { "src": "api/partner-webhook.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/go/([^/]+)$", "dest": "/api/go.js?id=$1" }
   ]
 }
+
