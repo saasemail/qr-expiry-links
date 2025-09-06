@@ -14,9 +14,9 @@
   <!-- Navbar -->
   <nav class="navbar">
     <h1>QR Expiry Links</h1>
-    <button class="btn btn-ghost" style="margin-left:auto" onclick="document.getElementById('getProBtn')?.click()">
-      Pricing
-    </button>
+    <div style="margin-left:auto; display:flex; gap:.5rem; align-items:center;">
+      <button class="btn btn-ghost" onclick="document.getElementById('getProBtn')?.click()">Pricing</button>
+    </div>
   </nav>
 
   <div class="container">
@@ -44,7 +44,7 @@
       </div>
 
       <div class="button-group">
-        <button id="generateBtn" class="btn btn-primary">Generate QR</button>
+        <button id="generateBtn" class="btn btn-primary" type="button">Generate QR</button>
       </div>
     </section>
 
@@ -53,8 +53,8 @@
       <h2>Your Expiring Link</h2>
       <canvas id="qrcode"></canvas>
       <div class="button-group gap">
-        <button class="btn btn-ghost" id="copyBtn">Copy link</button>
-        <button class="btn btn-ghost" id="downloadBtn">Download QR</button>
+        <button class="btn btn-ghost" id="copyBtn" type="button">Copy link</button>
+        <button class="btn btn-ghost" id="downloadBtn" type="button">Download QR</button>
       </div>
       <p><a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a></p>
       <p class="countdown" id="countdown"></p>
@@ -73,7 +73,7 @@
     <div class="modal-card" tabindex="-1">
       <div class="modal-header">
         <h2 id="proModalTitle">Upgrade to Pro</h2>
-        <button class="modal-close" id="closeProModal" aria-label="Close">×</button>
+        <button class="modal-close" id="closeProModal" aria-label="Close" type="button">×</button>
       </div>
 
       <p class="hint" style="text-align:left;margin-top:.25rem;">
@@ -89,7 +89,7 @@
             <li>Access window: <strong>7 days</strong></li>
           </ul>
           <div class="price">$9.99</div>
-          <button class="btn btn-primary plan-select" data-tier="1">Get code</button>
+          <button class="btn btn-primary plan-select" data-tier="1" type="button">Get code</button>
         </div>
 
         <div class="plan">
@@ -100,7 +100,7 @@
             <li>Access window: <strong>30 days</strong></li>
           </ul>
           <div class="price">$19.99</div>
-          <button class="btn btn-primary plan-select" data-tier="2">Get code</button>
+          <button class="btn btn-primary plan-select" data-tier="2" type="button">Get code</button>
         </div>
 
         <div class="plan">
@@ -111,7 +111,7 @@
             <li>Access window: <strong>Lifetime</strong></li>
           </ul>
           <div class="price">$49.99</div>
-          <button class="btn btn-primary plan-select" data-tier="3">Get code</button>
+          <button class="btn btn-primary plan-select" data-tier="3" type="button">Get code</button>
         </div>
       </div>
 
@@ -121,32 +121,35 @@
     </div>
   </div>
 
-  <!-- Success modal (shows token) -->
+  <!-- Success modal -->
   <div class="modal" id="successModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="successModalTitle">
-    <div class="modal-overlay" data-close="modal"></div>
+    <div class="modal-overlay" data-close="success"></div>
     <div class="modal-card" tabindex="-1">
       <div class="modal-header">
-        <h2 id="successModalTitle">Pro unlocked</h2>
-        <button class="modal-close" id="closeSuccessModal" aria-label="Close">×</button>
+        <h2 id="successModalTitle">Pro code ready 🎉</h2>
+        <button class="modal-close" id="closeSuccessModal" aria-label="Close" type="button">×</button>
       </div>
 
       <p class="hint" style="text-align:left;margin-top:.25rem;">
-        Here is your Pro code. It’s saved on this device. You can copy or apply it now.
+        Your Pro code is ready. You can copy it or apply directly.
       </p>
 
-      <div style="display:flex; gap:.5rem; align-items:center; margin:.75rem 0;">
-        <input id="successCode" type="text" readonly style="flex:1; padding:.6rem; border-radius:.75rem; border:1px solid var(--border); background: var(--bg); color: var(--text);" />
-        <button class="btn btn-ghost" id="copyCodeBtn">Copy</button>
-        <button class="btn btn-primary" id="applyCodeBtn">Apply</button>
+      <div class="card" style="margin:1rem 0; text-align:center;">
+        <input id="successCode" readonly style="width:100%; font-size:1.05rem; text-align:center;" />
       </div>
 
-      <p class="hint" style="margin-top:.25rem;">
-        Didn’t see your code? <a href="#" id="resendLink">Resend my code</a>
+      <div class="button-group gap">
+        <button class="btn btn-ghost" id="copyCodeBtn" type="button">Copy</button>
+        <button class="btn btn-primary" id="applyCodeBtn" type="button">Apply</button>
+      </div>
+
+      <p class="hint" style="margin-top:1rem;">
+        Didn’t see the code appear? <a href="#" id="resendLink">Resend my code</a>
       </p>
     </div>
   </div>
 
   <!-- Scripts -->
-  <script type="module" src="ui.js"></script>
+  <script type="module" src="ui.js?v=checkout_ok"></script>
 </body>
 </html>
