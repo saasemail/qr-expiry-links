@@ -2,6 +2,7 @@
   "version": 2,
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
+    { "src": "auth.html", "use": "@vercel/static" },
     { "src": "styles.css", "use": "@vercel/static" },
     { "src": "ui.js", "use": "@vercel/static" },
 
@@ -15,4 +16,3 @@
     { "src": "/go/([^/]+)$", "dest": "/api/go.js?id=$1" }
   ]
 }
-

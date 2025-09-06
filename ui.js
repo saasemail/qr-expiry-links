@@ -4,12 +4,12 @@ const SUPABASE_URL = "https://xyfacudywygreaquvzjr.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjQ3MDcsImV4cCI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
 
 const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
+  auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
 });
 
 console.log("[ui] BOOT ok");
 
-// Elements
+// elements
 const urlInput = document.getElementById("urlInput");
 const expiryInput = document.getElementById("expiryInput");
 const tokenInput = document.getElementById("tokenInput");
@@ -45,7 +45,7 @@ const googleLoginBtn = document.getElementById("googleLoginBtn");
 
 let expiryTimer, countdownTimer, lastRedirectUrl = "", statusPollTimer = null;
 
-// ---- Auth UI ----
+// auth UI
 async function refreshAuthUI() {
   const { data: { session } } = await supa.auth.getSession();
   console.log("[ui] session:", session ? { user: session.user?.email } : null);
@@ -65,7 +65,7 @@ async function refreshAuthUI() {
 supa.auth.onAuthStateChange(async () => { await refreshAuthUI(); });
 window.addEventListener("load", refreshAuthUI);
 
-// ---- Modals ----
+// modals
 function openModal(m){ if(!m) return; m.classList.add("open"); m.setAttribute("aria-hidden","false"); document.addEventListener("keydown", onEsc); document.addEventListener("keydown", trapTab); }
 function closeModal(m){ if(!m) return; m.classList.remove("open"); m.setAttribute("aria-hidden","true"); document.removeEventListener("keydown", onEsc); document.removeEventListener("keydown", trapTab); }
 function onEsc(e){ if(e.key==="Escape"){ [proModal,successModal,authModal].forEach(closeModal); } }
@@ -75,7 +75,7 @@ authOpenBtn?.addEventListener("click",(e)=>{e.preventDefault();openModal(authMod
 closeAuthModal?.addEventListener("click",()=>closeModal(authModal));
 authModal?.addEventListener("click",(e)=>{ if(e.target && e.target.matches(".modal-overlay,[data-close='auth']")) closeModal(authModal); });
 
-// ---- Google OAuth ----
+// Google OAuth
 googleLoginBtn?.addEventListener("click", async () => {
   try {
     await supa.auth.signInWithOAuth({
@@ -92,7 +92,7 @@ signOutBtn?.addEventListener("click", async () => {
   await refreshAuthUI();
 });
 
-// ---- Helpers ----
+// helpers
 function setLoading(state){ if(!generateBtn) return; generateBtn.disabled = state; generateBtn.textContent = state ? "Generating..." : "Generate QR"; }
 async function getAccessToken(){ const { data:{ session } } = await supa.auth.getSession(); return session?.access_token || null; }
 
@@ -128,13 +128,7 @@ function formatCountdown(ms){
   const pad=n=>String(n).padStart(2,"0");
   return d>0 ? `${d}d ${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(h)}:${pad(m)}:${pad(s)}`;
 }
-
-function clearQR(){
-  try{
-    const ctx=qrcodeCanvas?.getContext?.("2d");
-    if(ctx){ ctx.clearRect(0,0,qrcodeCanvas.width,qrcodeCanvas.height); }
-  }catch{}
-}
+function clearQR(){ try{ const ctx=qrcodeCanvas?.getContext?.("2d"); if(ctx) ctx.clearRect(0,0,qrcodeCanvas.width,qrcodeCanvas.height);}catch{} }
 
 function startCountdown(iso){
   const end=new Date(iso).getTime();
@@ -153,7 +147,7 @@ function startCountdown(iso){
   }, 1000);
 }
 
-// ---- Generate flow ----
+// Generate flow
 generateBtn?.addEventListener("click", async () => {
   const url = urlInput.value.trim();
   const minutes = parseInt(expiryInput.value, 10);
@@ -162,7 +156,6 @@ generateBtn?.addEventListener("click", async () => {
   if (!/^https?:\/\//i.test(url)) { alert("Please enter a valid URL (include https://)."); return; }
   if (!Number.isFinite(minutes) || minutes < 1) { alert("Expiry must be at least 1 minute."); return; }
 
-  // Pro gating: >60 min ili pro token
   const proIntent = minutes > 60 || !!token;
   const { data: { session } } = await supa.auth.getSession();
   if (proIntent && !session) { proGateHint.style.display = ""; openModal(authModal); return; }
@@ -200,7 +193,7 @@ generateBtn?.addEventListener("click", async () => {
   }
 });
 
-// Copy & Download
+// copy & download
 copyBtn?.addEventListener("click", async () => {
   try {
     if (!lastRedirectUrl) return;
@@ -210,29 +203,24 @@ copyBtn?.addEventListener("click", async () => {
       setTimeout(()=>copyBtn.textContent="Copy link",1200);
     } else {
       const ta=document.createElement("textarea");
-      ta.value=lastRedirectUrl;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
+      ta.value=lastRedirectUrl; document.body.appendChild(ta); ta.select();
+      document.execCommand("copy"); document.body.removeChild(ta);
     }
   } catch { alert("Could not copy link."); }
 });
 downloadBtn?.addEventListener("click", () => {
   try {
     const url=qrcodeCanvas.toDataURL("image/png");
-    const a=document.createElement("a");
-    a.href=url; a.download="qr-link.png";
+    const a=document.createElement("a"); a.href=url; a.download="qr-link.png";
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   } catch { alert("Could not download QR."); }
 });
 
-// Pro modal
+// Pro modal & checkout polling (isti kao ranije)
 getProBtn?.addEventListener("click",(e)=>{e.preventDefault();openModal(proModal);});
 closeProModal?.addEventListener("click",()=>closeModal(proModal));
 proModal?.addEventListener("click",(e)=>{if(e.target&&e.target.matches(".modal-overlay,[data-close='modal']"))closeModal(proModal);});
 
-// Checkout polling
 document.querySelectorAll(".plan-select").forEach((btn)=>{
   btn.addEventListener("click", async (e)=>{
     e.preventDefault();
@@ -259,7 +247,6 @@ window.openCheckout = async function (tier) {
     console.error(e);
   }
 };
-
 function startStatusPolling(sessionId){
   stopStatusPolling();
   statusPollTimer=setInterval(async()=>{
@@ -276,7 +263,6 @@ function startStatusPolling(sessionId){
 }
 function stopStatusPolling(){ if(statusPollTimer){ clearInterval(statusPollTimer); statusPollTimer=null; } }
 
-// Success modal
 function openSuccess(m){ if(!m) return; m.classList.add("open"); m.setAttribute("aria-hidden","false"); document.addEventListener("keydown", onEsc); document.addEventListener("keydown", trapTab); }
 function closeSuccess(){ closeModal(successModal); }
 function showSuccessModal(token,sessionId){
@@ -292,7 +278,4 @@ function showSuccessModal(token,sessionId){
 successCopyBtn?.addEventListener("click", async ()=>{ try{ const t=successTokenEl?.textContent||""; if(!t) return; await navigator.clipboard.writeText(t); successCopyBtn.textContent="Copied!"; setTimeout(()=>successCopyBtn.textContent="Copy",1200);}catch{} });
 successApplyBtn?.addEventListener("click", ()=>{ const t=successTokenEl?.textContent||""; if(!t) return; tokenInput.value=t; closeSuccess(); tokenInput.focus(); });
 closeSuccessModal?.addEventListener("click", closeSuccess);
-successModal?.addEventListener("click",(e)=>{ if(e.target&&e.target.matches(".modal-overlay,[data-close='success']")) closeSuccess(); });
-
-// Prefill saved pro token
 try{ const saved=localStorage.getItem("pro_token"); if(saved&&tokenInput&&!tokenInput.value) tokenInput.value=saved; }catch{}

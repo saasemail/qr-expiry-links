@@ -27,7 +27,7 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjQ3MDcsImV4cCI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
 
     const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: false },
+      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: false }
     });
 
     const title = document.getElementById("title");
@@ -37,30 +37,14 @@
 
     async function finish() {
       try {
-        // Mala pauza da se URL stabilizuje.
         await new Promise(r => setTimeout(r, 150));
-        const url = new URL(window.location.href);
-        const code = url.searchParams.get("code");
-        const hasHashToken = window.location.hash.includes("access_token=");
 
-        if (code) {
-          // PKCE code flow (čest slučaj) – eksplicitna razmena koda
-          try {
-            await supa.auth.exchangeCodeForSession({ code });
-          } catch (e1) {
-            // Fallback: neki build-ovi prihvataju ceo URL
-            await supa.auth.exchangeCodeForSession(window.location.href);
-          }
-        } else if (hasHashToken) {
-          // Implicit flow (#access_token) – SDK će pročitati hash ako ga prekopiramo
-          // detectSessionInUrl=false ovde, pa ručno pozivamo:
-          await supa.auth.setSessionFromUrl({ storeSession: true });
-        }
+        // Najstabilnije: prepusti SDK-u ceo URL (radi za PKCE `?code=...` i za `#access_token=...`)
+        await supa.auth.exchangeCodeForSession(window.location.href);
 
-        // Očisti query/hash iz URL-a
+        // Očisti query/hash
         history.replaceState(null, "", location.origin + location.pathname);
 
-        // Provera sesije i povratak na app
         const { data: { session } } = await supa.auth.getSession();
         if (session) {
           setMsg("You're signed in", "You can safely return to the app.");
@@ -77,6 +61,6 @@
 
     finish();
   </script>
-  <!-- VAŽNO: ne učitavati ui.js na auth strani -->
+  <!-- namerno ne učitavamo ui.js ovde -->
 </body>
 </html>
