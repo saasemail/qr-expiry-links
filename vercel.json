@@ -1,12 +1,5 @@
 {
-  "version": 2,
-  "builds": [
-    { "src": "api/**/*.js", "use": "@vercel/node" },
-    { "src": "*.html", "use": "@vercel/static" },
-    { "src": "styles.css", "use": "@vercel/static" },
-    { "src": "ui.js", "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/go/([^/]+)$", "dest": "/api/go.js?id=$1" }
+  "rewrites": [
+    { "source": "/go/(.*)", "destination": "/api/go?id=$1" }
   ]
 }

@@ -1,33 +1,14 @@
-// api/checkout-session.js (ESM)
-import crypto from "crypto";
+export const config = { runtime: 'edge' };
 
-export default async function handler(req, res) {
-  try {
-    if (req.method !== "POST") {
-      res.setHeader("Allow", "POST");
-      return res.status(405).send("Method Not Allowed");
-    }
-
-    const { tier } = await readJson(req);
-    const t = Number(tier);
-    if (![1, 2, 3].includes(t)) return res.status(400).send("Bad tier");
-
-    const sessionId = crypto.randomBytes(16).toString("hex"); // 32-hex
-
-    res.setHeader("Content-Type", "application/json");
-    return res.status(200).send(JSON.stringify({ session_id: sessionId, tier: t }));
-  } catch (e) {
-    console.error("[checkout-session] ERROR", e?.message || e);
-    return res.status(500).send("Internal Server Error");
-  }
+function rid(n = 8) {
+  const a = new Uint8Array(n); crypto.getRandomValues(a);
+  return Array.from(a).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-function readJson(req) {
-  return new Promise((resolve, reject) => {
-    let raw = "";
-    req.on("data", (c) => (raw += c));
-    req.on("end", () => {
-      try { resolve(raw ? JSON.parse(raw) : {}); } catch (e) { reject(e); }
-    });
-  });
+export default async function handler(req) {
+  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+  let body; try { body = await req.json(); } catch {}
+  const tier = Number(body?.tier || 0) || 0;
+  const session_id = `sess_${tier}_${rid(12)}`;
+  return new Response(JSON.stringify({ session_id }), { headers: { 'content-type': 'application/json' }});
 }

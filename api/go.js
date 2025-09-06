@@ -1,41 +1,49 @@
-import { createClient } from "@supabase/supabase-js";
+export const config = { runtime: 'edge' };
 
-export default async function handler(req, res) {
-  try {
-    const SUPABASE_URL = process.env.SUPABASE_URL;
-    const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!SUPABASE_URL || !SERVICE_ROLE) {
-      return res.status(500).send("Server not configured (missing env)");
-    }
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+function fromB64url(b64u) {
+  const s = b64u.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = s.length % 4 ? '='.repeat(4 - (s.length % 4)) : '';
+  return atob(s + pad);
+}
+function toB64url(bytesStr) {
+  return btoa(bytesStr).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+async function hmac(payload, secret) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(payload));
+  return toB64url(String.fromCharCode(...new Uint8Array(sig)));
+}
 
-    const id = req.query?.id || null;
-    if (!id) return res.status(400).send("Missing link id");
+export default async function handler(req) {
+  const url = new URL(req.url);
 
-    const { data: link, error } = await admin
-      .from("links")
-      .select("id,url,expires_at,plan,tier")
-      .eq("id", id)
-      .maybeSingle();
-
-    if (error) return res.status(500).send("Lookup failed");
-    if (!link) return res.status(404).send("Link not found");
-
-    if (!link.expires_at || new Date(link.expires_at).getTime() <= Date.now()) {
-      res.setHeader("Content-Type", "text/html; charset=utf-8");
-      return res.status(410).end("<h1>Link expired</h1><p>This QR link is no longer available.</p>");
-    }
-
-    // best-effort log
-    try {
-      const ip = (req.headers["x-forwarded-for"] || "").toString().split(",")[0].trim() || req.socket?.remoteAddress || "unknown";
-      const ua = (req.headers["user-agent"] || "").slice(0, 300);
-      await admin.from("link_events").insert([{ link_id: link.id, event: "click", ip, user_agent: ua, plan: link.plan, tier: link.tier }]);
-    } catch {}
-
-    res.writeHead(302, { Location: link.url, "Cache-Control": "no-store, max-age=0" });
-    res.end();
-  } catch (e) {
-    res.status(500).send("Internal Server Error");
+  // Podržava oba oblika:
+  // 1) /go/<id>  (preko rewrite-a)  2) /api/go?id=<id>
+  let id = url.searchParams.get('id');
+  if (!id) {
+    const parts = url.pathname.split('/');
+    const idx = parts.indexOf('go');
+    if (idx >= 0 && parts[idx + 1]) id = parts[idx + 1];
   }
+
+  if (!id || !id.includes('.')) return new Response('Not found', { status: 404 });
+
+  const [payloadB64, sig] = id.split('.');
+  const secret = process.env.LINK_SECRET || 'dev-secret';
+  const expected = await hmac(payloadB64, secret);
+  if (sig !== expected) return new Response('Invalid link', { status: 400 });
+
+  let payload;
+  try { payload = JSON.parse(fromB64url(payloadB64)); } catch { return new Response('Bad payload', { status: 400 }); }
+  if (!payload?.u || !payload?.e) return new Response('Bad payload', { status: 400 });
+
+  if (Date.now() > new Date(payload.e).getTime()) {
+    const html = `<!doctype html><meta charset="utf-8"><title>Link expired</title>
+    <style>body{font-family:system-ui;padding:40px;background:#0b0b0f;color:#e6e6f0}</style>
+    <h1>Link expired</h1><p>This link is no longer available.</p>`;
+    return new Response(html, { status: 410, headers: { 'content-type': 'text/html' }});
+  }
+
+  return new Response(null, { status: 302, headers: { Location: payload.u }});
 }

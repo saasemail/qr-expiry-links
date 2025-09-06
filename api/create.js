@@ -1,210 +1,46 @@
-// api/create.js (ESM) — Pro requires login (JWT), Free works without login
-import { createClient } from "@supabase/supabase-js";
+export const config = { runtime: 'edge' };
 
-export default async function handler(req, res) {
-  try {
-    if (req.method !== "POST") {
-      res.setHeader("Allow", "POST");
-      return res.status(405).send("Method Not Allowed");
-    }
+function b64url(s) {
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+async function hmac(payload, secret) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(payload));
+  const bytes = String.fromCharCode(...new Uint8Array(sig));
+  return b64url(bytes);
+}
 
-    const SUPABASE_URL = process.env.SUPABASE_URL;
-    const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!SUPABASE_URL || !SERVICE_ROLE) {
-      console.error("[create] Missing env");
-      return res.status(500).send("Server not configured (missing env)");
-    }
+export default async function handler(req) {
+  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
 
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+  let body;
+  try { body = await req.json(); } catch { return new Response('Invalid JSON', { status: 400 }); }
 
-    const body = await readJson(req);
-    const url = (body?.url || "").trim();
-    let minutes = parseInt(body?.minutes, 10);
-    const token = (body?.token || "").trim();
+  const url = String(body?.url || '');
+  const minutesIn = parseInt(body?.minutes, 10);
+  const minutes = Number.isFinite(minutesIn) ? Math.max(1, Math.min(minutesIn, 43200)) : 10; // max 30d
+  const token = (body?.token || '').trim();
 
-    if (!/^https?:\/\//i.test(url)) return res.status(400).send("Invalid URL");
-    if (!Number.isFinite(minutes) || minutes < 1) minutes = 1;
-
-    const ip =
-      (req.headers["x-forwarded-for"] || "").toString().split(",")[0].trim() ||
-      req.socket?.remoteAddress ||
-      "unknown";
-    const ua = (req.headers["user-agent"] || "").slice(0, 300);
-
-    // Limits
-    const FREE_MAX_MINUTES = 60;         // 1h
-    const FREE_DAILY_LIMIT = 1;          // 1/day
-    const TIER1_MAX = 60 * 24;           // 24h
-    const TIER2_MAX = 60 * 24 * 7;       // 7 days
-    const TIER3_MAX = 60 * 24 * 30;      // 30 days
-
-    // If Pro intent (minutes > FREE_MAX or has token) => require login
-    const proIntent = minutes > FREE_MAX_MINUTES || !!token;
-    let userId = null;
-
-    if (proIntent) {
-      const auth = String(req.headers["authorization"] || "");
-      const m = auth.match(/^Bearer\s+(.+)$/i);
-      const accessToken = m?.[1];
-      if (!accessToken) return res.status(401).send("Login required for Pro");
-      const { data, error } = await admin.auth.getUser(accessToken);
-      if (error || !data?.user) return res.status(401).send("Invalid session");
-      userId = data.user.id;
-    }
-
-    let plan = "free";
-    let tier = null;
-    let maxMinutes = FREE_MAX_MINUTES;
-    let dailyLimit = FREE_DAILY_LIMIT;
-
-    // Pro token lookup
-    if (token) {
-      try {
-        const { data: tok, error } = await admin
-          .from("tokens")
-          .select("plan, tier, max_minutes, daily_limit, expires_at")
-          .eq("token", token)
-          .gt("expires_at", new Date().toISOString())
-          .maybeSingle();
-
-        if (!error && tok?.plan === "pro") {
-          plan = "pro";
-          tier = tok?.tier ?? null;
-
-          if (Number.isFinite(tok?.max_minutes)) {
-            maxMinutes = tok.max_minutes;
-          } else if (tier === 1) {
-            maxMinutes = TIER1_MAX;
-          } else if (tier === 2) {
-            maxMinutes = TIER2_MAX;
-          } else if (tier === 3) {
-            maxMinutes = TIER3_MAX;
-          } else {
-            maxMinutes = TIER2_MAX;
-          }
-
-          if (tok?.daily_limit === null) {
-            dailyLimit = null;
-          } else if (Number.isFinite(tok?.daily_limit)) {
-            dailyLimit = tok.daily_limit;
-          } else if (tier === 1) {
-            dailyLimit = 5;
-          } else {
-            dailyLimit = null;
-          }
-        }
-      } catch (e) {
-        console.warn("[create] token lookup skipped:", e?.message);
-      }
-    }
-
-    // Daily limit
-    if (dailyLimit !== null) {
-      try {
-        const dayStart = new Date();
-        dayStart.setUTCHours(0, 0, 0, 0);
-
-        let query = admin
-          .from("links")
-          .select("*", { count: "exact", head: true })
-          .gte("created_at", dayStart.toISOString());
-
-        if (plan === "free") {
-          query = query.eq("creator_ip", ip);
-        } else if (userId) {
-          // If you later add column creator_user_id uuid, uncomment next line:
-          // query = query.eq("creator_user_id", userId);
-        }
-
-        const { count, error: cntErr } = await query;
-        if (!cntErr && (count ?? 0) >= dailyLimit) {
-          return res.status(429).send(`Daily limit reached (${dailyLimit}/day).`);
-        }
-      } catch (e) {
-        console.warn("[create] daily-limit check skipped:", e?.message);
-      }
-    }
-
-    // Clamp minutes
-    if (Number.isFinite(maxMinutes) && minutes > maxMinutes) minutes = maxMinutes;
-    const expiresAt = new Date(Date.now() + minutes * 60_000).toISOString();
-
-    // Insert link (try with optional creator_user_id first)
-    let row = null;
-
-    try {
-      const payload = { url, expires_at: expiresAt, creator_ip: ip, plan: plan || "free", tier };
-      // If you added this column in DB, you can include it:
-      // if (userId) payload.creator_user_id = userId;
-
-      const { data, error } = await admin
-        .from("links")
-        .insert([payload])
-        .select("id, expires_at")
-        .single();
-      if (error) throw error;
-      row = data;
-    } catch (e) {
-      console.error("[create] full insert error:", normalizeErr(e));
-    }
-
-    if (!row) {
-      try {
-        const { data, error } = await admin
-          .from("links")
-          .insert([{ url, expires_at: expiresAt, plan: plan || "free" }])
-          .select("id, expires_at")
-          .single();
-        if (error) throw error;
-        row = data;
-      } catch (e2) {
-        console.error("[create] minimal insert error:", normalizeErr(e2));
-      }
-    }
-
-    if (!row) return res.status(500).send("Create failed");
-
-    // Best-effort event log
-    try {
-      await admin.from("link_events").insert([{
-        link_id: row.id,
-        event: "create",
-        ip,
-        user_agent: ua,
-        plan,
-        tier
-      }]);
-    } catch (e) {
-      console.warn("[create] event log failed:", normalizeErr(e));
-    }
-
-    res.setHeader("Content-Type", "application/json");
-    return res.status(200).send(JSON.stringify({
-      id: row.id,
-      expires_at: row.expires_at,
-      plan,
-      tier,
-      minutes
-    }));
-  } catch (e) {
-    console.error("[create] ERROR", normalizeErr(e));
-    return res.status(500).send("Internal Server Error");
+  if (!/^https?:\/\//i.test(url)) return new Response('Invalid URL', { status: 400 });
+  if (minutes > 60 && !token) {
+    return new Response('Pro required: set a Pro code to exceed 60 minutes.', { status: 401 });
   }
-}
 
-function readJson(req) {
-  return new Promise((resolve, reject) => {
-    let raw = "";
-    req.on("data", (c) => (raw += c));
-    req.on("end", () => {
-      try { resolve(raw ? JSON.parse(raw) : {}); }
-      catch (e) { reject(e); }
-    });
-  });
-}
+  const expires_at = new Date(Date.now() + minutes * 60_000).toISOString();
+  const payload = b64url(JSON.stringify({ u: url, e: expires_at, v: 1 }));
 
-function normalizeErr(e) {
-  if (!e) return "unknown";
-  if (e.message) return e.message;
-  try { return JSON.stringify(e); } catch { return String(e); }
+  const secret = process.env.LINK_SECRET || 'dev-secret';
+  const sig = await hmac(payload, secret);
+  const id = `${payload}.${sig}`;
+
+  return new Response(JSON.stringify({
+    id, expires_at, minutes, plan: token ? 'pro' : 'free'
+  }), { headers: { 'content-type': 'application/json' }});
 }
