@@ -31,7 +31,7 @@ const expiryHint    = document.getElementById("expiryHint");
 const countdownEl   = document.getElementById("countdown");
 const copyBtn       = document.getElementById("copyBtn");
 const downloadBtn   = document.getElementById("downloadBtn");
-// NOVO: SVG dugme
+// [EXPIRY-DL] SVG dugme ako postoji
 const downloadSvgBtn = document.getElementById("downloadSvgBtn");
 
 // Modali
@@ -47,16 +47,21 @@ const applyCodeBtn      = document.getElementById("applyCodeBtn");
 const resendLink        = document.getElementById("resendLink");
 
 // Auth UI
-const userBadge     = document.getElementById("userBadge");
-const authOpenBtn   = document.getElementById("authOpenBtn");
-const signOutBtn    = document.getElementById("signOutBtn");
-const authModal     = document.getElementById("authModal");
-const closeAuthModal= document.getElementById("closeAuthModal");
-const googleLoginBtn= document.getElementById("googleLoginBtn");
+const userBadge      = document.getElementById("userBadge");
+const authOpenBtn    = document.getElementById("authOpenBtn");
+const signOutBtn     = document.getElementById("signOutBtn");
+const authModal      = document.getElementById("authModal");
+const closeAuthModal = document.getElementById("closeAuthModal");
+const googleLoginBtn = document.getElementById("googleLoginBtn");
+
+// >>> Ukloni "Account/Sign in" dugme potpuno
+try { authOpenBtn?.remove(); } catch {}
 
 // --- state/utility ---
 let expiryTimer, countdownTimer, lastRedirectUrl = "", statusPollTimer = null;
 let supa = null;
+// [EXPIRY-DL] flag da znamo da li je link istekao
+let linkExpired = false;
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -77,6 +82,7 @@ function localAuthExpired() {
   const o = readLocalAuthObj();
   const exp = o?.expires_at || o?.currentSession?.expires_at || o?.session?.expires_at;
   if (!exp) return false;
+  // Supabase ume da čuva ili epoch sekunde ili ISO string
   const ms = typeof exp === "number" ? exp * 1000 : Date.parse(exp);
   return Number.isFinite(ms) && Date.now() > ms;
 }
@@ -85,6 +91,7 @@ function clearLocalAuth() {
 }
 
 async function getAccessToken() {
+  // koristi SDK kad postoji, inače LS fallback
   if (!supa) return localAccessToken();
   try {
     const { data: { session } } = await supa.auth.getSession();
@@ -127,8 +134,10 @@ function closeModal(m){ if(!m) return; m.classList.remove("open"); m.setAttribut
 // --- Auth UI ---
 async function refreshAuthUI() {
   try {
+    // 1) LS cleanup ako je isteklo
     if (localAuthExpired()) clearLocalAuth();
 
+    // 2) pročitaj email: SDK > LS
     let email = null;
     if (supa) {
       const { data: { session } } = await supa.auth.getSession();
@@ -137,7 +146,7 @@ async function refreshAuthUI() {
     if (!email) email = localAuthEmail();
 
     if (userBadge) { userBadge.style.display = email ? "" : "none"; userBadge.textContent = email || ""; }
-    if (authOpenBtn) authOpenBtn.style.display = email ? "none" : ""; // prikaži "Sign in" samo kad si izlogovan
+    if (authOpenBtn) authOpenBtn.textContent = email ? "Account" : "Sign in";
     if (signOutBtn)  signOutBtn.style.display = email ? "" : "none";
 
     console.info("[auth] UI:", email ? `signed-in as ${email}` : "signed-out");
@@ -157,6 +166,7 @@ function formatCountdown(ms){
   const pad=n=>String(n).padStart(2,"0");
   return d>0?`${d}d ${pad(h)}:${pad(m)}:${pad(s)}`:`${pad(h)}:${pad(m)}:${pad(s)}`;
 }
+
 function startCountdown(iso){
   const end=new Date(iso).getTime();
   clearInterval(countdownTimer);
@@ -169,6 +179,10 @@ function startCountdown(iso){
       ctx.clearRect(0,0,qrcodeCanvas.width,qrcodeCanvas.height);
       generatedLink.textContent="";
       expiryHint.textContent="This link has expired.";
+      // [EXPIRY-DL] kada istekne — deaktiviraj download dugmad
+      linkExpired = true;
+      if (downloadBtn)    downloadBtn.disabled = true;
+      if (downloadSvgBtn) downloadSvgBtn.disabled = true;
       return;
     }
     countdownEl.textContent=formatCountdown(left);
@@ -200,7 +214,7 @@ function bindUI() {
   closeAuthModal?.addEventListener("click",()=>closeModal(authModal));
   authModal?.addEventListener("click",(e)=>{ if(e.target && e.target.matches(".modal-overlay,[data-close='auth']")) closeModal(authModal); });
 
-  // Google sign-in
+  // Google sign-in: ako SDK nije spreman → pokušaj prvo initAuth()
   googleLoginBtn?.addEventListener("click", async () => {
     try {
       if (!supa) await initAuth();
@@ -209,7 +223,7 @@ function bindUI() {
     } catch (e) { alert(e?.message || "Google sign-in failed."); }
   });
 
-  // Sign out
+  // Sign out: fallback radi i bez SDK-a (čisti LS), pa tek onda pokuša SDK
   signOutBtn?.addEventListener("click", async () => {
     try { if (supa) await supa.auth.signOut(); } catch {}
     clearLocalAuth();
@@ -272,6 +286,11 @@ function bindUI() {
       const redirectUrl = `${window.location.origin}/go/${created.id}`;
       lastRedirectUrl = redirectUrl;
 
+      // [EXPIRY-DL] novo generisan link je aktivan → omogući download dugmad
+      linkExpired = false;
+      if (downloadBtn)    downloadBtn.disabled = false;
+      if (downloadSvgBtn) downloadSvgBtn.disabled = false;
+
       generatedLink.textContent = redirectUrl;
       generatedLink.href = redirectUrl;
       try { QRCode.toCanvas(qrcodeCanvas, redirectUrl, { width: 200 }, (err) => { if (err) console.error(err); }); } catch(e){ console.warn("QRCode draw fail:", e); }
@@ -285,13 +304,12 @@ function bindUI() {
         generatedLink.textContent="";
         expiryHint.textContent="This link has expired.";
         countdownEl.textContent="Expired";
+        // [EXPIRY-DL] safety: deaktiviraj i ovde
+        linkExpired = true;
+        if (downloadBtn)    downloadBtn.disabled = true;
+        if (downloadSvgBtn) downloadSvgBtn.disabled = true;
       }, created.minutes*60_000);
       startCountdown(created.expires_at);
-
-      // NOVO: pokaži/skrivaj SVG dugme za Pro
-      if (downloadSvgBtn) {
-        downloadSvgBtn.style.display = (created.plan === "pro") ? "" : "none";
-      }
     } catch (err) {
       console.error("Create error:", err);
       alert(err.message || "Could not create link.");
@@ -301,7 +319,7 @@ function bindUI() {
     }
   });
 
-  // Copy & Download (PNG)
+  // Copy & Download
   copyBtn?.addEventListener("click", async () => {
     try {
       if (!lastRedirectUrl) return;
@@ -316,31 +334,34 @@ function bindUI() {
       }
     } catch { alert("Could not copy link."); }
   });
+
+  // PNG download
   downloadBtn?.addEventListener("click", () => {
-    try { const url=qrcodeCanvas.toDataURL("image/png"); const a=document.createElement("a"); a.href=url; a.download="qr-link.png"; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
-    catch { alert("Could not download PNG."); }
+    // [EXPIRY-DL] ne reaguj ako je isteklo
+    if (linkExpired) return;
+    try { 
+      const url=qrcodeCanvas.toDataURL("image/png"); 
+      const a=document.createElement("a"); 
+      a.href=url; a.download="qr-link.png"; 
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); 
+    }
+    catch { alert("Could not download QR."); }
   });
 
-  // NOVO: Download SVG (Pro)
+  // [EXPIRY-DL] SVG download (ako postoji dugme), samo guard; ostala logika ostaje kakva je već kod tebe
   downloadSvgBtn?.addEventListener("click", async () => {
+    if (linkExpired) return; // ne reaguj ako je isteklo
     try {
+      // pretpostavka: generišeš SVG od lastRedirectUrl na klik
       if (!lastRedirectUrl) return;
-      const svg = await new Promise((resolve, reject) => {
-        QRCode.toString(lastRedirectUrl, { type: "svg", margin: 1, width: 200 }, (err, s) => {
-          if (err) reject(err); else resolve(s);
-        });
-      });
-      const blob = new Blob([svg], { type: "image/svg+xml" });
-      const u = URL.createObjectURL(blob);
+      const svgStr = await QRCode.toString(lastRedirectUrl, { type: "svg" });
+      const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = u;
-      a.download = "qr-link.svg";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(u);
-    } catch (e) {
-      console.error("SVG download error:", e);
+      a.href = url; a.download = "qr-link.svg";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
       alert("Could not download SVG.");
     }
   });
@@ -368,7 +389,7 @@ function bindUI() {
     if (saved && !tokenInput.value) tokenInput.value = saved;
   } catch {}
 
-  // Prvi UI state
+  // Prvo pokaži stanje iz LS (može “ghost” na momenat); posle ga normalizujemo u initAuth
   refreshAuthUI();
 }
 
@@ -439,6 +460,7 @@ async function loadSupabaseCreateClient() {
 }
 
 async function normalizeGhostSession() {
+  // Ako LS ima nešto, a SDK kaže "nema sesije" → očisti LS i osveži UI
   try {
     const hasLS = !!localAccessToken();
     const { data: { session } } = await supa.auth.getSession();
@@ -451,13 +473,14 @@ async function normalizeGhostSession() {
 }
 
 async function initAuth() {
-  if (supa) return;
+  if (supa) return; // već podignut
   try {
     const createClient = await loadSupabaseCreateClient();
     supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
     });
 
+    // Sačekaj kratko upis sesije pa normalizuj
     for (let i = 0; i < 10; i++) {
       if (localAuthEmail()) break;
       await sleep(150);
