@@ -12,24 +12,8 @@
 <body>
   <div class="container" style="max-width:520px;">
     <section class="card" id="stateBox">
-      <h2 id="title">Authenticating…</h2>
+      <h2 id="title">Completing sign-in…</h2>
       <p class="hint" id="desc">Please wait a moment.</p>
-
-      <div id="resetBox" style="display:none; margin-top:1rem;">
-        <label>
-          New password
-          <input type="password" id="newPwd1" placeholder="New password" autocomplete="new-password" />
-        </label>
-        <label>
-          Repeat new password
-          <input type="password" id="newPwd2" placeholder="Repeat new password" autocomplete="new-password" />
-        </label>
-        <div class="button-group">
-          <button class="btn btn-primary" id="doReset">Update password</button>
-        </div>
-        <p class="hint" id="resetHint" style="text-align:center;"></p>
-      </div>
-
       <div id="goHome" class="button-group" style="display:none; margin-top:1rem;">
         <a class="btn btn-primary" href="/">Return to app</a>
       </div>
@@ -37,76 +21,87 @@
   </div>
 
   <script type="module">
-    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+    // ESM→UMD fallback za supabase (CSP-friendly)
+    async function loadSupabaseCreateClient() {
+      try {
+        const mod = await import("https://esm.sh/@supabase/supabase-js@2");
+        console.info("[auth] supabase via ESM");
+        return mod.createClient;
+      } catch (e) {
+        console.warn("[auth] ESM failed, falling back to UMD:", e?.message || e);
+        await new Promise((ok, err) => {
+          const s = document.createElement("script");
+          s.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
+          s.async = true;
+          s.onload = () => ok();
+          s.onerror = () => err(new Error("UMD load failed"));
+          document.head.appendChild(s);
+        });
+        if (!window.supabase?.createClient) throw new Error("supabase UMD not available");
+        console.info("[auth] supabase via UMD");
+        return (url, key, opts) => window.supabase.createClient(url, key, opts);
+      }
+    }
 
-    const SUPABASE_URL = window.NEXT_PUBLIC_SUPABASE_URL || "https://xyfacudywygreaquvzjr.supabase.co";
-    const SUPABASE_ANON_KEY = window.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    const createClient = await loadSupabaseCreateClient();
+
+    const SUPABASE_URL = "https://xyfacudywygreaquvzjr.supabase.co";
+    const SUPABASE_ANON_KEY =
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjQ3MDcsImV4cCI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
 
-    const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
+    });
 
     const title = document.getElementById("title");
     const desc  = document.getElementById("desc");
-    const resetBox = document.getElementById("resetBox");
     const goHome = document.getElementById("goHome");
-    const newPwd1 = document.getElementById("newPwd1");
-    const newPwd2 = document.getElementById("newPwd2");
-    const doReset = document.getElementById("doReset");
-    const resetHint = document.getElementById("resetHint");
+    const setMsg = (t, d="") => { title.textContent = t; desc.textContent = d; };
 
-    function showHome(msgTitle, msgDesc) {
-      title.textContent = msgTitle;
-      desc.textContent = msgDesc || "";
-      resetBox.style.display = "none";
-      goHome.style.display = "";
-    }
+    const hasAuthParams = () => {
+      const u = new URL(window.location.href);
+      return u.searchParams.has("code") || u.hash.includes("access_token") || u.hash.includes("type=");
+    };
 
-    function showReset() {
-      title.textContent = "Reset password";
-      desc.textContent = "Enter a new password for your account.";
-      resetBox.style.display = "";
-      goHome.style.display = "none";
-    }
-
-    async function run() {
+    async function finish() {
       try {
-        // VAŽNO: prosledi ceo URL nazad Supabase-u da razmeni code/hash za sesiju
-        await supa.auth.exchangeCodeForSession(window.location.href);
+        if (hasAuthParams()) {
+          try {
+            await supa.auth.exchangeCodeForSession(window.location.href);
+            console.info("[auth] exchange ok");
+          } catch (e) {
+            console.warn("[auth] exchange error:", e?.message || e);
+          }
+        }
+
+        // kratka pauza da storage bude upisan
+        await new Promise(r => setTimeout(r, 250));
+
+        // getSession + fallback getUser
+        let { data: { session } } = await supa.auth.getSession();
+        if (!session) {
+          const userRes = await supa.auth.getUser();
+          if (userRes?.data?.user) session = { user: userRes.data.user };
+        }
+
+        // očisti URL (isti origin)
+        history.replaceState(null, "", window.location.origin + "/auth.html");
+
+        if (session?.user) {
+          setMsg("You're signed in", "You can safely return to the app.");
+          setTimeout(() => (window.location.href = "/"), 700);
+        } else {
+          setMsg("Signed in", "You can return to the app.");
+          goHome.style.display = "";
+        }
       } catch (e) {
-        // ako već postoji sesija, ovo može da baci grešku — ignorišemo
-      }
-
-      const url = new URL(window.location.href);
-      const type = url.searchParams.get("type") ||
-                   (url.hash.includes("type=recovery") ? "recovery" : null);
-
-      if (type === "recovery") {
-        showReset();
-      } else {
-        showHome("You're signed in", "You can safely return to the app.");
-        // opciono auto-redirect posle kratkog delay-a:
-        setTimeout(() => (window.location.href = "/"), 900);
+        console.error("[auth] fatal:", e);
+        setMsg("Auth error", e?.message || "Could not complete authentication.");
+        goHome.style.display = "";
       }
     }
 
-    doReset?.addEventListener("click", async () => {
-      resetHint.textContent = "";
-      const p1 = newPwd1.value;
-      const p2 = newPwd2.value;
-      if (!p1 || !p2) { resetHint.textContent = "Enter and repeat the new password."; return; }
-      if (p1 !== p2) { resetHint.textContent = "Passwords do not match."; return; }
-      if (p1.length < 6) { resetHint.textContent = "Password must be at least 6 characters."; return; }
-
-      try {
-        const { error } = await supa.auth.updateUser({ password: p1 });
-        if (error) { resetHint.textContent = error.message || "Could not update password."; return; }
-        showHome("Password updated", "You can now log in with your new password.");
-      } catch {
-        resetHint.textContent = "Could not update password.";
-      }
-    });
-
-    run();
+    finish();
   </script>
 </body>
 </html>

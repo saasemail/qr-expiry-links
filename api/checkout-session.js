@@ -1,14 +1,30 @@
-export const config = { runtime: 'edge' };
+// api/checkout-session.js
+import { randomBytes } from "node:crypto";
 
-function rid(n = 8) {
-  const a = new Uint8Array(n); crypto.getRandomValues(a);
-  return Array.from(a).map(b => b.toString(16).padStart(2, '0')).join('');
-}
+const TIER_LIMITS = {
+  1: { max_minutes: 60 * 24,      daily_limit: 5,    access_days: 7 },
+  2: { max_minutes: 60 * 24 * 7,  daily_limit: null, access_days: 30 },
+  3: { max_minutes: 60 * 24 * 30, daily_limit: null, access_days: 36500 }
+};
 
-export default async function handler(req) {
-  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
-  let body; try { body = await req.json(); } catch {}
-  const tier = Number(body?.tier || 0) || 0;
-  const session_id = `sess_${tier}_${rid(12)}`;
-  return new Response(JSON.stringify({ session_id }), { headers: { 'content-type': 'application/json' }});
+export default async function handler(req, res) {
+  try {
+    if (req.method !== "POST") {
+      res.setHeader("Allow", "POST");
+      return res.status(405).send("Method Not Allowed");
+    }
+
+    const { tier } = req.body || {};
+    const t = Number(tier);
+    if (!t || !TIER_LIMITS[t]) return res.status(400).send("Bad tier");
+
+    // Samo generišemo session_id — NIKAKAV token se ovde ne izdaje.
+    const session_id = "SID-" + randomBytes(6).toString("hex").toUpperCase();
+
+    res.setHeader("Content-Type", "application/json");
+    return res.status(200).json({ session_id });
+  } catch (e) {
+    console.error("[checkout-session] ERROR:", e?.message || e);
+    return res.status(500).send("Internal Server Error");
+  }
 }

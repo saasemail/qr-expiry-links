@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "api/**/*.js": { "runtime": "nodejs20.x" }
+  },
+  "rewrites": [
+    { "source": "/go/(.*)", "destination": "/api/go?id=$1" }
+  ]
+}

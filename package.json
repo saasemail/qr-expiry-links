@@ -1,7 +1,9 @@
 {
   "name": "qr-expiry-links",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
-  "private": true
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.0"
+  }
 }
-
