@@ -128,10 +128,8 @@ function closeModal(m){ if(!m) return; m.classList.remove("open"); m.setAttribut
 // --- Auth UI ---
 async function refreshAuthUI() {
   try {
-    // 1) LS cleanup ako je isteklo
     if (localAuthExpired()) clearLocalAuth();
 
-    // 2) pročitaj email: SDK > LS
     let email = null;
     if (supa) {
       const { data: { session } } = await supa.auth.getSession();
@@ -139,22 +137,15 @@ async function refreshAuthUI() {
     }
     if (!email) email = localAuthEmail();
 
-    // badge
-    if (userBadge) {
-      userBadge.style.display = email ? "" : "none";
-      userBadge.textContent   = email || "";
-    }
+    if (userBadge) { userBadge.style.display = email ? "" : "none"; userBadge.textContent = email || ""; }
 
-    // SIGN IN: NIKAD "Account" — ili je skriven (ulogovan) ili piše "Sign in" (izlogovan)
+    // NIKAD "Account": ili "Sign in" (ako si izlogovan) ili ništa (ako si ulogovan)
     if (authOpenBtn) {
       authOpenBtn.textContent = "Sign in";
       authOpenBtn.style.display = email ? "none" : "";
     }
 
-    // Sign out vidljiv samo kad si ulogovan
-    if (signOutBtn) {
-      signOutBtn.style.display = email ? "" : "none";
-    }
+    if (signOutBtn)  signOutBtn.style.display = email ? "" : "none";
 
     console.info("[auth] UI:", email ? `signed-in as ${email}` : "signed-out");
   } catch (e) {
@@ -173,14 +164,12 @@ function formatCountdown(ms){
   const pad=n=>String(n).padStart(2,"0");
   return d>0?`${d}d ${pad(h)}:${pad(m)}:${pad(s)}`:`${pad(h)}:${pad(m)}:${pad(s)}`;
 }
-
 function setDownloadButtonsEnabled(enabled){
   try {
     if (downloadBtn)   { downloadBtn.disabled = !enabled; }
     if (downloadSvgBtn){ downloadSvgBtn.disabled = !enabled; }
   } catch {}
 }
-
 function startCountdown(iso){
   const end=new Date(iso).getTime();
   clearInterval(countdownTimer);
@@ -226,7 +215,7 @@ function bindUI() {
   closeAuthModal?.addEventListener("click",()=>closeModal(authModal));
   authModal?.addEventListener("click",(e)=>{ if(e.target && e.target.matches(".modal-overlay,[data-close='auth']")) closeModal(authModal); });
 
-  // Google sign-in: ako SDK nije spreman → pokušaj prvo initAuth()
+  // Google sign-in
   googleLoginBtn?.addEventListener("click", async () => {
     try {
       if (!supa) await initAuth();
@@ -235,7 +224,7 @@ function bindUI() {
     } catch (e) { alert(e?.message || "Google sign-in failed."); }
   });
 
-  // Sign out: fallback radi i bez SDK-a (čisti LS), pa tek onda pokuša SDK
+  // Sign out
   signOutBtn?.addEventListener("click", async () => {
     try { if (supa) await supa.auth.signOut(); } catch {}
     clearLocalAuth();
@@ -361,17 +350,33 @@ function bindUI() {
     } catch { alert("Could not download QR."); }
   });
 
-  // Download SVG (Pro)
-  downloadSvgBtn?.addEventListener("click", () => {
+  // Download SVG (Pro) — radi samo dok link važi
+  downloadSvgBtn?.addEventListener("click", async () => {
     if (linkExpired) return; // ne reaguje kad istekne
     try {
+      if (!downloadSvgBtn || downloadSvgBtn.style.display === "none") return; // samo za Pro
       if (!lastRedirectUrl) return;
-      // najjednostavniji QR SVG: upotrebimo biblioteku globalnog QRCodea ako podržava SVG;
-      // ako ne, napravimo minimalnu SVG “fallback” (link kao text) — ali ovde pretpostavljamo da je već dodata SVG generacija.
-      // Ovo mesto ostaje isto kao ranije u tvojoj verziji koja je već radila.
-      // Ako već imaš implementiran SVG export, ostaje neizmenjeno.
-      // (no-op ovde jer ne diramo postojeći SVG kod)
-    } catch { alert("Could not download SVG."); }
+
+      // Generiši SVG string preko qrcode biblioteke
+      let svgText;
+      if (QRCode?.toString) {
+        svgText = await QRCode.toString(lastRedirectUrl, { type: "svg", width: 200, margin: 1 });
+      } else {
+        throw new Error("SVG generator not available");
+      }
+
+      const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "qr-link.svg";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      alert("Could not download SVG.");
+    }
   });
 
   // On-load: ?session_id=...
@@ -397,7 +402,6 @@ function bindUI() {
     if (saved && !tokenInput.value) tokenInput.value = saved;
   } catch {}
 
-  // Prvo pokaži stanje iz LS (može “ghost” na momenat); posle ga normalizujemo u initAuth
   refreshAuthUI();
 }
 
@@ -468,7 +472,6 @@ async function loadSupabaseCreateClient() {
 }
 
 async function normalizeGhostSession() {
-  // Ako LS ima nešto, a SDK kaže "nema sesije" → očisti LS i osveži UI
   try {
     const hasLS = !!localAccessToken();
     const { data: { session } } = await supa.auth.getSession();
@@ -481,14 +484,13 @@ async function normalizeGhostSession() {
 }
 
 async function initAuth() {
-  if (supa) return; // već podignut
+  if (supa) return;
   try {
     const createClient = await loadSupabaseCreateClient();
     supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
     });
 
-    // Sačekaj kratko upis sesije pa normalizuj
     for (let i = 0; i < 10; i++) {
       if (localAuthEmail()) break;
       await sleep(150);
