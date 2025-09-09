@@ -16,7 +16,7 @@ try {
 // Supabase kredencijali
 const SUPABASE_URL = "https://xyfacudywygreaquvzjr.supabase.co";
 const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZmFjdWR5d3lncmVhcXV2empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjQ3MDcsImV4cCI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIs...CI6MjA3MjQwMDcwN30.9-fY6XV7BdPyto1l_xHw7pltmY2mBHj93bdVh418vSI";
 
 // --- DOM refs ---
 const urlInput      = document.getElementById("urlInput");
@@ -41,89 +41,121 @@ const closeProModal     = document.getElementById("closeProModal");
 const successModal      = document.getElementById("successModal");
 const closeSuccessModal = document.getElementById("closeSuccessModal");
 const successCode       = document.getElementById("successCode");
-const copyCodeBtn       = document.getElementById("copyCodeBtn");
+const copyCodeBtn       = document.getElementById("successCopyBtn");
 const applyCodeBtn      = document.getElementById("applyCodeBtn");
 const resendLink        = document.getElementById("resendLink");
 
-// Auth UI
-const userBadge      = document.getElementById("userBadge");
-const authOpenBtn    = document.getElementById("authOpenBtn");
-const signOutBtn     = document.getElementById("signOutBtn");
+// Auth modal / dugmad
 const authModal      = document.getElementById("authModal");
+const authOpenBtn    = document.getElementById("openAuthModal");
 const closeAuthModal = document.getElementById("closeAuthModal");
 const googleLoginBtn = document.getElementById("googleLoginBtn");
+const signOutBtn     = document.getElementById("signOutBtn");
+const userBadge      = document.getElementById("userBadge");
 
-// --- state/utility ---
-let expiryTimer, countdownTimer, lastRedirectUrl = "", statusPollTimer = null;
-let supa = null;
+// --- STATE ---
+let expiryTimer = null;
+let countdownTimer = null;
+let lastRedirectUrl = "";
+let statusPollTimer = null;
 let linkExpired = false; // kontrola ponašanja PNG/SVG dugmadi nakon isteka
+let currentPlan = "free"; // 'free' ili 'pro' — set na create
+let __qrLogoDataUrl = null; // data: URL za Pro logo overlay (PNG/SVG)
+try {
+  window.setQrLogoDataUrl = (dataUrl) => {
+    if (typeof dataUrl === "string" && dataUrl.startsWith("data:")) {
+      __qrLogoDataUrl = dataUrl;
+    } else {
+      __qrLogoDataUrl = null; // ignorišemo remote URL bez CORS-a da ne „uprljamo“ canvas/SVG
+    }
+  };
+} catch {}
 
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+// --- LS helpers ---
+function readJSON(key){ try{ const v=localStorage.getItem(key); return v?JSON.parse(v):null; }catch{return null;} }
+function writeJSON(key,val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch{} }
+function del(key){ try{ localStorage.removeItem(key); }catch{} }
 
-// --- LocalStorage helpers ---
-function readLocalAuthObj() {
-  try { const raw = localStorage.getItem(AUTH_LS_KEY); return raw ? JSON.parse(raw) : null; }
-  catch { return null; }
+// Auth token čuvamo pod AUTH_LS_KEY (kompatibilno sa Supabase SDK zapisom)
+function localAuthObj(){ return readJSON(AUTH_LS_KEY); }
+function localAuthEmail(){
+  const o = localAuthObj();
+  return o?.user?.email || o?.user?.user_metadata?.email || null;
 }
-function localAuthEmail() {
-  const o = readLocalAuthObj();
-  return o?.user?.email || o?.currentSession?.user?.email || o?.session?.user?.email || null;
-}
-function localAccessToken() {
-  const o = readLocalAuthObj();
-  return o?.access_token || o?.currentSession?.access_token || o?.session?.access_token || null;
-}
-function localAuthExpired() {
-  const o = readLocalAuthObj();
-  const exp = o?.expires_at || o?.currentSession?.expires_at || o?.session?.expires_at;
+function localAuthExpired(){
+  const o = localAuthObj();
+  const exp = o?.expires_at || o?.session?.expires_at || o?.currentSession?.expires_at;
   if (!exp) return false;
-  const ms = typeof exp === "number" ? exp * 1000 : Date.parse(exp);
+  const ms = typeof exp === "number" ? exp*1000 : Date.parse(exp);
   return Number.isFinite(ms) && Date.now() > ms;
 }
-function clearLocalAuth() {
-  try { localStorage.removeItem(AUTH_LS_KEY); } catch {}
-}
+function clearLocalAuth(){ del(AUTH_LS_KEY); }
 
+// Supabase client (ako je global supabase lib prisutan)
+let supa = null;
+try {
+  if (window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY) {
+    supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+} catch {}
+
+// Access token iz SDK ili LS
 async function getAccessToken() {
-  // koristi SDK kad postoji, inače LS fallback
-  if (!supa) return localAccessToken();
+  if (!supa) {
+    const o = localAuthObj();
+    if (o && !localAuthExpired()) return o.access_token || null;
+    return null;
+  }
   try {
     const { data: { session } } = await supa.auth.getSession();
-    return session?.access_token || localAccessToken();
-  } catch {
-    return localAccessToken();
-  }
+    if (session?.access_token) return session.access_token;
+  } catch {}
+  const o = localAuthObj();
+  if (o && !localAuthExpired()) return o.access_token || null;
+  return null;
 }
 
-// --- Fetch helper ---
-async function fetchJSON(url, opts = {}, timeoutMs = 15000) {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+// --- fetch helper ---
+async function fetchJSON(url, opts={}, timeout=15000) {
+  const ctl = new AbortController();
+  const t = setTimeout(()=>ctl.abort(), timeout);
   try {
-    const resp = await fetch(url, { ...opts, signal: ctrl.signal });
-    const text = await resp.text();
-    let data = null;
-    try { data = text ? JSON.parse(text) : null; } catch {}
-    if (!resp.ok) {
-      const msg = (data && (data.message || data.error || data.msg)) || text || "Request failed";
-      throw new Error(msg);
-    }
-    return data;
+    const r = await fetch(url, { ...opts, signal: ctl.signal });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
   } finally { clearTimeout(t); }
 }
 
-// --- UI helpers (modals) ---
-function onEsc(e){ if(e.key==="Escape"){ [proModal,successModal,authModal].forEach(closeModal); } }
-function trapTab(e){ const open=document.querySelector(".modal.open"); if(!open||e.key!=="Tab") return;
-  const f=open.querySelectorAll("button,[href],input,select,textarea,[tabindex]:not([tabindex='-1'])");
-  if(!f.length) return; const first=f[0],last=f[f.length-1];
-  if(e.shiftKey&&document.activeElement===first){last.focus();e.preventDefault();}
-  else if(!e.shiftKey&&document.activeElement===last){first.focus();e.preventDefault();}
+// --- Modal helpers (open/close + focus trap) ---
+function openModal(el){ if(!el) return; el.classList.remove("hidden"); }
+function closeModal(el){ if(!el) return; el.classList.add("hidden"); }
+
+// --- Countdown ---
+function startCountdown(expiresAtIso){
+  try { clearInterval(countdownTimer); } catch {}
+  const end = Date.parse(expiresAtIso);
+  countdownTimer = setInterval(()=>{
+    const left = end - Date.now();
+    if (left <= 0) {
+      clearInterval(countdownTimer);
+      countdownEl.textContent="Expired";
+      return;
+    }
+    const s = Math.floor(Math.max(0,left)/1000);
+    const m = Math.floor(s/60); const ss = s%60;
+    countdownEl.textContent = `${m}m ${ss}s`;
+  }, 1000);
 }
-function openModal(m){ if(!m) return; m.classList.add("open"); m.setAttribute("aria-hidden","false");
-  document.addEventListener("keydown", onEsc); document.addEventListener("keydown", trapTab); }
-function closeModal(m){ if(!m) return; m.classList.remove("open"); m.setAttribute("aria-hidden","true");
-  document.removeEventListener("keydown", onEsc); document.removeEventListener("keydown", trapTab); }
+
+function setLoading(flag){
+  if (generateBtn) generateBtn.disabled = !!flag;
+  if (copyBtn)     copyBtn.disabled = !!flag;
+}
+
+function setDownloadButtonsEnabled(enabled){
+  if (downloadBtn)    downloadBtn.disabled    = !enabled;
+  if (downloadSvgBtn) downloadSvgBtn.disabled = !enabled;
+}
 
 // --- Auth UI ---
 async function refreshAuthUI() {
@@ -137,8 +169,6 @@ async function refreshAuthUI() {
     }
     if (!email) email = localAuthEmail();
 
-    if (userBadge) { userBadge.style.display = email ? "" : "none"; userBadge.textContent = email || ""; }
-
     // NIKAD "Account": ili "Sign in" (ako si izlogovan) ili ništa (ako si ulogovan)
     if (authOpenBtn) {
       authOpenBtn.textContent = "Sign in";
@@ -147,81 +177,41 @@ async function refreshAuthUI() {
 
     if (signOutBtn)  signOutBtn.style.display = email ? "" : "none";
 
+    if (userBadge) { userBadge.style.display = email ? "" : "none"; userBadge.textContent = email || ""; }
+
     console.info("[auth] UI:", email ? `signed-in as ${email}` : "signed-out");
   } catch (e) {
     console.warn("[auth] refreshAuthUI error:", e);
   }
 }
 
-// --- Countdown ---
-function formatCountdown(ms){
-  if(ms<=0) return "00:00:00";
-  const sec=Math.floor(ms/1000);
-  const d=Math.floor(sec/86400);
-  const h=Math.floor((sec%86400)/3600);
-  const m=Math.floor((sec%3600)/60);
-  const s=sec%60;
-  const pad=n=>String(n).padStart(2,"0");
-  return d>0?`${d}d ${pad(h)}:${pad(m)}:${pad(s)}`:`${pad(h)}:${pad(m)}:${pad(s)}`;
-}
-function setDownloadButtonsEnabled(enabled){
+// --- INIT ---
+window.addEventListener("DOMContentLoaded", async () => {
+  try { await refreshAuthUI(); } catch {}
+
+  // Restore poslednji URL
   try {
-    if (downloadBtn)   { downloadBtn.disabled = !enabled; }
-    if (downloadSvgBtn){ downloadSvgBtn.disabled = !enabled; }
+    const last = sessionStorage.getItem("qr-last-url");
+    if (last && urlInput) urlInput.value = last;
   } catch {}
-}
-function startCountdown(iso){
-  const end=new Date(iso).getTime();
-  clearInterval(countdownTimer);
-  countdownTimer=setInterval(()=>{
-    const left=end-Date.now();
-    if(left<=0){
-      clearInterval(countdownTimer);
-      countdownEl.textContent="Expired";
-      const ctx=qrcodeCanvas.getContext("2d");
-      ctx.clearRect(0,0,qrcodeCanvas.width,qrcodeCanvas.height);
-      generatedLink.textContent="";
-      expiryHint.textContent="This link has expired.";
-      linkExpired = true;
-      setDownloadButtonsEnabled(false); // PNG/SVG ne reaguju nakon isteka
-      return;
-    }
-    countdownEl.textContent=formatCountdown(left);
-  },1000);
-}
 
-// --- Create API caller ---
-async function createLink(url, minutes, token) {
-  const headers = { "Content-Type": "application/json" };
-  const jwt = await getAccessToken();
-  if (jwt) headers["Authorization"] = `Bearer ${jwt}`;
-  return fetchJSON("/api/create", {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ url, minutes, token }),
-  }, 15000);
-}
+  urlInput?.addEventListener("change", ()=>{
+    try { sessionStorage.setItem("qr-last-url", String(urlInput.value||"").trim()); } catch {}
+  });
 
-function setLoading(state) {
-  if (!generateBtn) return;
-  generateBtn.disabled = state;
-  generateBtn.textContent = state ? "Generating..." : "Generate QR";
-}
-
-// --- UI bindings (uvek aktivni) ---
-function bindUI() {
-  // Auth modal
-  authOpenBtn?.addEventListener("click",(e)=>{e.preventDefault();openModal(authModal);});
-  closeAuthModal?.addEventListener("click",()=>closeModal(authModal));
-  authModal?.addEventListener("click",(e)=>{ if(e.target && e.target.matches(".modal-overlay,[data-close='auth']")) closeModal(authModal); });
-
-  // Google sign-in
-  googleLoginBtn?.addEventListener("click", async () => {
+  // Sign in (Google)
+  googleLoginBtn?.addEventListener("click", async ()=>{
     try {
-      if (!supa) await initAuth();
-      if (!supa) { alert("Auth not ready. Try again."); return; }
-      await supa.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${CANON_ORIGIN}/auth.html` } });
-    } catch (e) { alert(e?.message || "Google sign-in failed."); }
+      if (!supa) { alert("Auth not ready."); return; }
+      const { data, error } = await supa.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${CANON_ORIGIN}/auth.html` }
+      });
+      if (error) throw error;
+    } catch (e) {
+      console.error("login error:", e);
+      alert("Login failed.");
+    }
   });
 
   // Sign out
@@ -238,32 +228,28 @@ function bindUI() {
 
   // Checkout polling
   document.querySelectorAll(".plan-select").forEach((btn)=>{
-    btn.addEventListener("click", async (e)=>{
-      e.preventDefault();
-      const tier = Number(btn.dataset.tier||0);
-      if(!tier) return;
+    btn.addEventListener("click", async ()=>{
       try {
-        const { session_id } = await fetchJSON("/api/checkout-session", {
-          method:"POST",
-          headers:{ "Content-Type":"application/json" },
-          body: JSON.stringify({ tier })
-        }, 10000);
-        startStatusPolling(session_id);
-      } catch(e){
-        alert("Could not start checkout session.");
-        console.error(e);
-      } finally {
-        closeModal(proModal);
-        tokenInput?.focus();
+        const res = await fetch("/api/checkout-session", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ plan: btn.dataset.plan || "pro" }) });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const js = await res.json();
+        if (js?.url) window.location.href = js.url;
+      } catch (err) {
+        console.error("checkout err:", err);
+        alert("Could not start checkout.");
       }
     });
   });
 
   // Success modal buttons
   copyCodeBtn?.addEventListener("click", async ()=>{
-    try{ await navigator.clipboard.writeText(successCode.value||""); copyCodeBtn.textContent="Copied!"; setTimeout(()=>copyCodeBtn.textContent="Copy",1200);}catch{ alert("Could not copy."); }
+    try{ await navigator.clipboard.writeText(successCode.value||successCode.textContent||""); copyCodeBtn.textContent="Copied!"; setTimeout(()=>copyCodeBtn.textContent="Copy",1200);}catch{ alert("Could not copy."); }
   });
-  applyCodeBtn?.addEventListener("click", ()=>{ tokenInput.value=successCode.value||""; closeModal(successModal); generateBtn?.focus(); });
+  applyCodeBtn?.addEventListener("click", ()=>{
+    tokenInput.value = (successCode.value||successCode.textContent||"");
+    closeModal(successModal);
+    generateBtn?.focus();
+  });
   closeSuccessModal?.addEventListener("click", ()=>closeModal(successModal));
   successModal?.addEventListener("click",(e)=>{ if(e.target&&e.target.matches(".modal-overlay,[data-close='success']")) closeModal(successModal); });
 
@@ -274,26 +260,31 @@ function bindUI() {
     const token = (tokenInput?.value || "").trim();
 
     if (!/^https?:\/\//i.test(url)) { alert("Please enter a valid URL (include https://)."); return; }
-    if (!Number.isFinite(minutes) || minutes < 1) { alert("Expiry must be at least 1 minute."); return; }
+    if (!minutes || minutes<=0) { alert("Minutes must be > 0."); return; }
 
-    clearTimeout(expiryTimer);
-    clearInterval(countdownTimer);
     setLoading(true);
-
-    const safety = setTimeout(() => setLoading(false), 9000);
-
     try {
-      const created = await createLink(url, minutes, token);
-      const redirectUrl = `${window.location.origin}/go/${created.id}`;
-      lastRedirectUrl = redirectUrl;
+      // opcioni token u auth headeru
+      const headers = { "Content-Type":"application/json" };
+      const at = await getAccessToken();
+      if (at) headers.Authorization = `Bearer ${at}`;
 
-      // reset state (omogući preuzimanje dok traje)
+      const res = await fetch("/api/create", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ url, minutes, token })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const created = await res.json();
+      if (!created?.redirect || !created?.expires_at) throw new Error("Malformed response.");
+
+      // Drži redirect i resetuj state
+      lastRedirectUrl = created.redirect;
       linkExpired = false;
       setDownloadButtonsEnabled(true);
 
-      generatedLink.textContent = redirectUrl;
-      generatedLink.href = redirectUrl;
-      try { QRCode.toCanvas(qrcodeCanvas, redirectUrl, { width: 200 }, (err) => { if (err) console.error(err); }); } catch(e){ console.warn("QRCode draw fail:", e); }
+      // Prikaz QR pregleda (512) — export ide na 1024, nezavisno
+      try { QRCode.toCanvas(qrcodeCanvas, created.redirect, { width: 512, margin: 1 }, (err)=>{ if(err)console.error(err); }); } catch(e){ console.warn("QRCode draw fail:", e); }
       resultCard.classList.remove("hidden");
 
       const endLocal = new Date(created.expires_at);
@@ -303,7 +294,10 @@ function bindUI() {
       if (downloadSvgBtn) {
         downloadSvgBtn.style.display = (created.plan === "pro") ? "" : "none";
       }
+      currentPlan = created.plan || "free";
 
+      // Auto-clear po isteku
+      try { clearTimeout(expiryTimer); } catch {}
       expiryTimer = setTimeout(() => {
         const ctx=qrcodeCanvas.getContext("2d");
         ctx.clearRect(0,0,qrcodeCanvas.width,qrcodeCanvas.height);
@@ -318,9 +312,12 @@ function bindUI() {
       console.error("Create error:", err);
       alert(err.message || "Could not create link.");
     } finally {
-      clearTimeout(safety);
       setLoading(false);
     }
+
+    // Popuni link
+    generatedLink.textContent = lastRedirectUrl || "";
+    generatedLink.href = lastRedirectUrl || "#";
   });
 
   // Copy
@@ -339,30 +336,28 @@ function bindUI() {
     } catch { alert("Could not copy link."); }
   });
 
-  // Download PNG
-  downloadBtn?.addEventListener("click", () => {
+  // Download PNG (radi samo dok važi link) — export 1024 i opcioni Pro logo overlay
+  downloadBtn?.addEventListener("click", async () => {
     if (linkExpired) return; // ne reaguje kad istekne
     try {
-      const url=qrcodeCanvas.toDataURL("image/png");
+      if (!lastRedirectUrl) return;
+      const dataUrl = await buildPngDataUrl1024(lastRedirectUrl, (currentPlan === "pro") ? __qrLogoDataUrl : null);
       const a=document.createElement("a");
-      a.href=url; a.download="qr-link.png";
+      a.href=dataUrl; a.download="qr-link.png";
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
     } catch { alert("Could not download QR."); }
   });
 
-  // Download SVG (Pro) — radi samo dok link važi
+  // Download SVG (Pro) — radi samo dok važi link; export 1024 + opcioni Pro logo overlay
   downloadSvgBtn?.addEventListener("click", async () => {
-    if (linkExpired) return; // ne reaguje kad istekne
+    if (linkExpired) return;
     try {
       if (!downloadSvgBtn || downloadSvgBtn.style.display === "none") return; // samo za Pro
       if (!lastRedirectUrl) return;
 
-      // Generiši SVG string preko qrcode biblioteke
-      let svgText;
-      if (QRCode?.toString) {
-        svgText = await QRCode.toString(lastRedirectUrl, { type: "svg", width: 200, margin: 1 });
-      } else {
-        throw new Error("SVG generator not available");
+      let svgText = await buildQrSvgText1024(lastRedirectUrl);
+      if (currentPlan === "pro" && __qrLogoDataUrl) {
+        svgText = addLogoOverlayToSvg(svgText, __qrLogoDataUrl, { size: 1024, plateRatio: 0.28, logoRatio: 0.21 });
       }
 
       const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
@@ -379,11 +374,34 @@ function bindUI() {
     }
   });
 
-  // On-load: ?session_id=...
-  (function () {
+  // Success modal (posle kupovine / uparivanje tokena)
+  function showSuccessModal(token, sessionId){
+    if (!successModal) return;
+    const tokenSpan = document.getElementById("successToken");
+    if (tokenSpan) tokenSpan.textContent = token || "";
+    const sessionSpan = document.getElementById("successSession");
+    if (sessionSpan) sessionSpan.textContent = sessionId || "";
+
+    if(resendLink){
+      const subject=encodeURIComponent("QR Expiry Links - Resend my code");
+      const body=encodeURIComponent(`Hello,\nI completed the payment but did not receive a Pro code.\nMy sessionId is: ${sessionId}\nPlease resend my Pro code.`);
+      resendLink.href=`mailto:support@example.com?subject=${subject}&body=${body}`;
+    }
+    openModal(successModal);
+    // opcionalno linkovanje uz nalog
+    linkTokenToAccount(token).then((ok)=>{
+      if (ok) {
+        const h2 = document.getElementById("successModalTitle");
+        if (h2) h2.textContent = "Pro code linked to your account 🎉";
+      }
+    });
+  }
+
+  // URL param ?session_id=... → poll /api/checkout-status
+  (function initCheckoutStatusPoll(){
     const sid = new URLSearchParams(location.search).get("session_id");
     if (!sid) return;
-    (async function poll() {
+    (async function poll(){
       try {
         const js = await fetchJSON(`/api/checkout-status?session_id=${encodeURIComponent(sid)}`, {}, 8000);
         if (js?.ready && js?.token) {
@@ -396,117 +414,153 @@ function bindUI() {
     })();
   })();
 
-  // Prefill code
+}); // DOMContentLoaded
+
+// --- Link token to account (helper) ---
+async function linkTokenToAccount(token){
   try {
-    const saved = localStorage.getItem("pro_code");
-    if (saved && !tokenInput.value) tokenInput.value = saved;
-  } catch {}
-
-  refreshAuthUI();
-}
-
-// --- Checkout helpers ---
-function startStatusPolling(sessionId){
-  stopStatusPolling();
-  statusPollTimer=setInterval(async()=>{
-    try{
-      const data = await fetchJSON(`/api/checkout-status?session_id=${encodeURIComponent(sessionId)}`, {}, 8000);
-      if(data?.ready&&data?.token){
-        stopStatusPolling();
-        showSuccessModal(data.token,sessionId);
-      }
-    }catch{/* tiho */}
-  },2000);
-}
-function stopStatusPolling(){ if(statusPollTimer){ clearInterval(statusPollTimer); statusPollTimer=null; } }
-
-function showSuccessModal(token,sessionId){
-  if (successCode) successCode.value = token || "";
-  try { localStorage.setItem("pro_code", token || ""); } catch {}
-  if(resendLink){
-    const subject=encodeURIComponent("QR Expiry Links - Resend my code");
-    const body=encodeURIComponent(`Hello,\nI completed the payment. My sessionId is: ${sessionId}\nPlease resend my Pro code.`);
-    resendLink.href=`mailto:support@example.com?subject=${subject}&body=${body}`;
+    const at = await getAccessToken();
+    const headers = { "Content-Type":"application/json" };
+    if (at) headers.Authorization = `Bearer ${at}`;
+    const res = await fetch("/api/link-token", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ token })
+    });
+    return res.ok;
+  } catch {
+    return false;
   }
-  openModal(successModal);
-  // opcionalno linkovanje uz nalog
-  linkTokenToAccount(token).then((ok)=>{
-    if (ok) {
-      const h2 = document.getElementById("successModalTitle");
-      if (h2) h2.textContent = "Pro code linked to your account 🎉";
-    }
+}
+
+// --- Helpers for QR export with optional Pro logo overlay ---
+function drawRoundedRect(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, Math.min(w, h) / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.lineTo(x + w - rr, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+  ctx.lineTo(x + w, y + h - rr);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+  ctx.lineTo(x + rr, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+  ctx.lineTo(x, y + rr);
+  ctx.quadraticCurveTo(x, y, x + rr, y);
+  ctx.closePath();
+}
+
+function loadImage(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = dataUrl;
   });
 }
 
-async function linkTokenToAccount(token) {
-  try {
-    const jwt = await getAccessToken();
-    if (!jwt) return false;
-    const r = await fetch("/api/link-token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${jwt}` },
-      body: JSON.stringify({ token })
-    });
-    return r.ok;
-  } catch { return false; }
+async function buildPngDataUrl1024(urlText, logoDataUrl) {
+  // Offscreen canvas da ne diramo preview
+  const size = 1024;
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+
+  await new Promise((resolve, reject) => {
+    try {
+      QRCode.toCanvas(c, urlText, { width: size, margin: 1 }, (err)=>{ if (err) reject(err); else resolve(); });
+    } catch (e) { reject(e); }
+  });
+
+  if (logoDataUrl) {
+    try {
+      const ctx = c.getContext("2d");
+      const plateSize = Math.round(size * 0.28);
+      const plateX = Math.round((size - plateSize) / 2);
+      const plateY = Math.round((size - plateSize) / 2);
+      ctx.fillStyle = "#ffffff";
+      drawRoundedRect(ctx, plateX, plateY, plateSize, plateSize, Math.round(plateSize * 0.08));
+      ctx.fill();
+
+      const img = await loadImage(logoDataUrl);
+      const logoSize = Math.round(size * 0.21);
+      const logoX = Math.round((size - logoSize) / 2);
+      const logoY = Math.round((size - logoSize) / 2);
+      ctx.drawImage(img, logoX, logoY, logoSize, logoSize);
+    } catch {
+      // ako overlay padne — vrati čist QR
+    }
+  }
+
+  return c.toDataURL("image/png");
 }
 
-// --- Supabase init (ESM → UMD fallback) ---
-async function loadSupabaseCreateClient() {
+async function buildQrSvgText1024(urlText) {
+  const svg = await QRCode.toString(urlText, { type: "svg", width: 1024, margin: 1 });
+  return ensureSvgViewBox(svg, 1024);
+}
+
+function ensureSvgViewBox(svgText, size) {
   try {
-    const mod = await import("https://esm.sh/@supabase/supabase-js@2");
-    console.info("[ui] supabase via ESM");
-    return mod.createClient;
-  } catch (e) {
-    console.warn("[ui] ESM failed, falling back to UMD:", e?.message || e);
-    await new Promise((ok, err) => {
-      const s = document.createElement("script");
-      s.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
-      s.async = true; s.onload = () => ok(); s.onerror = () => err(new Error("UMD load failed"));
-      document.head.appendChild(s);
-    });
-    if (!window.supabase?.createClient) throw new Error("supabase UMD not available");
-    console.info("[ui] supabase via UMD");
-    return (url, key, opts) => window.supabase.createClient(url, key, opts);
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgText, "image/svg+xml");
+    const svg = doc.documentElement;
+    if (!svg.getAttribute("viewBox")) {
+      svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+    }
+    svg.setAttribute("width", String(size));
+    svg.setAttribute("height", String(size));
+    const serializer = new XMLSerializer();
+    return serializer.serializeToString(svg);
+  } catch {
+    return svgText;
   }
 }
 
-async function normalizeGhostSession() {
+function addLogoOverlayToSvg(svgText, logoDataUrl, opts={}) {
+  if (!logoDataUrl || !logoDataUrl.startsWith("data:")) return svgText;
+  const size = opts.size || 1024;
+  const plateRatio = opts.plateRatio ?? 0.28;
+  const logoRatio  = opts.logoRatio  ?? 0.21;
+
   try {
-    const hasLS = !!localAccessToken();
-    const { data: { session } } = await supa.auth.getSession();
-    if (hasLS && !session) {
-      clearLocalAuth();
-      await refreshAuthUI();
-      console.info("[ui] ghost session cleared");
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgText, "image/svg+xml");
+    const svg = doc.documentElement;
+
+    if (!svg.getAttribute("viewBox")) {
+      svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
     }
-  } catch {}
-}
+    svg.setAttribute("width", String(size));
+    svg.setAttribute("height", String(size));
 
-async function initAuth() {
-  if (supa) return;
-  try {
-    const createClient = await loadSupabaseCreateClient();
-    supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
-    });
+    const plateSize = Math.round(size * plateRatio);
+    const plateX = Math.round((size - plateSize) / 2);
+    const plateY = Math.round((size - plateSize) / 2);
 
-    for (let i = 0; i < 10; i++) {
-      if (localAuthEmail()) break;
-      await sleep(150);
-    }
-    await normalizeGhostSession();
-    await refreshAuthUI();
+    const plate = doc.createElementNS("http://www.w3.org/2000/svg", "rect");
+    plate.setAttribute("x", String(plateX));
+    plate.setAttribute("y", String(plateY));
+    plate.setAttribute("width", String(plateSize));
+    plate.setAttribute("height", String(plateSize));
+    plate.setAttribute("rx", String(Math.round(plateSize * 0.08)));
+    plate.setAttribute("fill", "#ffffff");
 
-    console.info("[ui] auth ready");
-  } catch (e) {
-    console.warn("[ui] auth disabled (could not init):", e?.message || e);
+    const img = doc.createElementNS("http://www.w3.org/2000/svg", "image");
+    const logoSize = Math.round(size * logoRatio);
+    const logoX = Math.round((size - logoSize) / 2);
+    const logoY = Math.round((size - logoSize) / 2);
+    img.setAttributeNS("http://www.w3.org/1999/xlink", "href", logoDataUrl);
+    img.setAttribute("x", String(logoX));
+    img.setAttribute("y", String(logoY));
+    img.setAttribute("width", String(logoSize));
+    img.setAttribute("height", String(logoSize));
+    img.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+    svg.appendChild(plate);
+    svg.appendChild(img);
+
+    const serializer = new XMLSerializer();
+    return serializer.serializeToString(svg);
+  } catch {
+    return svgText;
   }
 }
-
-// --- Start ---
-(function start() {
-  console.info("[ui] init @", location.origin);
-  bindUI();   // klikovi odmah
-  initAuth(); // auth u pozadini
-})();
