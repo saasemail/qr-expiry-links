@@ -129,6 +129,79 @@ input[type="text"] {
   font-size: 0.9rem;
 }
 
+/* =========
+   Responsive QR + link display (FREE UI)
+   ========= */
+
+/* Center QR + keep it responsive */
+#resultCard {
+  text-align: center;
+}
+#resultCard h2 {
+  text-align: left;
+}
+
+/* Canvas scales to container without becoming huge.
+   We keep the drawing crisp by using CSS sizing only (no stretching beyond max). */
+#qrcode {
+  display: block;
+  margin: 0.75rem auto 0.75rem;
+  width: min(320px, 80vw);
+  height: auto;
+  max-width: 100%;
+  border-radius: calc(var(--radius) * 0.75);
+}
+
+/* Long link handling */
+#generatedLink {
+  display: block;
+  max-width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 0.75);
+  background: rgba(255,255,255,0.02);
+  color: var(--accent1);
+  text-decoration: none;
+
+  /* keep it on one line with ellipsis on desktop */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* On small screens, allow wrap so it stays readable */
+@media (max-width: 520px) {
+  .container {
+    padding: 1.5rem 1rem;
+  }
+
+  .card {
+    padding: 1.25rem;
+  }
+
+  .button-group {
+    flex-wrap: wrap;
+  }
+
+  #qrcode {
+    width: min(260px, 86vw);
+  }
+
+  #generatedLink {
+    white-space: normal;
+    word-break: break-all;
+    text-overflow: clip;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 360px) {
+  #qrcode {
+    width: min(230px, 88vw);
+  }
+}
+
 /* Modal */
 .modal {
   position: fixed;
