@@ -1,5 +1,4 @@
-// ui.js — FREE version (no Pro / no auth). Fixes Generate QR by removing references
-// to removed DOM nodes and Pro/Auth/Checkout flows.
+// ui.js — FREE version (no Pro / no auth). Compact & readable QR + short display link.
 
 const urlInput       = document.getElementById("urlInput");
 const expiryInput    = document.getElementById("expiryInput");
@@ -94,6 +93,70 @@ async function createLink(url, minutes) {
   );
 }
 
+/** Compute a compact QR size (in px) based on container width & device.
+ *  Goal: readable but compact on all devices.
+ */
+function computeQrSizePx() {
+  // Default safe width if element sizes not ready yet
+  const fallback = Math.min(300, Math.max(220, Math.floor(window.innerWidth * 0.62)));
+
+  // Prefer card width so it matches layout
+  const card = resultCard;
+  const w = card?.getBoundingClientRect?.().width || 0;
+
+  // Leave padding and keep it compact
+  const usable = w ? Math.max(200, w - 64) : fallback;
+
+  // Clamp: phones ~220-260, laptops ~240-280, never huge
+  const clamped = Math.max(210, Math.min(280, Math.floor(usable)));
+
+  // Force to multiple of 4 for nicer rendering
+  return Math.floor(clamped / 4) * 4;
+}
+
+/** Short display text: show domain + /go/ + short id preview */
+function makeDisplayLink(fullUrl) {
+  try {
+    const u = new URL(fullUrl);
+    const host = u.host;
+    const parts = u.pathname.split("/").filter(Boolean);
+    // if /go/<id>, show a short prefix of <id>
+    if (parts[0] === "go" && parts[1]) {
+      const id = parts[1];
+      const shortId = id.length > 14 ? `${id.slice(0, 12)}…` : id;
+      return `${host}/go/${shortId}`;
+    }
+    // otherwise just host + path (trimmed)
+    const path = u.pathname.length > 20 ? `${u.pathname.slice(0, 18)}…` : u.pathname;
+    return `${host}${path}`;
+  } catch {
+    // fallback
+    if (fullUrl.length > 28) return `${fullUrl.slice(0, 26)}…`;
+    return fullUrl;
+  }
+}
+
+async function renderQr(redirectUrl) {
+  const size = computeQrSizePx();
+
+  try {
+    // Ensure canvas has correct internal resolution (avoid blurry scaling)
+    qrcodeCanvas.width = size;
+    qrcodeCanvas.height = size;
+
+    await new Promise((resolve, reject) => {
+      QRCode.toCanvas(
+        qrcodeCanvas,
+        redirectUrl,
+        { width: size, margin: 1 },
+        (err) => (err ? reject(err) : resolve())
+      );
+    });
+  } catch (e) {
+    console.warn("[ui] QRCode draw failed:", e);
+  }
+}
+
 function bindUI() {
   // Guard: if basic DOM is missing, fail loudly (prevents silent “button does nothing” cases)
   if (!generateBtn || !urlInput || !expiryInput || !resultCard || !qrcodeCanvas) {
@@ -130,21 +193,14 @@ function bindUI() {
       linkExpired = false;
       setDownloadButtonsEnabled(true);
 
-      generatedLink.textContent = redirectUrl;
+      // Display a short version but keep href full
+      generatedLink.textContent = makeDisplayLink(redirectUrl);
       generatedLink.href = redirectUrl;
+      generatedLink.title = redirectUrl;
 
-      try {
-        QRCode.toCanvas(
-          qrcodeCanvas,
-          redirectUrl,
-          { width: 512, margin: 1 },
-          (err) => { if (err) console.error(err); }
-        );
-      } catch (e) {
-        console.warn("[ui] QRCode draw failed:", e);
-      }
-
+      // Render QR compact & crisp
       resultCard.classList.remove("hidden");
+      await renderQr(redirectUrl);
 
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${created.minutes} min • Until ${endLocal.toLocaleString()}`;
@@ -158,6 +214,7 @@ function bindUI() {
 
         generatedLink.textContent = "";
         generatedLink.href = "#";
+        generatedLink.title = "";
         expiryHint.textContent = "This link has expired.";
         countdownEl.textContent = "Expired";
 
@@ -173,6 +230,13 @@ function bindUI() {
       clearTimeout(safety);
       setLoading(false);
     }
+  });
+
+  // Re-render QR on resize so it stays ideal (only if we already have a link)
+  window.addEventListener("resize", () => {
+    if (!lastRedirectUrl || linkExpired) return;
+    // throttle via rAF
+    window.requestAnimationFrame(() => renderQr(lastRedirectUrl));
   });
 
   copyBtn?.addEventListener("click", async () => {
@@ -223,7 +287,8 @@ function bindUI() {
 
       const svgText = await QRCode.toString(lastRedirectUrl, {
         type: "svg",
-        width: 200,
+        // match compact sizing concept (SVG itself scales nicely)
+        width: 220,
         margin: 1
       });
 
