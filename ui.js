@@ -1,4 +1,5 @@
 // ui.js — FREE version (no Pro / no auth). Compact & readable QR + short display link.
+// Fix: make QR scannable (proper quiet zone, error correction, hiDPI crisp rendering, solid colors).
 
 const urlInput       = document.getElementById("urlInput");
 const expiryInput    = document.getElementById("expiryInput");
@@ -93,24 +94,17 @@ async function createLink(url, minutes) {
   );
 }
 
-/** Compute a compact QR size (in px) based on container width & device.
+/** Compute a compact QR size (CSS px) based on container width & device.
  *  Goal: readable but compact on all devices.
  */
 function computeQrSizePx() {
-  // Default safe width if element sizes not ready yet
-  const fallback = Math.min(300, Math.max(220, Math.floor(window.innerWidth * 0.62)));
+  const fallback = Math.min(300, Math.max(240, Math.floor(window.innerWidth * 0.66)));
+  const w = resultCard?.getBoundingClientRect?.().width || 0;
+  const usable = w ? Math.max(240, w - 64) : fallback;
 
-  // Prefer card width so it matches layout
-  const card = resultCard;
-  const w = card?.getBoundingClientRect?.().width || 0;
+  // Slightly higher floor improves scan reliability while staying compact
+  const clamped = Math.max(240, Math.min(300, Math.floor(usable)));
 
-  // Leave padding and keep it compact
-  const usable = w ? Math.max(200, w - 64) : fallback;
-
-  // Clamp: phones ~220-260, laptops ~240-280, never huge
-  const clamped = Math.max(210, Math.min(280, Math.floor(usable)));
-
-  // Force to multiple of 4 for nicer rendering
   return Math.floor(clamped / 4) * 4;
 }
 
@@ -120,35 +114,49 @@ function makeDisplayLink(fullUrl) {
     const u = new URL(fullUrl);
     const host = u.host;
     const parts = u.pathname.split("/").filter(Boolean);
-    // if /go/<id>, show a short prefix of <id>
     if (parts[0] === "go" && parts[1]) {
       const id = parts[1];
       const shortId = id.length > 14 ? `${id.slice(0, 12)}…` : id;
       return `${host}/go/${shortId}`;
     }
-    // otherwise just host + path (trimmed)
     const path = u.pathname.length > 20 ? `${u.pathname.slice(0, 18)}…` : u.pathname;
     return `${host}${path}`;
   } catch {
-    // fallback
     if (fullUrl.length > 28) return `${fullUrl.slice(0, 26)}…`;
     return fullUrl;
   }
 }
 
 async function renderQr(redirectUrl) {
-  const size = computeQrSizePx();
+  const cssSize = computeQrSizePx();
+
+  // HiDPI: render at devicePixelRatio for crisp edges (helps scanning)
+  const dpr = Math.max(1, Math.min(3, Number(window.devicePixelRatio || 1)));
+  const pxSize = Math.floor(cssSize * dpr);
 
   try {
-    // Ensure canvas has correct internal resolution (avoid blurry scaling)
-    qrcodeCanvas.width = size;
-    qrcodeCanvas.height = size;
+    // Fix displayed size (CSS px) while keeping a high-res backing store
+    qrcodeCanvas.style.width = `${cssSize}px`;
+    qrcodeCanvas.style.height = `${cssSize}px`;
+    qrcodeCanvas.width = pxSize;
+    qrcodeCanvas.height = pxSize;
 
     await new Promise((resolve, reject) => {
       QRCode.toCanvas(
         qrcodeCanvas,
         redirectUrl,
-        { width: size, margin: 1 },
+        {
+          width: pxSize,
+
+          // IMPORTANT: quiet zone (margin) must be generous for camera scanning
+          margin: 4,
+
+          // Better scan robustness without over-inflating density
+          errorCorrectionLevel: "M",
+
+          // Force high-contrast QR
+          color: { dark: "#000000", light: "#FFFFFF" }
+        },
         (err) => (err ? reject(err) : resolve())
       );
     });
@@ -158,7 +166,6 @@ async function renderQr(redirectUrl) {
 }
 
 function bindUI() {
-  // Guard: if basic DOM is missing, fail loudly (prevents silent “button does nothing” cases)
   if (!generateBtn || !urlInput || !expiryInput || !resultCard || !qrcodeCanvas) {
     console.error("[ui] Missing required DOM elements. Check index.html IDs.");
     return;
@@ -186,26 +193,22 @@ function bindUI() {
     try {
       const created = await createLink(url, minutes);
 
-      // Redirect URL: /go/:id (rewrite exists in vercel.json)
       const redirectUrl = `${window.location.origin}/go/${created.id}`;
       lastRedirectUrl = redirectUrl;
 
       linkExpired = false;
       setDownloadButtonsEnabled(true);
 
-      // Display a short version but keep href full
       generatedLink.textContent = makeDisplayLink(redirectUrl);
       generatedLink.href = redirectUrl;
       generatedLink.title = redirectUrl;
 
-      // Render QR compact & crisp
       resultCard.classList.remove("hidden");
       await renderQr(redirectUrl);
 
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${created.minutes} min • Until ${endLocal.toLocaleString()}`;
 
-      // Auto-clear on expiry
       expiryTimer = setTimeout(() => {
         try {
           const ctx = qrcodeCanvas.getContext("2d");
@@ -232,10 +235,8 @@ function bindUI() {
     }
   });
 
-  // Re-render QR on resize so it stays ideal (only if we already have a link)
   window.addEventListener("resize", () => {
     if (!lastRedirectUrl || linkExpired) return;
-    // throttle via rAF
     window.requestAnimationFrame(() => renderQr(lastRedirectUrl));
   });
 
@@ -277,7 +278,6 @@ function bindUI() {
     }
   });
 
-  // SVG download (button is hidden in HTML right now, but handler is safe)
   downloadSvgBtn?.addEventListener("click", async () => {
     if (linkExpired) return;
     if (!lastRedirectUrl) return;
@@ -287,9 +287,10 @@ function bindUI() {
 
       const svgText = await QRCode.toString(lastRedirectUrl, {
         type: "svg",
-        // match compact sizing concept (SVG itself scales nicely)
-        width: 220,
-        margin: 1
+        width: 260,
+        margin: 4,
+        errorCorrectionLevel: "M",
+        color: { dark: "#000000", light: "#FFFFFF" }
       });
 
       const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
@@ -310,7 +311,6 @@ function bindUI() {
   });
 }
 
-// --- Start ---
 (function start() {
   console.info("[ui] init @", location.origin);
   bindUI();
