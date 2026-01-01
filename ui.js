@@ -1,5 +1,6 @@
-// ui.js — FREE version (no Pro / no auth). Compact & readable QR + short display link.
-// Fix: make QR scannable (proper quiet zone, error correction, hiDPI crisp rendering, solid colors).
+// ui.js — FREE version (no Pro / no auth).
+// Fix: QR must be scannable. We auto-size QR based on its actual module count
+// (because the encoded /go/<id> is long and can require a dense QR version).
 
 const urlInput       = document.getElementById("urlInput");
 const expiryInput    = document.getElementById("expiryInput");
@@ -19,6 +20,10 @@ let expiryTimer = null;
 let countdownTimer = null;
 let lastRedirectUrl = "";
 let linkExpired = false;
+
+// QR rendering params (tuned for scan reliability)
+const QR_ECL = "L";   // lower density than M/Q for long strings
+const QR_MARGIN = 4;  // quiet zone (modules)
 
 function setLoading(state) {
   if (!generateBtn) return;
@@ -59,6 +64,7 @@ function startCountdown(iso) {
 
       generatedLink.textContent = "";
       generatedLink.href = "#";
+      generatedLink.title = "";
       expiryHint.textContent = "This link has expired.";
 
       linkExpired = true;
@@ -94,20 +100,6 @@ async function createLink(url, minutes) {
   );
 }
 
-/** Compute a compact QR size (CSS px) based on container width & device.
- *  Goal: readable but compact on all devices.
- */
-function computeQrSizePx() {
-  const fallback = Math.min(300, Math.max(240, Math.floor(window.innerWidth * 0.66)));
-  const w = resultCard?.getBoundingClientRect?.().width || 0;
-  const usable = w ? Math.max(240, w - 64) : fallback;
-
-  // Slightly higher floor improves scan reliability while staying compact
-  const clamped = Math.max(240, Math.min(300, Math.floor(usable)));
-
-  return Math.floor(clamped / 4) * 4;
-}
-
 /** Short display text: show domain + /go/ + short id preview */
 function makeDisplayLink(fullUrl) {
   try {
@@ -127,34 +119,67 @@ function makeDisplayLink(fullUrl) {
   }
 }
 
-async function renderQr(redirectUrl) {
-  const cssSize = computeQrSizePx();
+/**
+ * Compute a *minimum scannable* QR size in CSS pixels:
+ * - Determine module count (QR version) for the given text
+ * - Ensure module size >= target px/module (bigger on mobile)
+ * - Also respect container width, but never shrink below scannable minimum
+ */
+function computeScannableQrSizePx(text) {
+  // Container/viewport constraints
+  const cardW = resultCard?.getBoundingClientRect?.().width || 0;
+  const usable = cardW ? Math.max(240, Math.floor(cardW - 64)) : Math.max(240, Math.floor(window.innerWidth * 0.78));
+  const maxCss = Math.min(420, Math.max(280, usable)); // allow bigger when needed, but keep it reasonable
 
-  // HiDPI: render at devicePixelRatio for crisp edges (helps scanning)
-  const dpr = Math.max(1, Math.min(3, Number(window.devicePixelRatio || 1)));
-  const pxSize = Math.floor(cssSize * dpr);
+  // Target module size: mobile needs bigger modules to scan reliably
+  const mobile = window.matchMedia && window.matchMedia("(max-width: 520px)").matches;
+  const pxPerModule = mobile ? 7 : 6; // key scan reliability knob
+
+  // Estimate module count by building QR matrix
+  let moduleCount = 0;
+  try {
+    if (QRCode?.create) {
+      const q = QRCode.create(text, { errorCorrectionLevel: QR_ECL });
+      moduleCount = q?.modules?.size || 0;
+    }
+  } catch {}
+
+  // Fallback if create() not present
+  if (!moduleCount || !Number.isFinite(moduleCount)) moduleCount = 33; // ~Version 4-ish
+
+  // Total modules including quiet zone on both sides
+  const totalModules = moduleCount + (QR_MARGIN * 2);
+
+  // Required minimum CSS size for scannability
+  const minCss = Math.ceil(totalModules * pxPerModule);
+
+  // Final: not smaller than min scannable, not larger than maxCss
+  // If minCss exceeds maxCss, we still allow it (because otherwise it won't scan),
+  // but we cap it to 520 to prevent absurdly huge UI.
+  const css = Math.min(520, Math.max(minCss, Math.min(maxCss, 320)));
+
+  // Make divisible by 4 for nicer output
+  return Math.floor(css / 4) * 4;
+}
+
+async function renderQr(redirectUrl) {
+  const cssSize = computeScannableQrSizePx(redirectUrl);
 
   try {
-    // Fix displayed size (CSS px) while keeping a high-res backing store
+    // Avoid browser downscaling blur: keep canvas internal size equal to displayed size
     qrcodeCanvas.style.width = `${cssSize}px`;
     qrcodeCanvas.style.height = `${cssSize}px`;
-    qrcodeCanvas.width = pxSize;
-    qrcodeCanvas.height = pxSize;
+    qrcodeCanvas.width = cssSize;
+    qrcodeCanvas.height = cssSize;
 
     await new Promise((resolve, reject) => {
       QRCode.toCanvas(
         qrcodeCanvas,
         redirectUrl,
         {
-          width: pxSize,
-
-          // IMPORTANT: quiet zone (margin) must be generous for camera scanning
-          margin: 4,
-
-          // Better scan robustness without over-inflating density
-          errorCorrectionLevel: "M",
-
-          // Force high-contrast QR
+          width: cssSize,
+          margin: QR_MARGIN,
+          errorCorrectionLevel: QR_ECL,
           color: { dark: "#000000", light: "#FFFFFF" }
         },
         (err) => (err ? reject(err) : resolve())
@@ -287,9 +312,9 @@ function bindUI() {
 
       const svgText = await QRCode.toString(lastRedirectUrl, {
         type: "svg",
-        width: 260,
-        margin: 4,
-        errorCorrectionLevel: "M",
+        width: 320,
+        margin: QR_MARGIN,
+        errorCorrectionLevel: QR_ECL,
         color: { dark: "#000000", light: "#FFFFFF" }
       });
 
