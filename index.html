@@ -15,12 +15,6 @@
   <!-- Navbar -->
   <nav class="navbar">
     <h1>QR Expiry Links</h1>
-    <div style="margin-left:auto; display:flex; gap:.5rem; align-items:center;">
-      <button class="btn btn-ghost" onclick="document.getElementById('getProBtn')?.click()">Pricing</button>
-      <span id="userBadge" class="hint" style="display:none;"></span>
-      <button id="authOpenBtn" class="btn btn-ghost" type="button">Sign in</button>
-      <button id="signOutBtn" class="btn btn-ghost" style="display:none;" type="button">Sign out</button>
-    </div>
   </nav>
 
   <div class="container">
@@ -37,15 +31,6 @@
         Expiry (minutes):
         <input type="number" id="expiryInput" min="1" value="10" />
       </label>
-
-      <label>
-        Pro code:
-        <input type="text" id="tokenInput" placeholder="Enter Pro code" />
-      </label>
-
-      <div class="button-group">
-        <button type="button" class="btn btn-primary" id="getProBtn">Get Pro code</button>
-      </div>
 
       <div class="button-group">
         <button id="generateBtn" class="btn btn-primary" type="button">Generate QR</button>
@@ -72,109 +57,6 @@
   <footer class="footer">
     © 2025 QR Expiry Links — Simple no-login tool.
   </footer>
-
-  <!-- Pro plans modal -->
-  <div class="modal" id="proModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="proModalTitle">
-    <div class="modal-overlay" data-close="modal"></div>
-    <div class="modal-card" tabindex="-1">
-      <div class="modal-header">
-        <h2 id="proModalTitle">Upgrade to Pro</h2>
-        <button class="modal-close" id="closeProModal" aria-label="Close" type="button">×</button>
-      </div>
-
-      <p class="hint" style="text-align:left;margin-top:.25rem;">
-        Free: 60 min • 1 link/day — Pro unlocks longer duration and higher limits.
-      </p>
-
-      <div class="plan-grid">
-        <div class="plan">
-          <h3>Tier 1</h3>
-          <ul>
-            <li>Up to <strong>24h</strong> per link</li>
-            <li><strong>5</strong> links/day</li>
-            <li>Access window: <strong>7 days</strong></li>
-            <li><strong>PNG &amp; SVG</strong> QR download</li>
-          </ul>
-          <div class="price">$9.99</div>
-          <button class="btn btn-primary plan-select" data-tier="1" type="button">Get code</button>
-        </div>
-
-        <div class="plan">
-          <h3>Tier 2</h3>
-          <ul>
-            <li>Up to <strong>7 days</strong> per link</li>
-            <li><strong>Unlimited</strong> links</li>
-            <li>Access window: <strong>30 days</strong></li>
-            <li><strong>PNG &amp; SVG</strong> QR download</li>
-          </ul>
-          <div class="price">$19.99</div>
-          <button class="btn btn-primary plan-select" data-tier="2" type="button">Get code</button>
-        </div>
-
-        <div class="plan">
-          <h3>Tier 3 (Lifetime)</h3>
-          <ul>
-            <li>Up to <strong>30 days</strong> per link</li>
-            <li><strong>Unlimited</strong> links</li>
-            <li>Access window: <strong>Lifetime</strong></li>
-            <li><strong>PNG &amp; SVG</strong> QR download</li>
-          </ul>
-          <div class="price">$49.99</div>
-          <button class="btn btn-primary plan-select" data-tier="3" type="button">Get code</button>
-        </div>
-      </div>
-
-      <p class="hint" style="margin-top:1rem;">
-        After purchase you'll receive a Pro code. Enter it in the field above.
-      </p>
-    </div>
-  </div>
-
-  <!-- Success modal -->
-  <div class="modal" id="successModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="successModalTitle">
-    <div class="modal-overlay" data-close="success"></div>
-    <div class="modal-card" tabindex="-1">
-      <div class="modal-header">
-        <h2 id="successModalTitle">Pro code ready 🎉</h2>
-        <button class="modal-close" id="closeSuccessModal" aria-label="Close" type="button">×</button>
-      </div>
-
-      <p class="hint" style="text-align:left;margin-top:.25rem;">
-        Your Pro code is ready. You can copy it or apply directly.
-      </p>
-
-      <div class="card" style="margin:1rem 0; text-align:center;">
-        <input id="successCode" readonly style="width:100%; font-size:1.05rem; text-align:center;" />
-      </div>
-
-      <div class="button-group gap">
-        <button class="btn btn-ghost" id="copyCodeBtn" type="button">Copy</button>
-        <button class="btn btn-primary" id="applyCodeBtn" type="button">Apply</button>
-      </div>
-
-      <p class="hint" style="margin-top:1rem;">
-        Didn’t see the code appear? <a href="#" id="resendLink">Resend my code</a>
-      </p>
-    </div>
-  </div>
-
-  <!-- Auth modal (Google only) -->
-  <div class="modal" id="authModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="authModalTitle">
-    <div class="modal-overlay" data-close="auth"></div>
-    <div class="modal-card" tabindex="-1">
-      <div class="modal-header" style="justify-content:space-between; gap:.75rem; flex-wrap:wrap;">
-        <h2 id="authModalTitle">Account</h2>
-        <button class="modal-close" id="closeAuthModal" aria-label="Close" type="button">×</button>
-      </div>
-
-      <div class="card" style="margin:0; text-align:center;">
-        <p class="hint" style="margin-bottom:.75rem;">Use Google to unlock Pro limits.</p>
-        <div class="button-group" style="justify-content:center;">
-          <button id="googleLoginBtn" class="btn btn-primary" type="button">Continue with Google</button>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- Scripts -->
   <script type="module" src="ui.js?v=fix_signout_ghost_1"></script>
