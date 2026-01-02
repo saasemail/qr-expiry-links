@@ -142,7 +142,9 @@ label {
 
 input[type="url"],
 input[type="number"],
-input[type="text"] {
+input[type="text"],
+input[type="datetime-local"],
+select {
   width: 100%;
   padding: 0.6rem;
   margin-top: 0.3rem;
@@ -150,6 +152,24 @@ input[type="text"] {
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text);
+}
+
+/* Make select look consistent */
+select {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) calc(50% + 2px),
+    calc(100% - 12px) calc(50% + 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 2.25rem;
+}
+
+.custom-expiry {
+  margin-top: 0.25rem;
 }
 
 .hidden { display: none; }

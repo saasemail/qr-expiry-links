@@ -2,19 +2,21 @@
 // Fix: QR must be scannable. We auto-size QR based on its actual module count
 // (because the encoded /go/<id> is long and can require a dense QR version).
 
-const urlInput       = document.getElementById("urlInput");
-const expiryInput    = document.getElementById("expiryInput");
-const generateBtn    = document.getElementById("generateBtn");
+const urlInput        = document.getElementById("urlInput");
+const expirySelect    = document.getElementById("expirySelect");
+const customExpiryWrap = document.getElementById("customExpiryWrap");
+const customExpiry    = document.getElementById("customExpiry");
+const generateBtn     = document.getElementById("generateBtn");
 
-const resultCard     = document.getElementById("resultCard");
-const qrcodeCanvas   = document.getElementById("qrcode");
-const generatedLink  = document.getElementById("generatedLink");
-const expiryHint     = document.getElementById("expiryHint");
-const countdownEl    = document.getElementById("countdown");
+const resultCard      = document.getElementById("resultCard");
+const qrcodeCanvas    = document.getElementById("qrcode");
+const generatedLink   = document.getElementById("generatedLink");
+const expiryHint      = document.getElementById("expiryHint");
+const countdownEl     = document.getElementById("countdown");
 
-const copyBtn        = document.getElementById("copyBtn");
-const downloadBtn    = document.getElementById("downloadBtn");       // PNG
-const downloadSvgBtn = document.getElementById("downloadSvgBtn");    // SVG (currently hidden in HTML)
+const copyBtn         = document.getElementById("copyBtn");
+const downloadBtn     = document.getElementById("downloadBtn");       // PNG
+const downloadSvgBtn  = document.getElementById("downloadSvgBtn");    // SVG (currently hidden in HTML)
 
 let expiryTimer = null;
 let countdownTimer = null;
@@ -190,22 +192,106 @@ async function renderQr(redirectUrl) {
   }
 }
 
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+function toDatetimeLocalValue(d) {
+  // YYYY-MM-DDTHH:mm
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+function syncCustomDefaultFromPreset() {
+  if (!customExpiry) return;
+  const v = String(expirySelect?.value || "10");
+  const mins = parseInt(v, 10);
+  if (!Number.isFinite(mins) || mins < 1) return;
+
+  const d = new Date(Date.now() + mins * 60_000);
+  customExpiry.value = toDatetimeLocalValue(d);
+}
+
+function toggleCustomUI() {
+  if (!expirySelect || !customExpiryWrap) return;
+
+  const isCustom = String(expirySelect.value) === "custom";
+  customExpiryWrap.classList.toggle("hidden", !isCustom);
+
+  if (isCustom) {
+    // If empty, prefill with now + 10 minutes
+    if (customExpiry && !customExpiry.value) {
+      const d = new Date(Date.now() + 10 * 60_000);
+      customExpiry.value = toDatetimeLocalValue(d);
+    }
+  }
+}
+
+function getSelectedMinutesOrThrow() {
+  const mode = String(expirySelect?.value || "10");
+
+  if (mode !== "custom") {
+    const minutes = parseInt(mode, 10);
+    if (!Number.isFinite(minutes) || minutes < 1) {
+      throw new Error("Please choose a valid expiration time.");
+    }
+    return minutes;
+  }
+
+  // custom
+  const raw = String(customExpiry?.value || "").trim();
+  if (!raw) {
+    throw new Error("Please choose a custom expiration date & time.");
+  }
+
+  const chosen = new Date(raw);
+  if (!Number.isFinite(chosen.getTime())) {
+    throw new Error("Please choose a valid expiration date & time.");
+  }
+
+  const diffMs = chosen.getTime() - Date.now();
+  // Require at least 1 minute in the future
+  const minutes = Math.ceil(diffMs / 60_000);
+
+  if (!Number.isFinite(minutes) || minutes < 1) {
+    throw new Error("Custom expiration must be at least 1 minute in the future.");
+  }
+
+  return minutes;
+}
+
 function bindUI() {
-  if (!generateBtn || !urlInput || !expiryInput || !resultCard || !qrcodeCanvas) {
+  if (!generateBtn || !urlInput || !expirySelect || !resultCard || !qrcodeCanvas) {
     console.error("[ui] Missing required DOM elements. Check index.html IDs.");
     return;
   }
 
+  // Preset/custom UI behavior
+  expirySelect.addEventListener("change", () => {
+    toggleCustomUI();
+    // If user switches from custom back to preset, keep custom value intact.
+    // If user switches to preset, also keep a helpful default for later.
+    if (String(expirySelect.value) !== "custom") {
+      syncCustomDefaultFromPreset();
+    }
+  });
+
+  // Initialize default custom time from the default preset (10 minutes)
+  syncCustomDefaultFromPreset();
+  toggleCustomUI();
+
   generateBtn.addEventListener("click", async () => {
     const url = String(urlInput.value || "").trim();
-    const minutes = parseInt(expiryInput.value, 10);
 
     if (!/^https?:\/\//i.test(url)) {
       alert("Please enter a valid URL (include https://).");
       return;
     }
-    if (!Number.isFinite(minutes) || minutes < 1) {
-      alert("Expiry must be at least 1 minute.");
+
+    let minutes;
+    try {
+      minutes = getSelectedMinutesOrThrow();
+    } catch (e) {
+      alert(e?.message || "Invalid expiration time.");
       return;
     }
 

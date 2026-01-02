@@ -44,10 +44,28 @@
       </label>
 
       <label>
-        Expiry (minutes):
-        <input type="number" id="expiryInput" min="1" value="10" />
+        Expiration Time
+        <select id="expirySelect" aria-label="Expiration Time">
+          <option value="1">1 minute</option>
+          <option value="5">5 minutes</option>
+          <option value="10" selected>10 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="60">1 hour</option>
+          <option value="360">6 hours</option>
+          <option value="1440">1 day</option>
+          <option value="10080">7 days</option>
+          <option value="custom">Choose custom time</option>
+        </select>
       </label>
       <p class="field-hint">This QR will expire after the selected time.</p>
+
+      <!-- Custom time (hidden unless selected) -->
+      <div id="customExpiryWrap" class="custom-expiry hidden">
+        <label>
+          Choose an expiration date &amp; time
+          <input type="datetime-local" id="customExpiry" />
+        </label>
+      </div>
 
       <div class="button-group">
         <button id="generateBtn" class="btn btn-primary" type="button">Generate QR</button>
