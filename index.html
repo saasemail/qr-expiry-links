@@ -14,7 +14,20 @@
 <body>
   <!-- Navbar -->
   <nav class="navbar">
-    <h1>TempQR</h1>
+    <div class="nav-left">
+      <span class="brand-icon" aria-hidden="true">
+        <!-- simple QR-like mark -->
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm10 0h2v2h-2v-2Zm2 2h2v2h-2v-2Zm-2 2h2v2h-2v-2Zm4-6h2v6h-2v-6Z" fill="currentColor"/>
+        </svg>
+      </span>
+      <h1 class="brand-name">TempQR</h1>
+    </div>
+
+    <div class="nav-links">
+      <a href="#" rel="nofollow">FAQ</a>
+      <a href="#" rel="nofollow">Feedback</a>
+    </div>
   </nav>
 
   <div class="container">
@@ -55,6 +68,23 @@
       <p class="countdown" id="countdown"></p>
       <p class="hint" id="expiryHint"></p>
     </section>
+
+    <!-- (1) Benefits section -->
+    <section class="benefits" aria-label="Benefits">
+      <div class="benefit">
+        <div class="benefit-title">No signup</div>
+        <div class="benefit-text">Paste a URL and generate in seconds.</div>
+      </div>
+      <div class="benefit">
+        <div class="benefit-title">Auto-expiry</div>
+        <div class="benefit-text">Links stop working after your chosen time.</div>
+      </div>
+      <div class="benefit">
+        <div class="benefit-title">Share-ready</div>
+        <div class="benefit-text">Copy link or download a clean PNG QR.</div>
+      </div>
+    </section>
+    <p class="benefits-note">Free, simple, and fast — designed for quick sharing.</p>
   </div>
 
   <!-- Footer -->

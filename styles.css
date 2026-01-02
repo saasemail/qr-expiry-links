@@ -29,13 +29,50 @@ a:hover { text-decoration: underline; }
 .navbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: calc(1rem + 10px) 2rem 1rem;
   background:
     linear-gradient(90deg, var(--accent1), var(--accent2)) top/100% 10px no-repeat,
     var(--card);
   border-bottom: 1px solid var(--border);
 }
-.navbar h1 { font-size: 1.5rem; font-weight: 700; }
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.brand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  opacity: 0.95;
+}
+
+.brand-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.nav-links a {
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.nav-links a:hover {
+  color: var(--text);
+  text-decoration: none;
+}
 
 .container {
   position: relative;
@@ -170,6 +207,40 @@ section.card:not(#resultCard) .button-group .btn {
   letter-spacing: 0.03em;
 }
 
+/* (1) Benefits section */
+.benefits {
+  margin: 1.25rem auto 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.9rem;
+  text-align: left;
+}
+
+.benefit {
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 0.95);
+  padding: 0.9rem 1rem;
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+}
+
+.benefit-title {
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.benefit-text {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.benefits-note {
+  margin: 0.85rem 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  text-align: center;
+}
+
 .footer {
   display: flex;
   align-items: center;
@@ -197,10 +268,24 @@ section.card:not(#resultCard) .button-group .btn {
   text-decoration: none;
 }
 
+@media (max-width: 700px) {
+  .benefits {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 520px) {
   .container { padding: 1.5rem 1rem; }
   .card { padding: 1.4rem; }
   .button-group { flex-wrap: wrap; }
+
+  .navbar {
+    padding: calc(0.9rem + 10px) 1rem 0.9rem;
+  }
+
+  .nav-links {
+    gap: 0.9rem;
+  }
 
   .footer {
     flex-direction: column;
