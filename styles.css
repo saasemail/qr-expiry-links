@@ -38,11 +38,34 @@ a:hover { text-decoration: underline; }
 .navbar h1 { font-size: 1.5rem; font-weight: 700; }
 
 .container {
+  position: relative;
   flex: 1;
   max-width: 600px;
   margin: 0 auto;
   padding: 2rem 1rem;
   text-align: center;
+}
+
+/* A4: subtle spotlight behind the card area */
+.container::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 260px;
+  transform: translateX(-50%);
+  width: min(900px, 140vw);
+  height: 520px;
+  background:
+    radial-gradient(closest-side, rgba(139,92,246,0.18), rgba(110,231,249,0.10), rgba(0,0,0,0) 70%);
+  filter: blur(18px);
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.container > * {
+  position: relative;
+  z-index: 1;
 }
 
 .subtitle { color: var(--muted); margin-bottom: 2rem; }
@@ -51,12 +74,28 @@ a:hover { text-decoration: underline; }
   background-color: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1.5rem;
+  padding: 1.75rem;
   margin: 1.5rem auto;
   text-align: left;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
 }
 
 .card h2 { margin-bottom: 1rem; }
+
+/* A1: form card title */
+.card-title {
+  text-align: center;
+  font-size: 1.65rem;
+  margin-bottom: 1.25rem;
+}
+
+/* A2: microcopy under expiry */
+.field-hint {
+  margin: -0.5rem 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: left;
+}
 
 label {
   display: block;
@@ -87,9 +126,17 @@ input[type="text"] {
 
 .gap { gap: 0.75rem; }
 
+/* A3: full-width CTA for the FORM card only */
+section.card:not(#resultCard) .button-group {
+  justify-content: stretch;
+}
+section.card:not(#resultCard) .button-group .btn {
+  width: 100%;
+}
+
 .btn {
   cursor: pointer;
-  padding: 0.75rem 1.5rem;
+  padding: 0.85rem 1.5rem;
   font-weight: 600;
   border-radius: var(--radius);
   border: none;
@@ -151,6 +198,10 @@ input[type="text"] {
 }
 
 @media (max-width: 520px) {
+  .container { padding: 1.5rem 1rem; }
+  .card { padding: 1.4rem; }
+  .button-group { flex-wrap: wrap; }
+
   .footer {
     flex-direction: column;
     padding: 1rem;
@@ -160,6 +211,16 @@ input[type="text"] {
     flex-wrap: wrap;
     justify-content: center;
     gap: 0.9rem 1.25rem;
+  }
+
+  .card-title {
+    font-size: 1.45rem;
+  }
+
+  .container::before {
+    top: 240px;
+    height: 520px;
+    opacity: 0.85;
   }
 }
 
@@ -198,10 +259,6 @@ input[type="text"] {
 }
 
 @media (max-width: 520px) {
-  .container { padding: 1.5rem 1rem; }
-  .card { padding: 1.25rem; }
-  .button-group { flex-wrap: wrap; }
-
   /* On small screens, allow wrapping for readability */
   #generatedLink {
     white-space: normal;

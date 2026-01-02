@@ -23,6 +23,8 @@
 
     <!-- Form -->
     <section class="card">
+      <h2 class="card-title">Create Your QR Code</h2>
+
       <label>
         Enter URL:
         <input type="url" id="urlInput" placeholder="https://example.com" />
@@ -32,6 +34,7 @@
         Expiry (minutes):
         <input type="number" id="expiryInput" min="1" value="10" />
       </label>
+      <p class="field-hint">This QR will expire after the selected time.</p>
 
       <div class="button-group">
         <button id="generateBtn" class="btn btn-primary" type="button">Generate QR</button>
