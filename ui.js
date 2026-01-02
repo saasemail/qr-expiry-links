@@ -2,26 +2,35 @@
 // Fix: QR must be scannable. We auto-size QR based on its actual module count
 // (because the encoded /go/<id> is long and can require a dense QR version).
 
-const urlInput        = document.getElementById("urlInput");
-const expirySelect    = document.getElementById("expirySelect");
+const urlInput         = document.getElementById("urlInput");
+const expirySelect     = document.getElementById("expirySelect");
 const customExpiryWrap = document.getElementById("customExpiryWrap");
-const customExpiry    = document.getElementById("customExpiry");
-const generateBtn     = document.getElementById("generateBtn");
 
-const resultCard      = document.getElementById("resultCard");
-const qrcodeCanvas    = document.getElementById("qrcode");
-const generatedLink   = document.getElementById("generatedLink");
-const expiryHint      = document.getElementById("expiryHint");
-const countdownEl     = document.getElementById("countdown");
+const customDays       = document.getElementById("customDays");
+const customHours      = document.getElementById("customHours");
+const customMinutes    = document.getElementById("customMinutes");
+const customDurationHint = document.getElementById("customDurationHint");
 
-const copyBtn         = document.getElementById("copyBtn");
-const downloadBtn     = document.getElementById("downloadBtn");       // PNG
-const downloadSvgBtn  = document.getElementById("downloadSvgBtn");    // SVG (currently hidden in HTML)
+const generateBtn      = document.getElementById("generateBtn");
+
+const resultCard       = document.getElementById("resultCard");
+const qrcodeCanvas     = document.getElementById("qrcode");
+const generatedLink    = document.getElementById("generatedLink");
+const expiryHint       = document.getElementById("expiryHint");
+const countdownEl      = document.getElementById("countdown");
+
+const copyBtn          = document.getElementById("copyBtn");
+const downloadBtn      = document.getElementById("downloadBtn");       // PNG
+const downloadSvgBtn   = document.getElementById("downloadSvgBtn");    // SVG (currently hidden in HTML)
 
 let expiryTimer = null;
 let countdownTimer = null;
 let lastRedirectUrl = "";
 let linkExpired = false;
+
+// Track last preset minutes so switching to Custom can prefill nicely
+let lastPresetMinutes = 10;
+let customTouched = false;
 
 // QR rendering params (tuned for scan reliability)
 const QR_ECL = "L";   // lower density than M/Q for long strings
@@ -192,23 +201,57 @@ async function renderQr(redirectUrl) {
   }
 }
 
-function pad2(n) {
-  return String(n).padStart(2, "0");
+function clampInt(v, min, max) {
+  const n = parseInt(String(v ?? "").trim(), 10);
+  if (!Number.isFinite(n)) return min;
+  return Math.min(max, Math.max(min, n));
 }
 
-function toDatetimeLocalValue(d) {
-  // YYYY-MM-DDTHH:mm
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+function minutesToParts(total) {
+  total = Math.max(0, total | 0);
+  const days = Math.floor(total / 1440);
+  total -= days * 1440;
+  const hours = Math.floor(total / 60);
+  const minutes = total - hours * 60;
+  return { days, hours, minutes };
 }
 
-function syncCustomDefaultFromPreset() {
-  if (!customExpiry) return;
-  const v = String(expirySelect?.value || "10");
-  const mins = parseInt(v, 10);
-  if (!Number.isFinite(mins) || mins < 1) return;
+function partsToMinutes(days, hours, minutes) {
+  return (days * 1440) + (hours * 60) + minutes;
+}
 
-  const d = new Date(Date.now() + mins * 60_000);
-  customExpiry.value = toDatetimeLocalValue(d);
+function formatDurationText(totalMinutes) {
+  totalMinutes = Math.max(0, totalMinutes | 0);
+  const { days, hours, minutes } = minutesToParts(totalMinutes);
+
+  const parts = [];
+  if (days) parts.push(`${days} day${days === 1 ? "" : "s"}`);
+  if (hours) parts.push(`${hours} hour${hours === 1 ? "" : "s"}`);
+  if (minutes || parts.length === 0) parts.push(`${minutes} minute${minutes === 1 ? "" : "s"}`);
+
+  return parts.join(" ");
+}
+
+function setCustomFromMinutes(mins) {
+  if (!customDays || !customHours || !customMinutes) return;
+  const p = minutesToParts(mins);
+
+  customDays.value = String(clampInt(p.days, 0, 30));
+  customHours.value = String(clampInt(p.hours, 0, 23));
+  customMinutes.value = String(clampInt(p.minutes, 0, 59));
+}
+
+function getCustomMinutes() {
+  const d = clampInt(customDays?.value, 0, 30);
+  const h = clampInt(customHours?.value, 0, 23);
+  const m = clampInt(customMinutes?.value, 0, 59);
+  return partsToMinutes(d, h, m);
+}
+
+function updateCustomHint() {
+  if (!customDurationHint) return;
+  const mins = getCustomMinutes();
+  customDurationHint.textContent = `Expires in ${formatDurationText(mins)}.`;
 }
 
 function toggleCustomUI() {
@@ -218,11 +261,11 @@ function toggleCustomUI() {
   customExpiryWrap.classList.toggle("hidden", !isCustom);
 
   if (isCustom) {
-    // If empty, prefill with now + 10 minutes
-    if (customExpiry && !customExpiry.value) {
-      const d = new Date(Date.now() + 10 * 60_000);
-      customExpiry.value = toDatetimeLocalValue(d);
+    // If user never touched custom, prefill from last preset
+    if (!customTouched) {
+      setCustomFromMinutes(lastPresetMinutes || 10);
     }
+    updateCustomHint();
   }
 }
 
@@ -237,25 +280,11 @@ function getSelectedMinutesOrThrow() {
     return minutes;
   }
 
-  // custom
-  const raw = String(customExpiry?.value || "").trim();
-  if (!raw) {
-    throw new Error("Please choose a custom expiration date & time.");
-  }
-
-  const chosen = new Date(raw);
-  if (!Number.isFinite(chosen.getTime())) {
-    throw new Error("Please choose a valid expiration date & time.");
-  }
-
-  const diffMs = chosen.getTime() - Date.now();
-  // Require at least 1 minute in the future
-  const minutes = Math.ceil(diffMs / 60_000);
-
+  // custom duration
+  const minutes = getCustomMinutes();
   if (!Number.isFinite(minutes) || minutes < 1) {
-    throw new Error("Custom expiration must be at least 1 minute in the future.");
+    throw new Error("Custom duration must be at least 1 minute.");
   }
-
   return minutes;
 }
 
@@ -265,19 +294,43 @@ function bindUI() {
     return;
   }
 
+  // Initialize custom duration from default preset (10 minutes)
+  lastPresetMinutes = parseInt(String(expirySelect.value || "10"), 10);
+  if (!Number.isFinite(lastPresetMinutes) || lastPresetMinutes < 1) lastPresetMinutes = 10;
+  setCustomFromMinutes(lastPresetMinutes);
+  updateCustomHint();
+  toggleCustomUI();
+
   // Preset/custom UI behavior
   expirySelect.addEventListener("change", () => {
-    toggleCustomUI();
-    // If user switches from custom back to preset, keep custom value intact.
-    // If user switches to preset, also keep a helpful default for later.
-    if (String(expirySelect.value) !== "custom") {
-      syncCustomDefaultFromPreset();
+    const v = String(expirySelect.value);
+
+    if (v !== "custom") {
+      const mins = parseInt(v, 10);
+      if (Number.isFinite(mins) && mins >= 1) {
+        lastPresetMinutes = mins;
+        // Keep custom prefilled from latest preset (nice UX)
+        if (!customTouched) setCustomFromMinutes(lastPresetMinutes);
+        updateCustomHint();
+      }
     }
+
+    toggleCustomUI();
   });
 
-  // Initialize default custom time from the default preset (10 minutes)
-  syncCustomDefaultFromPreset();
-  toggleCustomUI();
+  // Mark custom as touched + update hint live
+  const onCustomChange = () => {
+    customTouched = true;
+    // Clamp inputs immediately for clean UX
+    if (customDays) customDays.value = String(clampInt(customDays.value, 0, 30));
+    if (customHours) customHours.value = String(clampInt(customHours.value, 0, 23));
+    if (customMinutes) customMinutes.value = String(clampInt(customMinutes.value, 0, 59));
+    updateCustomHint();
+  };
+
+  customDays?.addEventListener("input", onCustomChange);
+  customHours?.addEventListener("input", onCustomChange);
+  customMinutes?.addEventListener("input", onCustomChange);
 
   generateBtn.addEventListener("click", async () => {
     const url = String(urlInput.value || "").trim();

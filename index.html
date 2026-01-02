@@ -54,17 +54,31 @@
           <option value="360">6 hours</option>
           <option value="1440">1 day</option>
           <option value="10080">7 days</option>
-          <option value="custom">Choose custom time</option>
+          <option value="custom">Custom duration</option>
         </select>
       </label>
       <p class="field-hint">This QR will expire after the selected time.</p>
 
-      <!-- Custom time (hidden unless selected) -->
+      <!-- Custom duration (hidden unless selected) -->
       <div id="customExpiryWrap" class="custom-expiry hidden">
-        <label>
-          Choose an expiration date &amp; time
-          <input type="datetime-local" id="customExpiry" />
-        </label>
+        <div class="custom-grid" role="group" aria-label="Custom duration">
+          <div class="custom-field">
+            <span class="custom-field-label">Days</span>
+            <input type="number" id="customDays" min="0" max="30" step="1" value="0" inputmode="numeric" />
+          </div>
+
+          <div class="custom-field">
+            <span class="custom-field-label">Hours</span>
+            <input type="number" id="customHours" min="0" max="23" step="1" value="0" inputmode="numeric" />
+          </div>
+
+          <div class="custom-field">
+            <span class="custom-field-label">Minutes</span>
+            <input type="number" id="customMinutes" min="0" max="59" step="1" value="10" inputmode="numeric" />
+          </div>
+        </div>
+
+        <p class="custom-duration-hint" id="customDurationHint">Expires in 10 minutes.</p>
       </div>
 
       <div class="button-group">
