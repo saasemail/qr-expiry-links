@@ -32,6 +32,9 @@ let linkExpired = false;
 let lastPresetMinutes = 10;
 let customTouched = false;
 
+// Custom duration hard max (10 years in days)
+const CUSTOM_DAYS_MAX = 3650;
+
 // QR rendering params (tuned for scan reliability)
 const QR_ECL = "L";   // lower density than M/Q for long strings
 const QR_MARGIN = 4;  // quiet zone (modules)
@@ -236,13 +239,13 @@ function setCustomFromMinutes(mins) {
   if (!customDays || !customHours || !customMinutes) return;
   const p = minutesToParts(mins);
 
-  customDays.value = String(clampInt(p.days, 0, 30));
+  customDays.value = String(clampInt(p.days, 0, CUSTOM_DAYS_MAX));
   customHours.value = String(clampInt(p.hours, 0, 23));
   customMinutes.value = String(clampInt(p.minutes, 0, 59));
 }
 
 function getCustomMinutes() {
-  const d = clampInt(customDays?.value, 0, 30);
+  const d = clampInt(customDays?.value, 0, CUSTOM_DAYS_MAX);
   const h = clampInt(customHours?.value, 0, 23);
   const m = clampInt(customMinutes?.value, 0, 59);
   return partsToMinutes(d, h, m);
@@ -322,7 +325,7 @@ function bindUI() {
   const onCustomChange = () => {
     customTouched = true;
     // Clamp inputs immediately for clean UX
-    if (customDays) customDays.value = String(clampInt(customDays.value, 0, 30));
+    if (customDays) customDays.value = String(clampInt(customDays.value, 0, CUSTOM_DAYS_MAX));
     if (customHours) customHours.value = String(clampInt(customHours.value, 0, 23));
     if (customMinutes) customMinutes.value = String(clampInt(customMinutes.value, 0, 59));
     updateCustomHint();

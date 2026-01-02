@@ -54,10 +54,13 @@ export default async function handler(req, res) {
 
     const SIGNING_SECRET = process.env.SIGNING_SECRET || "dev-secret";
 
+    // 10 godina max (u minutima): 10 * 365 * 24 * 60 = 5,256,000
+    const MAX_MINUTES_10Y = 5256000;
+
     // default: free
     let plan = "free";
     let tier = null;
-    let max_minutes = 60;
+    let max_minutes = MAX_MINUTES_10Y;
 
     // 1) Ako postoji eksplicitni token u body-ju -> koristi njega
     let usedByUserId = null;
@@ -80,7 +83,7 @@ export default async function handler(req, res) {
 
       plan = "pro";
       tier = tok.tier || null;
-      max_minutes = Number(tok.max_minutes || 60);
+      max_minutes = Number(tok.max_minutes || MAX_MINUTES_10Y);
       usedByUserId = tok.user_id || null;
     }
 
@@ -119,14 +122,15 @@ export default async function handler(req, res) {
           if (best) {
             plan = "pro";
             tier = best.tier || null;
-            max_minutes = Number(best.max_minutes || 60);
+            max_minutes = Number(best.max_minutes || MAX_MINUTES_10Y);
           }
         }
       }
     }
 
-    // primeni limit
-    const allowed = Math.min(minutes, max_minutes);
+    // primeni limit (globalno hard-cap na 10 godina)
+    const allowed = Math.min(minutes, max_minutes, MAX_MINUTES_10Y);
+
     const expiresAt = new Date(Date.now() + allowed * 60_000).toISOString();
     const payload = b64url(JSON.stringify({ u: url, e: expiresAt, v: 1 }));
     const sig = sign(payload, SIGNING_SECRET);
