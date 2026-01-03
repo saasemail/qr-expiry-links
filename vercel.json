@@ -1,4 +1,6 @@
 {
-  "rewrites": [ { "source": "/go/(.*)", "destination": "/api/go?id=$1" } ]
+  "rewrites": [
+    { "source": "/go/(.*)", "destination": "/api/go?id=$1" },
+    { "source": "/qr/(.*)", "destination": "/api/qr?id=$1" }
+  ]
 }
-

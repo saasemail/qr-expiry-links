@@ -44,12 +44,8 @@ function parseV2Payload(bytes) {
   if (!bytes || bytes.length < 6) return null;
   if (bytes[0] !== 2) return null;
 
-  const expSec = (
-    (bytes[1] << 24) |
-    (bytes[2] << 16) |
-    (bytes[3] << 8) |
-    (bytes[4])
-  ) >>> 0;
+  const expSec =
+    ((bytes[1] << 24) | (bytes[2] << 16) | (bytes[3] << 8) | bytes[4]) >>> 0;
 
   const urlBytes = bytes.subarray(5);
   const u = new TextDecoder().decode(urlBytes);
@@ -70,6 +66,39 @@ function parseV1Payload(bytes) {
   } catch {
     return null;
   }
+}
+
+function isPreviewBot(uaRaw) {
+  const ua = String(uaRaw || "").toLowerCase();
+  if (!ua) return false;
+
+  // Common link preview / crawler user-agents
+  return (
+    ua.includes("whatsapp") ||
+    ua.includes("facebookexternalhit") ||
+    ua.includes("facebot") ||
+    ua.includes("twitterbot") ||
+    ua.includes("telegrambot") ||
+    ua.includes("discordbot") ||
+    ua.includes("slackbot") ||
+    ua.includes("linkedinbot") ||
+    ua.includes("skypeuripreview") ||
+    ua.includes("viber") ||
+    ua.includes("pinterest") ||
+    ua.includes("googlebot") ||
+    ua.includes("bingbot") ||
+    ua.includes("yandex") ||
+    ua.includes("baiduspider")
+  );
+}
+
+function escapeHtml(s) {
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 export default async function handler(req) {
@@ -112,12 +141,66 @@ export default async function handler(req) {
 
   if (!payload?.u || !payload?.eMs) return new Response("Bad payload", { status: 400 });
 
+  // Expired
   if (Date.now() > payload.eMs) {
     const html = `<!doctype html><meta charset="utf-8"><title>Link expired</title>
     <style>body{font-family:system-ui;padding:40px;background:#0b0b0f;color:#e6e6f0}</style>
     <h1>Link expired</h1><p>This link is no longer available.</p>`;
-    return new Response(html, { status: 410, headers: { "content-type": "text/html" } });
+    return new Response(html, {
+      status: 410,
+      headers: { "content-type": "text/html; charset=utf-8" }
+    });
   }
 
+  const ua = req.headers.get("user-agent") || "";
+  const wantsPreview = isPreviewBot(ua);
+
+  // For previews: return HTML with OG tags and QR as og:image
+  if (wantsPreview) {
+    const origin = url.origin;
+    const pageUrl = `${origin}/go/${encodeURIComponent(id)}`;
+    const qrUrl = `${origin}/qr/${encodeURIComponent(id)}.png`;
+
+    const title = "Expiring link:";
+    const desc = "Scan the QR code or open the link before it expires.";
+
+    const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${escapeHtml(title)}</title>
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="${escapeHtml(title)}">
+  <meta property="og:description" content="${escapeHtml(desc)}">
+  <meta property="og:url" content="${escapeHtml(pageUrl)}">
+  <meta property="og:image" content="${escapeHtml(qrUrl)}">
+  <meta property="og:image:width" content="512">
+  <meta property="og:image:height" content="512">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${escapeHtml(title)}">
+  <meta name="twitter:description" content="${escapeHtml(desc)}">
+  <meta name="twitter:image" content="${escapeHtml(qrUrl)}">
+</head>
+<body>
+  <p>Expiring link:</p>
+  <p><a href="${escapeHtml(payload.u)}">${escapeHtml(pageUrl)}</a></p>
+  <p><img src="${escapeHtml(qrUrl)}" alt="QR code" width="256" height="256"></p>
+</body>
+</html>`;
+
+    return new Response(html, {
+      status: 200,
+      headers: {
+        "content-type": "text/html; charset=utf-8",
+        // keep previews fresh-ish; bots may cache anyway
+        "cache-control": "public, max-age=0, s-maxage=300, stale-while-revalidate=600"
+      }
+    });
+  }
+
+  // Normal users: redirect
   return new Response(null, { status: 302, headers: { Location: payload.u } });
 }
