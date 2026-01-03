@@ -149,8 +149,8 @@ export default async function handler(req) {
   // Add a stable cache-buster per-link so preview images don’t get “stuck”
   const qrUrl = `${origin}/qr/${encodeURIComponent(id)}.png?e=${payload.eMs}`;
 
-  // IMPORTANT: keep title empty so chat preview doesn't show an extra blue title line
-  const title = "";
+  // Signature line shown above the domain in chat preview cards
+  const title = "Created with";
   const desc = "Scan the QR code or open the link before it expires.";
 
   // ALWAYS return HTML with OG tags.
