@@ -149,7 +149,8 @@ export default async function handler(req) {
   // Add a stable cache-buster per-link so preview images don’t get “stuck”
   const qrUrl = `${origin}/qr/${encodeURIComponent(id)}.png?e=${payload.eMs}`;
 
-  const title = "Made with:"
+  // IMPORTANT: keep title empty so chat preview doesn't show an extra blue title line
+  const title = "";
   const desc = "Scan the QR code or open the link before it expires.";
 
   // ALWAYS return HTML with OG tags.
@@ -191,7 +192,6 @@ export default async function handler(req) {
 </head>
 <body>
   <div class="wrap">
-    <p>${escapeHtml(title)}</p>
     <p><a href="${escapeHtml(payload.u)}">${escapeHtml(pageUrl)}</a></p>
     <div class="qr">
       <img src="${escapeHtml(qrUrl)}" alt="QR code" width="256" height="256">
