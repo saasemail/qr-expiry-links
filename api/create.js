@@ -24,9 +24,28 @@ async function readJSONBody(req) {
 function b64url(buf) {
   return Buffer.from(buf).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
+
 function sign(payload, secret) {
   const h = createHmac("sha256", secret).update(payload, "utf8").digest();
   return b64url(h);
+}
+
+// Short signature (truncated HMAC) to keep IDs compact.
+// 12 bytes = 96-bit tag -> 16 chars base64url.
+function signShort(payload, secret, bytes = 12) {
+  const full = createHmac("sha256", secret).update(payload, "utf8").digest();
+  return b64url(full.subarray(0, bytes));
+}
+
+// v2 payload (compact, binary):
+// [1 byte version=2][4 bytes expirySeconds BE][utf8 url bytes]
+function makeV2PayloadB64(url, expirySeconds) {
+  const urlBytes = Buffer.from(String(url || ""), "utf8");
+  const buf = Buffer.alloc(1 + 4 + urlBytes.length);
+  buf[0] = 2;
+  buf.writeUInt32BE(expirySeconds >>> 0, 1);
+  urlBytes.copy(buf, 5);
+  return b64url(buf);
 }
 
 export default async function handler(req, res) {
@@ -131,10 +150,15 @@ export default async function handler(req, res) {
     // primeni limit (globalno hard-cap na 10 godina)
     const allowed = Math.min(minutes, max_minutes, MAX_MINUTES_10Y);
 
-    const expiresAt = new Date(Date.now() + allowed * 60_000).toISOString();
-    const payload = b64url(JSON.stringify({ u: url, e: expiresAt, v: 1 }));
-    const sig = sign(payload, SIGNING_SECRET);
-    const id = `${payload}.${sig}`;
+    // Compact v2 ID:
+    // payload = base64url([v=2][expirySeconds][url])
+    // sig = base64url(HMAC(payload)) truncated to 12 bytes
+    const expirySeconds = Math.floor(Date.now() / 1000) + Math.floor(allowed * 60);
+    const payloadB64 = makeV2PayloadB64(url, expirySeconds);
+    const sig = signShort(payloadB64, SIGNING_SECRET, 12);
+    const id = `${payloadB64}.${sig}`;
+
+    const expiresAt = new Date(expirySeconds * 1000).toISOString();
 
     res.setHeader("Content-Type", "application/json");
     return res.status(200).json({ id, expires_at: expiresAt, plan, tier, minutes: allowed });
