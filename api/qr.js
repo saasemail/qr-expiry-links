@@ -89,10 +89,7 @@ export default async function handler(req, res) {
 
     if (!payload?.u || !payload?.eMs) return res.status(400).send("Bad payload");
 
-    if (Date.now() > payload.eMs) {
-      // Preview image for expired links is not useful; return 410.
-      return res.status(410).send("Expired");
-    }
+    if (Date.now() > payload.eMs) return res.status(410).send("Expired");
 
     const origin = getOrigin(req);
     const goUrl = `${origin}/go/${encodeURIComponent(id)}`;
