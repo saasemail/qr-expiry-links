@@ -48,6 +48,29 @@ function makeV2PayloadB64(url, expirySeconds) {
   return b64url(buf);
 }
 
+function normalizeHttpUrl(input) {
+  let s = String(input || "").trim();
+  if (!s) return "";
+
+  if (/\s/.test(s)) return "";
+
+  if (s.startsWith("//")) s = "https:" + s;
+
+  // If no scheme, default to https://
+  if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(s)) {
+    s = "https://" + s;
+  }
+
+  try {
+    const u = new URL(s);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return "";
+    if (!u.hostname) return "";
+    return u.toString();
+  } catch {
+    return "";
+  }
+}
+
 export default async function handler(req, res) {
   const t0 = Date.now();
   try {
@@ -64,11 +87,12 @@ export default async function handler(req, res) {
     try { body = await readJSONBody(req); }
     catch (e) { return res.status(400).send("Invalid JSON"); }
 
-    const url = String(body?.url || "").trim();
+    const rawUrl = String(body?.url || "").trim();
+    const url = normalizeHttpUrl(rawUrl);
     const minutes = Number(body?.minutes);
     const proToken = body?.token ? String(body.token).trim() : null;
 
-    if (!/^https?:\/\//i.test(url)) return res.status(400).send("Bad url");
+    if (!url) return res.status(400).send("Bad url");
     if (!Number.isFinite(minutes) || minutes < 1) return res.status(400).send("Bad minutes");
 
     const SIGNING_SECRET = process.env.SIGNING_SECRET || "dev-secret";

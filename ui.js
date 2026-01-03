@@ -40,6 +40,32 @@ const CUSTOM_DAYS_MAX = 3650;
 const QR_ECL = "L";   // lower density than M/Q for long strings
 const QR_MARGIN = 4;  // quiet zone (modules)
 
+function normalizeHttpUrl(input) {
+  let s = String(input || "").trim();
+  if (!s) return "";
+
+  // If user pasted spaces/newlines, kill it early
+  if (/\s/.test(s)) return "";
+
+  // Allow protocol-relative //example.com
+  if (s.startsWith("//")) s = "https:" + s;
+
+  // Add https:// if missing scheme
+  if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(s)) {
+    s = "https://" + s;
+  }
+
+  // Validate + enforce http/https only
+  try {
+    const u = new URL(s);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return "";
+    if (!u.hostname) return "";
+    return u.toString();
+  } catch {
+    return "";
+  }
+}
+
 function setLoading(state) {
   if (!generateBtn) return;
   generateBtn.disabled = state;
@@ -299,6 +325,12 @@ function bindUI() {
     return;
   }
 
+  // (Optional UX) Normalize on blur so user sees https:// added (but don't force while typing)
+  urlInput.addEventListener("blur", () => {
+    const norm = normalizeHttpUrl(urlInput.value);
+    if (norm) urlInput.value = norm;
+  });
+
   // Show Share only if Web Share API exists
   if (shareBtn) {
     const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
@@ -345,12 +377,16 @@ function bindUI() {
   customMinutes?.addEventListener("input", onCustomChange);
 
   generateBtn.addEventListener("click", async () => {
-    const url = String(urlInput.value || "").trim();
+    const raw = String(urlInput.value || "").trim();
+    const url = normalizeHttpUrl(raw);
 
-    if (!/^https?:\/\//i.test(url)) {
-      alert("Please enter a valid URL (include https://).");
+    if (!url) {
+      alert("Please enter a valid URL (e.g. google.com or https://example.com).");
       return;
     }
+
+    // Write normalized value back so user sees what will be used
+    urlInput.value = url;
 
     let minutes;
     try {
