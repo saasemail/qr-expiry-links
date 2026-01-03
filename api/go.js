@@ -149,9 +149,10 @@ export default async function handler(req) {
   // Add a stable cache-buster per-link so preview images don’t get “stuck”
   const qrUrl = `${origin}/qr/${encodeURIComponent(id)}.png?e=${payload.eMs}`;
 
-  // Signature line shown above the domain in chat preview cards
-  const title = "Created with";
-  const desc = "Scan the QR code or open the link before it expires.";
+  // Keep OG title empty (prevents blue clickable title line).
+  // Put the signature text into the description instead (renders as plain preview text).
+  const title = "";
+  const desc = "Created with TempQR";
 
   // ALWAYS return HTML with OG tags.
   // Real users get redirected via meta refresh + JS.
