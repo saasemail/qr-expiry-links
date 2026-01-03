@@ -21,6 +21,7 @@ const countdownEl      = document.getElementById("countdown");
 
 const copyBtn          = document.getElementById("copyBtn");
 const downloadBtn      = document.getElementById("downloadBtn");       // PNG
+const shareBtn         = document.getElementById("shareBtn");          // Web Share API
 const downloadSvgBtn   = document.getElementById("downloadSvgBtn");    // SVG (currently hidden in HTML)
 
 let expiryTimer = null;
@@ -58,6 +59,7 @@ function setDownloadButtonsEnabled(enabled) {
     if (downloadBtn) downloadBtn.disabled = !enabled;
     if (downloadSvgBtn) downloadSvgBtn.disabled = !enabled;
     if (copyBtn) copyBtn.disabled = !enabled;
+    if (shareBtn) shareBtn.disabled = !enabled;
   } catch {}
 }
 
@@ -297,6 +299,13 @@ function bindUI() {
     return;
   }
 
+  // Show Share only if Web Share API exists
+  if (shareBtn) {
+    const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
+    shareBtn.style.display = canShare ? "" : "none";
+    shareBtn.disabled = true;
+  }
+
   // Initialize custom duration from default preset (10 minutes)
   lastPresetMinutes = parseInt(String(expirySelect.value || "10"), 10);
   if (!Number.isFinite(lastPresetMinutes) || lastPresetMinutes < 1) lastPresetMinutes = 10;
@@ -442,6 +451,22 @@ function bindUI() {
       document.body.removeChild(a);
     } catch {
       alert("Could not download QR.");
+    }
+  });
+
+  shareBtn?.addEventListener("click", async () => {
+    if (linkExpired) return;
+    if (!lastRedirectUrl) return;
+    if (typeof navigator === "undefined" || typeof navigator.share !== "function") return;
+
+    try {
+      await navigator.share({
+        title: "TempQR",
+        text: "Expiring link:",
+        url: lastRedirectUrl
+      });
+    } catch (e) {
+      // User cancel (AbortError) or other share issues — keep silent to avoid confusion.
     }
   });
 
