@@ -34,12 +34,20 @@
 
     <section class="page-card">
       <div class="prose">
-        <p>You can email us directly:</p>
+        <p><strong>Email:</strong> <span id="supportEmail">support@tempqr.com</span></p>
+        <p class="muted" style="margin-top:-0.25rem;">
+          If the email button doesn’t open on your device, just copy the address and paste it into Gmail/Outlook.
+        </p>
 
-        <div class="feedback-actions">
-          <a class="btn btn-primary" href="mailto:support@tempqr.com?subject=TempQR%20Feedback" rel="nofollow">Email feedback</a>
+        <div class="feedback-actions" style="margin-top:0.85rem;">
+          <button class="btn btn-primary" id="copyEmailBtn" type="button">Copy email</button>
+          <a class="btn btn-ghost" id="openEmailBtn" href="mailto:support@tempqr.com?subject=TempQR%20Feedback" rel="nofollow">Open email app</a>
           <a class="btn btn-ghost" href="faq.html" rel="nofollow">Check FAQ</a>
         </div>
+
+        <p class="muted" id="copyEmailStatus" style="margin-top:0.9rem; display:none;">
+          Copied to clipboard.
+        </p>
 
         <p class="muted" style="margin-top:1rem;">
           Tip: include the expiring link you created and what device/app you used (Chrome, Safari, Messenger, Viber, etc.).
@@ -57,5 +65,47 @@
       <a href="feedback.html" rel="nofollow">Feedback</a>
     </div>
   </footer>
+
+  <script>
+    // Minimal, self-contained copy-to-clipboard (no other files touched)
+    (function () {
+      const emailEl = document.getElementById("supportEmail");
+      const btn = document.getElementById("copyEmailBtn");
+      const status = document.getElementById("copyEmailStatus");
+      const email = (emailEl && emailEl.textContent || "").trim();
+
+      function showStatus(text) {
+        if (!status) return;
+        status.textContent = text;
+        status.style.display = "block";
+        window.clearTimeout(showStatus._t);
+        showStatus._t = window.setTimeout(() => { status.style.display = "none"; }, 1800);
+      }
+
+      async function copyEmail() {
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(email);
+          } else {
+            // fallback
+            const ta = document.createElement("textarea");
+            ta.value = email;
+            ta.setAttribute("readonly", "");
+            ta.style.position = "absolute";
+            ta.style.left = "-9999px";
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+          }
+          showStatus("Copied to clipboard.");
+        } catch (e) {
+          showStatus("Copy failed. Please select and copy the email manually.");
+        }
+      }
+
+      if (btn) btn.addEventListener("click", copyEmail);
+    })();
+  </script>
 </body>
 </html>
