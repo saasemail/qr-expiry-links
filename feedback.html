@@ -28,30 +28,55 @@
 
   <main class="page">
     <header class="page-hero">
-      <h2 class="page-title">Feedback</h2>
-      <p class="page-subtitle">Found a bug or have an idea? Send a quick message.</p>
+      <h2 class="page-title">We’d love your feedback</h2>
+      <p class="page-subtitle">Share ideas, report bugs, or tell us what to improve.</p>
     </header>
 
     <section class="page-card">
       <div class="prose">
-        <p><strong>Email:</strong> <span id="supportEmail">support@tempqr.com</span></p>
-        <p class="muted" style="margin-top:-0.25rem;">
-          If the email button doesn’t open on your device, just copy the address and paste it into Gmail/Outlook.
-        </p>
+        <form id="feedbackForm" novalidate>
+          <label for="msg">
+            Your Message <span aria-hidden="true">*</span>
+            <textarea
+              id="msg"
+              name="msg"
+              rows="8"
+              required
+              placeholder="Write your message here..."
+              style="resize: vertical;"
+            ></textarea>
+          </label>
 
-        <div class="feedback-actions" style="margin-top:0.85rem;">
-          <button class="btn btn-primary" id="copyEmailBtn" type="button">Copy email</button>
-          <a class="btn btn-ghost" id="openEmailBtn" href="mailto:support@tempqr.com?subject=TempQR%20Feedback" rel="nofollow">Open email app</a>
-          <a class="btn btn-ghost" href="faq.html" rel="nofollow">Check FAQ</a>
-        </div>
+          <label for="email" style="margin-top: 0.75rem;">
+            Email (optional)
+            <input
+              id="email"
+              name="email"
+              type="email"
+              inputmode="email"
+              autocomplete="email"
+              placeholder="you@example.com"
+            />
+          </label>
 
-        <p class="muted" id="copyEmailStatus" style="margin-top:0.9rem; display:none;">
-          Copied to clipboard.
-        </p>
+          <p class="muted" style="margin: 0.5rem 0 0;">
+            We’ll only use this email to follow up on your message.
+          </p>
 
-        <p class="muted" style="margin-top:1rem;">
-          Tip: include the expiring link you created and what device/app you used (Chrome, Safari, Messenger, Viber, etc.).
-        </p>
+          <div class="feedback-actions" style="margin-top: 1rem;">
+            <button class="btn btn-primary" id="submitBtn" type="submit">Submit Feedback</button>
+            <button class="btn btn-ghost" id="copyBtn" type="button">Copy message</button>
+          </div>
+
+          <p class="muted" id="status" style="margin-top: 0.9rem; display:none;"></p>
+
+          <p class="muted" style="margin-top: 1rem;">
+            Tip: include the expiring link you created and what device/app you used (Chrome, Safari, Messenger, Viber, etc.).
+          </p>
+
+          <!-- Hidden support address (easy to change later) -->
+          <input type="hidden" id="supportTo" value="support@tempqr.com" />
+        </form>
       </div>
     </section>
   </main>
@@ -67,44 +92,106 @@
   </footer>
 
   <script>
-    // Minimal, self-contained copy-to-clipboard (no other files touched)
     (function () {
-      const emailEl = document.getElementById("supportEmail");
-      const btn = document.getElementById("copyEmailBtn");
-      const status = document.getElementById("copyEmailStatus");
-      const email = (emailEl && emailEl.textContent || "").trim();
+      const form = document.getElementById("feedbackForm");
+      const msg = document.getElementById("msg");
+      const email = document.getElementById("email");
+      const status = document.getElementById("status");
+      const copyBtn = document.getElementById("copyBtn");
+      const supportTo = document.getElementById("supportTo");
 
       function showStatus(text) {
         if (!status) return;
         status.textContent = text;
         status.style.display = "block";
         window.clearTimeout(showStatus._t);
-        showStatus._t = window.setTimeout(() => { status.style.display = "none"; }, 1800);
+        showStatus._t = window.setTimeout(() => { status.style.display = "none"; }, 2600);
       }
 
-      async function copyEmail() {
+      function buildPayload() {
+        const message = (msg.value || "").trim();
+        const fromEmail = (email.value || "").trim();
+
+        const lines = [];
+        lines.push("TempQR Feedback");
+        lines.push("");
+        if (fromEmail) lines.push("Reply email: " + fromEmail);
+        lines.push("Message:");
+        lines.push(message);
+        lines.push("");
+        lines.push("----");
+        lines.push("Meta:");
+        try {
+          lines.push("User agent: " + navigator.userAgent);
+        } catch (e) {}
+        try {
+          lines.push("Time: " + new Date().toISOString());
+        } catch (e) {}
+
+        return { message, fromEmail, body: lines.join("\n") };
+      }
+
+      async function copyText(text) {
         try {
           if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(email);
-          } else {
-            // fallback
-            const ta = document.createElement("textarea");
-            ta.value = email;
-            ta.setAttribute("readonly", "");
-            ta.style.position = "absolute";
-            ta.style.left = "-9999px";
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand("copy");
-            document.body.removeChild(ta);
+            await navigator.clipboard.writeText(text);
+            return true;
           }
-          showStatus("Copied to clipboard.");
+        } catch (e) {}
+
+        // fallback
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.setAttribute("readonly", "");
+          ta.style.position = "absolute";
+          ta.style.left = "-9999px";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          return true;
         } catch (e) {
-          showStatus("Copy failed. Please select and copy the email manually.");
+          return false;
         }
       }
 
-      if (btn) btn.addEventListener("click", copyEmail);
+      copyBtn.addEventListener("click", async function () {
+        const { message, body } = buildPayload();
+        if (!message) {
+          showStatus("Please write a message first.");
+          msg.focus();
+          return;
+        }
+        const ok = await copyText(body);
+        showStatus(ok ? "Copied. Paste it into an email to support@tempqr.com." : "Copy failed. Please select and copy manually.");
+      });
+
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const to = (supportTo.value || "support@tempqr.com").trim();
+        const { message, body } = buildPayload();
+
+        if (!message) {
+          showStatus("Please write a message.");
+          msg.focus();
+          return;
+        }
+
+        const subject = "TempQR Feedback";
+        const mailto = "mailto:" + encodeURIComponent(to)
+          + "?subject=" + encodeURIComponent(subject)
+          + "&body=" + encodeURIComponent(body);
+
+        // Attempt to open user's email app
+        try {
+          window.location.href = mailto;
+          showStatus("If nothing opened, click “Copy message” and paste it into Gmail/Outlook.");
+        } catch (err) {
+          showStatus("Couldn’t open the email app. Click “Copy message” and paste it into Gmail/Outlook.");
+        }
+      });
     })();
   </script>
 </body>
