@@ -149,9 +149,9 @@ export default async function handler(req) {
   // Add a stable cache-buster per-link so preview images don’t get “stuck”
   const qrUrl = `${origin}/qr/${encodeURIComponent(id)}.png?e=${payload.eMs}`;
 
-  // Keep OG title empty (prevents blue clickable title line).
-  // Put the signature text into the description instead (renders as plain preview text).
-  const title = "";
+  // Make OG/Twitter title a zero-width character so apps don't turn the label into the clickable "title" line.
+  // Put the signature text into description instead.
+  const title = "\u200B";
   const desc = "Created with TempQR";
 
   // ALWAYS return HTML with OG tags.
