@@ -328,7 +328,7 @@ section.card:not(#resultCard) .button-group .btn {
     content: "";
     position: absolute;
     left: 0;
-    top: 0.55rem;
+    top: 0.38rem; /* moved up to align with the title line */
     width: 0.5rem;
     height: 0.5rem;
     border-radius: 999px;
