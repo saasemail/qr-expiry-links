@@ -16,19 +16,33 @@
     .page-subtitle { max-width: 620px; margin-left: auto; margin-right: auto; }
 
     .page-card { max-width: 760px; margin-left: auto; margin-right: auto; }
-    .prose form { max-width: 620px; margin: 0 auto; }
+    .prose form { max-width: 640px !important; width: 100% !important; margin: 0 auto; }
 
-    /* Textarea sizing like your screenshot */
+    /* Force full-width controls (styles.css is likely shrinking them) */
+    .prose form label {
+      display: block !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+    .prose form textarea,
+    .prose form input {
+      display: block !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Textarea sizing like the example screenshot */
     #msg {
-      resize: none;
-      min-height: 210px;
-      height: 210px;
-      line-height: 1.45;
+      resize: none !important;
+      min-height: 260px !important;
+      height: 260px !important;
+      line-height: 1.45 !important;
     }
 
     /* Submit button full width like screenshot */
     .feedback-actions { display: block; }
-    #submitBtn { width: 100%; justify-content: center; }
+    #submitBtn { width: 100% !important; justify-content: center; }
 
     /* Hidden fallback row (shows only after submit) */
     #fallbackRow {
@@ -44,8 +58,8 @@
 
     @media (max-width: 520px) {
       .page-card { max-width: 92vw; }
-      .prose form { max-width: 100%; }
-      #msg { min-height: 200px; height: 200px; }
+      .prose form { max-width: 100% !important; }
+      #msg { min-height: 240px !important; height: 240px !important; }
       #fallbackRow { width: 100%; }
     }
   </style>
@@ -182,7 +196,6 @@
           }
         } catch (e) {}
 
-        // fallback
         try {
           const ta = document.createElement("textarea");
           ta.value = text;
@@ -232,12 +245,8 @@
           "?subject=" + encodeURIComponent(subject) +
           "&body=" + encodeURIComponent(body);
 
-        // Try to open email app
-        try {
-          window.location.href = mailto;
-        } catch (err) {}
+        try { window.location.href = mailto; } catch (err) {}
 
-        // Always reveal fallback after submit (keeps UI clean, but ensures user can still send)
         if (fallbackRow) fallbackRow.style.display = "flex";
         showStatus("If nothing opened, use “Copy message” and paste into Gmail/Outlook.");
       });
