@@ -3,12 +3,54 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TempQR — Feedback</title>
+  <title>ExpireQR — Feedback</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Page-only polish (no other files touched) -->
+  <style>
+    .page-hero { text-align: center; max-width: 860px; margin: 0 auto 1.25rem; }
+    .page-title { color: var(--accent2, #6D28D9); font-size: clamp(2rem, 3.2vw, 2.6rem); letter-spacing: -0.02em; }
+    .page-subtitle { max-width: 620px; margin-left: auto; margin-right: auto; }
+
+    .page-card { max-width: 760px; margin-left: auto; margin-right: auto; }
+    .prose form { max-width: 620px; margin: 0 auto; }
+
+    /* Textarea sizing like your screenshot */
+    #msg {
+      resize: none;
+      min-height: 210px;
+      height: 210px;
+      line-height: 1.45;
+    }
+
+    /* Submit button full width like screenshot */
+    .feedback-actions { display: block; }
+    #submitBtn { width: 100%; justify-content: center; }
+
+    /* Hidden fallback row (shows only after submit) */
+    #fallbackRow {
+      display: none;
+      margin-top: 0.85rem;
+      gap: 0.65rem;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    #fallbackRow .muted { margin: 0; }
+    #copyBtn { white-space: nowrap; }
+
+    @media (max-width: 520px) {
+      .page-card { max-width: 92vw; }
+      .prose form { max-width: 100%; }
+      #msg { min-height: 200px; height: 200px; }
+      #fallbackRow { width: 100%; }
+    }
+  </style>
 </head>
+
 <body>
   <nav class="navbar">
     <div class="nav-left">
@@ -17,7 +59,7 @@
           <path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm10 0h2v2h-2v-2Zm2 2h2v2h-2v-2Zm-2 2h2v2h-2v-2Zm4-6h2v6h-2v-6Z" fill="currentColor"/>
         </svg>
       </span>
-      <h1 class="brand-name">TempQR</h1>
+      <h1 class="brand-name">ExpireQR</h1>
     </div>
 
     <div class="nav-links">
@@ -28,8 +70,10 @@
 
   <main class="page">
     <header class="page-hero">
-      <h2 class="page-title">We’d love your feedback</h2>
-      <p class="page-subtitle">Share ideas, report bugs, or tell us what to improve.</p>
+      <h2 class="page-title">We'd love your feedback</h2>
+      <p class="page-subtitle">
+        Your thoughts help us improve ExpireQR. Suggestions, bugs, or ideas — all are welcome!
+      </p>
     </header>
 
     <section class="page-card">
@@ -40,14 +84,12 @@
             <textarea
               id="msg"
               name="msg"
-              rows="12"
               required
-              placeholder="Write your message here..."
-              style="resize: vertical; min-height: 240px;"
+              placeholder="Share your thoughts here..."
             ></textarea>
           </label>
 
-          <label for="email" style="margin-top: 0.75rem;">
+          <label for="email" style="margin-top: 0.95rem;">
             Email (optional)
             <input
               id="email"
@@ -59,20 +101,23 @@
             />
           </label>
 
-          <p class="muted" style="margin: 0.5rem 0 0;">
-            We’ll only use this email to follow up on your message.
+          <p class="muted" style="margin: 0.45rem 0 0;">
+            We'll only use this to follow up on your feedback if needed.
           </p>
 
-          <div class="feedback-actions" style="margin-top: 1rem;">
+          <div class="feedback-actions" style="margin-top: 1.15rem;">
             <button class="btn btn-primary" id="submitBtn" type="submit">Submit Feedback</button>
+          </div>
+
+          <!-- Fallback (hidden until submit), keeps UI clean but still usable if mailto doesn't open -->
+          <div id="fallbackRow">
+            <p class="muted">
+              If your email app didn’t open, copy the message and email <strong id="supportEmailInline">support@tempqr.com</strong>.
+            </p>
             <button class="btn btn-ghost" id="copyBtn" type="button">Copy message</button>
           </div>
 
           <p class="muted" id="status" style="margin-top: 0.9rem; display:none;"></p>
-
-          <p class="muted" style="margin-top: 1rem;">
-            Tip: include the expiring link you created and what device/app you used (Chrome, Safari, Messenger, Viber, etc.).
-          </p>
 
           <!-- Hidden support address (easy to change later) -->
           <input type="hidden" id="supportTo" value="support@tempqr.com" />
@@ -82,7 +127,7 @@
   </main>
 
   <footer class="footer">
-    <div class="footer-left">© TempQR</div>
+    <div class="footer-left">© ExpireQR</div>
     <div class="footer-links">
       <a href="terms.html" rel="nofollow">Terms</a>
       <a href="privacy.html" rel="nofollow">Privacy</a>
@@ -99,6 +144,8 @@
       const status = document.getElementById("status");
       const copyBtn = document.getElementById("copyBtn");
       const supportTo = document.getElementById("supportTo");
+      const fallbackRow = document.getElementById("fallbackRow");
+      const supportEmailInline = document.getElementById("supportEmailInline");
 
       function showStatus(text) {
         if (!status) return;
@@ -113,7 +160,7 @@
         const fromEmail = (email.value || "").trim();
 
         const lines = [];
-        lines.push("TempQR Feedback");
+        lines.push("ExpireQR Feedback");
         lines.push("");
         if (fromEmail) lines.push("Reply email: " + fromEmail);
         lines.push("Message:");
@@ -121,12 +168,8 @@
         lines.push("");
         lines.push("----");
         lines.push("Meta:");
-        try {
-          lines.push("User agent: " + navigator.userAgent);
-        } catch (e) {}
-        try {
-          lines.push("Time: " + new Date().toISOString());
-        } catch (e) {}
+        try { lines.push("User agent: " + navigator.userAgent); } catch (e) {}
+        try { lines.push("Time: " + new Date().toISOString()); } catch (e) {}
 
         return { message, fromEmail, body: lines.join("\n") };
       }
@@ -156,21 +199,25 @@
         }
       }
 
-      copyBtn.addEventListener("click", async function () {
-        const { message, body } = buildPayload();
-        if (!message) {
-          showStatus("Please write a message first.");
-          msg.focus();
-          return;
-        }
-        const ok = await copyText(body);
-        showStatus(ok ? "Copied. Paste it into an email to support@tempqr.com." : "Copy failed. Please select and copy manually.");
-      });
+      if (copyBtn) {
+        copyBtn.addEventListener("click", async function () {
+          const { message, body } = buildPayload();
+          if (!message) {
+            showStatus("Please write a message first.");
+            msg.focus();
+            return;
+          }
+          const ok = await copyText(body);
+          showStatus(ok ? "Copied. Paste it into an email and send." : "Copy failed. Please select and copy manually.");
+        });
+      }
 
-      form.addEventListener("submit", async function (e) {
+      form.addEventListener("submit", function (e) {
         e.preventDefault();
 
         const to = (supportTo.value || "support@tempqr.com").trim();
+        if (supportEmailInline) supportEmailInline.textContent = to;
+
         const { message, body } = buildPayload();
 
         if (!message) {
@@ -179,18 +226,20 @@
           return;
         }
 
-        const subject = "TempQR Feedback";
-        const mailto = "mailto:" + encodeURIComponent(to)
-          + "?subject=" + encodeURIComponent(subject)
-          + "&body=" + encodeURIComponent(body);
+        const subject = "ExpireQR Feedback";
+        const mailto =
+          "mailto:" + encodeURIComponent(to) +
+          "?subject=" + encodeURIComponent(subject) +
+          "&body=" + encodeURIComponent(body);
 
-        // Attempt to open user's email app
+        // Try to open email app
         try {
           window.location.href = mailto;
-          showStatus("If nothing opened, click “Copy message” and paste it into Gmail/Outlook.");
-        } catch (err) {
-          showStatus("Couldn’t open the email app. Click “Copy message” and paste it into Gmail/Outlook.");
-        }
+        } catch (err) {}
+
+        // Always reveal fallback after submit (keeps UI clean, but ensures user can still send)
+        if (fallbackRow) fallbackRow.style.display = "flex";
+        showStatus("If nothing opened, use “Copy message” and paste into Gmail/Outlook.");
       });
     })();
   </script>
