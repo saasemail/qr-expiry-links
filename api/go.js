@@ -149,10 +149,15 @@ export default async function handler(req) {
   // Add a stable cache-buster per-link so preview images don’t get “stuck”
   const qrUrl = `${origin}/qr/${encodeURIComponent(id)}.png?e=${payload.eMs}`;
 
-  // Make OG/Twitter title a zero-width character so apps don't turn the label into the clickable "title" line.
-  // Put the signature text into description instead.
-  const title = "\u200B";
-  const desc = "Created with TempQR";
+  // IMPORTANT:
+  // - og:title is what Viber renders as the blue clickable title (cannot be made "non-clickable" inside Viber UI).
+  // - We keep og:title as "Expiring link:" and put the signature into description instead.
+  const title = "Expiring link:";
+  const signature = "Created with TempQR";
+  const desc = signature;
+
+  // OPTIONAL cache-buster for OG URL to reduce stale cached previews in some apps
+  const ogUrl = `${pageUrl}?e=${payload.eMs}`;
 
   // ALWAYS return HTML with OG tags.
   // Real users get redirected via meta refresh + JS.
@@ -166,7 +171,7 @@ export default async function handler(req) {
   <meta property="og:type" content="website">
   <meta property="og:title" content="${escapeHtml(title)}">
   <meta property="og:description" content="${escapeHtml(desc)}">
-  <meta property="og:url" content="${escapeHtml(pageUrl)}">
+  <meta property="og:url" content="${escapeHtml(ogUrl)}">
   <meta property="og:image" content="${escapeHtml(qrUrl)}">
   <meta property="og:image:secure_url" content="${escapeHtml(qrUrl)}">
   <meta property="og:image:width" content="512">
@@ -193,6 +198,7 @@ export default async function handler(req) {
 </head>
 <body>
   <div class="wrap">
+    <p>${escapeHtml(signature)}</p>
     <p><a href="${escapeHtml(payload.u)}">${escapeHtml(pageUrl)}</a></p>
     <div class="qr">
       <img src="${escapeHtml(qrUrl)}" alt="QR code" width="256" height="256">
