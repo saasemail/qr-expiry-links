@@ -400,6 +400,107 @@ section.card:not(#resultCard) .button-group .btn {
   }
 }
 
+/* =========
+   Static pages (Terms / Privacy / FAQ / Feedback)
+   ========= */
+
+.page {
+  flex: 1;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.page-hero {
+  text-align: left;
+  margin: 0.25rem 0 1rem;
+}
+
+.page-title {
+  font-size: 2rem;
+  line-height: 1.15;
+  margin: 0 0 0.35rem 0;
+}
+
+.page-subtitle {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.page-card {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin: 1.25rem 0;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+
+.prose {
+  color: var(--text);
+  line-height: 1.65;
+  font-size: 0.98rem;
+}
+
+.prose p { margin: 0.75rem 0; color: var(--text); }
+.prose ul { margin: 0.75rem 0 0.75rem 1.25rem; color: var(--text); }
+.prose li { margin: 0.4rem 0; }
+.prose strong { color: var(--text); }
+.prose .muted { color: var(--muted); }
+
+.kv {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 0.75rem 1rem;
+  margin-top: 0.75rem;
+}
+
+.kv .k {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.kv .v {
+  color: var(--text);
+  word-break: break-word;
+}
+
+.faq {
+  margin-top: 0.5rem;
+}
+
+.faq details {
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 0.85);
+  padding: 0.85rem 1rem;
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  margin: 0.75rem 0;
+}
+
+.faq summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.faq details p {
+  margin: 0.65rem 0 0.25rem;
+  color: var(--muted);
+}
+
+.feedback-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+@media (max-width: 520px) {
+  .page-title { font-size: 1.6rem; }
+  .kv { grid-template-columns: 1fr; }
+}
+
 /* Modal (left as-is even if unused right now) */
 .modal {
   position: fixed;
