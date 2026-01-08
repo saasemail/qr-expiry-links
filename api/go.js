@@ -14,11 +14,8 @@ function b64urlToBytes(b64u) {
 
 function bytesToB64url(bytes) {
   let bin = "";
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  }
-  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 async function hmacBytes(payload, secret) {
@@ -62,39 +59,33 @@ function parseV1Payload(bytes) {
     const obj = JSON.parse(str);
     if (!obj?.u || !obj?.e) return null;
     const eMs = new Date(obj.e).getTime();
-    if (!Number.isFinite(eMs)) return null;
-    return { u: obj.u, eMs, v: obj.v || 1 };
+    if (!Number.isFinite(eMs) || eMs <= 0) return null;
+    return { u: obj.u, eMs, v: 1 };
   } catch {
     return null;
   }
 }
 
-function escapeHtml(s) {
-  return String(s || "")
+function escapeHtml(str) {
+  return String(str || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+    .replace(/"/g, "&quot;");
 }
 
 export default async function handler(req) {
   const url = new URL(req.url);
-
-  // support both /api/go?id=... and /go/<id> (via rewrite)
-  let id = url.searchParams.get("id");
-  if (!id) {
-    const parts = url.pathname.split("/");
-    const idx = parts.indexOf("go");
-    if (idx >= 0 && parts[idx + 1]) id = parts[idx + 1];
+  const id = url.searchParams.get("id") || "";
+  const [payloadB64, sig] = id.split(".");
+  if (!payloadB64 || !sig) {
+    return new Response("Invalid link", { status: 400 });
   }
 
-  if (!id || !id.includes(".")) return new Response("Not found", { status: 404 });
-
-  const [payloadB64, sig] = id.split(".");
-
-  // must match /api/create
-  const secret = process.env.SIGNING_SECRET || "dev-secret";
+  const secret = process.env.SIGNING_SECRET;
+  if (!secret) {
+    return new Response("Server misconfigured", { status: 500 });
+  }
 
   // Accept both:
   // - v2 short tag (12 bytes => 16 chars b64url)
@@ -109,7 +100,9 @@ export default async function handler(req) {
   try {
     payloadBytes = b64urlToBytes(payloadB64);
   } catch {
-    return new Response("Bad payload", { status: 400 });
+    return new Response("Bad payload", {
+      status: 400
+    });
   }
 
   const p2 = parseV2Payload(payloadBytes);
@@ -143,14 +136,9 @@ export default async function handler(req) {
     });
   }
 
-  const origin = url.origin;
-  const pageUrl = `${origin}/go/${encodeURIComponent(id)}`;
-
-  // Add a stable cache-buster per-link so preview images don’t get “stuck”
-  const qrUrl = `${origin}/qr/${encodeURIComponent(id)}.png?e=${payload.eMs}`;
-
-  // IMPORTANT: keep title empty so chat preview doesn't show an extra blue title line
-  const title = "";
+  const pageUrl = `${url.origin}/go/${encodeURIComponent(id)}`;
+  const qrUrl = `${url.origin}/api/qr?id=${encodeURIComponent(id)}`;
+  const title = "TempQR — Scan before it expires";
   const desc = "Scan the QR code or open the link before it expires.";
 
   // ALWAYS return HTML with OG tags.
@@ -165,21 +153,19 @@ export default async function handler(req) {
   <meta property="og:type" content="website">
   <meta property="og:title" content="${escapeHtml(title)}">
   <meta property="og:description" content="${escapeHtml(desc)}">
-  <meta property="og:url" content="${escapeHtml(pageUrl)}">
   <meta property="og:image" content="${escapeHtml(qrUrl)}">
-  <meta property="og:image:secure_url" content="${escapeHtml(qrUrl)}">
-  <meta property="og:image:width" content="512">
-  <meta property="og:image:height" content="512">
+  <meta property="og:url" content="${escapeHtml(pageUrl)}">
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${escapeHtml(title)}">
   <meta name="twitter:description" content="${escapeHtml(desc)}">
   <meta name="twitter:image" content="${escapeHtml(qrUrl)}">
-
-  <link rel="canonical" href="${escapeHtml(pageUrl)}">
+  <meta name="twitter:url" content="${escapeHtml(pageUrl)}">
 
   <meta http-equiv="refresh" content="0;url=${escapeHtml(payload.u)}">
+
   <script>
+    // Fallback JS redirect for clients that ignore meta refresh
     try { window.location.replace(${JSON.stringify(payload.u)}); } catch (e) {}
   </script>
 
@@ -207,7 +193,7 @@ export default async function handler(req) {
     status: 200,
     headers: {
       "content-type": "text/html; charset=utf-8",
-      "cache-control": "public, max-age=0, s-maxage=300, stale-while-revalidate=600"
+      "cache-control": "no-store, max-age=0"
     }
   });
 }
