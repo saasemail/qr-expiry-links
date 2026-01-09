@@ -6,30 +6,42 @@
   <title>TempQR</title>
   <link rel="canonical" href="https://tempqr.com/">
 
-  <!-- PAŽNJA: fajl treba da se zove baš styles.css (ne "styless.css") -->
   <link rel="stylesheet" href="styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 
-  <!-- Top ad bar + remove thin top strip (override only, no other changes) -->
+  <!-- Remove colored top border/strip -->
   <style>
-    /* Hide top ad on small screens to protect UX */
+    html, body {
+      margin: 0;
+      padding: 0;
+    }
+    body::before, html::before {
+      display: none !important;
+      content: none !important;
+    }
+    .navbar {
+      border-top: none !important;
+      box-shadow: none !important;
+      background-image: none !important;
+    }
+    .navbar::before,
+    .navbar::after {
+      display: none !important;
+      content: none !important;
+    }
+
+    /* Hide top ad on small screens */
     @media (max-width: 560px) {
       #topAdBar { display: none !important; }
     }
-
-    /* Remove the thin blue/purple strip if it comes from navbar border/pseudo element */
-    .navbar { border-top: 0 !important; }
-    .navbar::before { display: none !important; content: none !important; }
-    body::before { display: none !important; content: none !important; }
-    html::before { display: none !important; content: none !important; }
   </style>
 </head>
 <body>
 
-  <!-- Adsterra: Top Banner 468x60 (replaces the thin top strip area) -->
+  <!-- Adsterra: Top Banner 468x60 -->
   <div id="topAdBar" aria-label="Advertisement" style="width:100%; display:block;">
     <div style="max-width: 468px; min-height: 60px; margin: 0 auto; padding: 8px 16px; text-align:center;">
       <script>
@@ -49,7 +61,6 @@
   <nav class="navbar">
     <div class="nav-left">
       <span class="brand-icon" aria-hidden="true">
-        <!-- simple QR-like mark -->
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm10 0h2v2h-2v-2Zm2 2h2v2h-2v-2Zm-2 2h2v2h-2v-2Zm4-6h2v6h-2v-6Z" fill="currentColor"/>
         </svg>
@@ -66,10 +77,8 @@
     <h2 class="hero-title">Generate shareable QR codes with automatic expiry</h2>
     <p class="subtitle">PERFECT for events, limited-time offers, secure sharing, or even entertainment purposes.</p>
 
-    <!-- Form -->
     <section class="card">
       <h2 class="card-title">Create Your QR Code</h2>
-
       <label>
         Enter URL
         <input type="url" id="urlInput" placeholder="example.com" />
@@ -91,25 +100,21 @@
       </label>
       <p class="field-hint">This QR will expire after the selected time.</p>
 
-      <!-- Custom duration (hidden unless selected) -->
       <div id="customExpiryWrap" class="custom-expiry hidden">
         <div class="custom-grid" role="group" aria-label="Custom duration">
           <div class="custom-field">
             <span class="custom-field-label">Days</span>
             <input type="number" id="customDays" min="0" max="3650" step="1" value="0" inputmode="numeric" />
           </div>
-
           <div class="custom-field">
             <span class="custom-field-label">Hours</span>
             <input type="number" id="customHours" min="0" max="23" step="1" value="0" inputmode="numeric" />
           </div>
-
           <div class="custom-field">
             <span class="custom-field-label">Minutes</span>
             <input type="number" id="customMinutes" min="0" max="59" step="1" value="10" inputmode="numeric" />
           </div>
         </div>
-
         <p class="custom-duration-hint" id="customDurationHint">Expires in 10 minutes.</p>
       </div>
 
@@ -118,7 +123,6 @@
       </div>
     </section>
 
-    <!-- Output -->
     <section class="card hidden" id="resultCard">
       <h2>Your Expiring Link</h2>
       <canvas id="qrcode"></canvas>
@@ -126,7 +130,6 @@
         <button class="btn btn-ghost" id="copyBtn" type="button">Copy link</button>
         <button class="btn btn-ghost" id="downloadBtn" type="button">Download PNG</button>
         <button class="btn btn-ghost" id="shareBtn" type="button" style="display:none;">Share</button>
-        <!-- NOVO: SVG download (Pro only) -->
         <button class="btn btn-ghost" id="downloadSvgBtn" type="button" style="display:none;">Download SVG</button>
       </div>
       <p><a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a></p>
@@ -135,7 +138,6 @@
       <p class="hint"><em>No history is stored—save the link and download the PNG before leaving.</em></p>
     </section>
 
-    <!-- Adsterra: Banner 320x50 (between generate/result and footer) -->
     <div aria-label="Advertisement" style="width:100%; display:block;">
       <div style="max-width: 320px; margin: 14px auto; text-align:center;">
         <script>
@@ -151,7 +153,6 @@
       </div>
     </div>
 
-    <!-- (1) Benefits section -->
     <section class="benefits" aria-label="Benefits">
       <div class="benefit">
         <div class="benefit-title">No signup</div>
@@ -169,7 +170,6 @@
     <p class="benefits-note">Free, simple, and fast — designed for quick sharing.</p>
   </div>
 
-  <!-- Footer -->
   <footer class="footer">
     <div class="footer-left">© TempQR</div>
     <div class="footer-links">
@@ -180,7 +180,6 @@
     </div>
   </footer>
 
-  <!-- Adsterra: Native Banner (moved to bottom) -->
   <div id="ad-top" aria-label="Advertisement" style="width:100%; display:block;">
     <div style="max-width: 1100px; margin: 0 auto; padding: 8px 16px;">
       <script async="async" data-cfasync="false" src="https://pl28430936.effectivegatecpm.com/04967c1b7abd898a3451fedeba4f822c/invoke.js"></script>
@@ -188,7 +187,6 @@
     </div>
   </div>
 
-  <!-- Scripts -->
   <script type="module" src="ui.js?v=fix_signout_ghost_1"></script>
 </body>
 </html>
