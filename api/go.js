@@ -123,11 +123,25 @@ export default async function handler(req) {
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:40px;background:#0b0b0f;color:#e6e6f0}
     a{color:#7aa7ff}
+    .ad{margin-top:28px;display:flex;justify-content:center}
   </style>
 </head>
 <body>
   <h1>Link expired</h1>
   <p>This link is no longer available.</p>
+
+  <div class="ad" aria-label="Advertisement">
+    <script>
+      atOptions = {
+        'key' : '50229c4eefa2707f1be8c13a32ca0a1c',
+        'format' : 'iframe',
+        'height' : 250,
+        'width' : 300,
+        'params' : {}
+      };
+    </script>
+    <script src="https://www.highperformanceformat.com/50229c4eefa2707f1be8c13a32ca0a1c/invoke.js"></script>
+  </div>
 </body>
 </html>`;
     return new Response(html, {
