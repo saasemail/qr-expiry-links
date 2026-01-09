@@ -12,8 +12,38 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+  <!-- Top ad bar + remove thin top strip (override only, no other changes) -->
+  <style>
+    /* Hide top ad on small screens to protect UX */
+    @media (max-width: 560px) {
+      #topAdBar { display: none !important; }
+    }
+
+    /* Remove the thin blue/purple strip if it comes from navbar border/pseudo element */
+    .navbar { border-top: 0 !important; }
+    .navbar::before { display: none !important; content: none !important; }
+    body::before { display: none !important; content: none !important; }
+    html::before { display: none !important; content: none !important; }
+  </style>
 </head>
 <body>
+
+  <!-- Adsterra: Top Banner 468x60 (replaces the thin top strip area) -->
+  <div id="topAdBar" aria-label="Advertisement" style="width:100%; display:block;">
+    <div style="max-width: 468px; min-height: 60px; margin: 0 auto; padding: 8px 16px; text-align:center;">
+      <script>
+        atOptions = {
+          'key' : 'ecc29ebf10b3a2ba72c17c05cbb4431c',
+          'format' : 'iframe',
+          'height' : 60,
+          'width' : 468,
+          'params' : {}
+        };
+      </script>
+      <script src="https://www.highperformanceformat.com/ecc29ebf10b3a2ba72c17c05cbb4431c/invoke.js"></script>
+    </div>
+  </div>
 
   <!-- Navbar -->
   <nav class="navbar">
