@@ -45,9 +45,110 @@ const SESSION_KEY_LAST = "tempqr_last_result_v1";
 
 // Viber share scheme (official)
 const VIBER_SCHEME_PREFIX = "viber://forward?text=";
-// Keep share text short (Viber trims long text; keep well under 200 chars)
+
+// --- NEW: Resume via link hash (#r=<id>) so returning from apps can restore the same result ---
+const RESUME_HASH_KEY = "r";
+
+// Base64URL decode -> Uint8Array
+function b64urlToBytes(b64u) {
+  const s0 = String(b64u || "").replace(/-/g, "+").replace(/_/g, "/");
+  const pad = s0.length % 4 ? "=".repeat(4 - (s0.length % 4)) : "";
+  const s = s0 + pad;
+
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+// Parse TempQR v2 id -> expiresAt ISO string (payload: [1 byte v=2][4 bytes expirySeconds BE][utf8 url...])
+function expiresAtFromV2Id(id) {
+  try {
+    const payloadB64 = String(id || "").split(".")[0];
+    if (!payloadB64) return null;
+    const bytes = b64urlToBytes(payloadB64);
+    if (!bytes || bytes.length < 5) return null;
+    if (bytes[0] !== 2) return null;
+
+    const expirySeconds =
+      ((bytes[1] << 24) >>> 0) |
+      ((bytes[2] << 16) >>> 0) |
+      ((bytes[3] << 8) >>> 0)  |
+      (bytes[4] >>> 0);
+
+    if (!Number.isFinite(expirySeconds) || expirySeconds <= 0) return null;
+    return new Date(expirySeconds * 1000).toISOString();
+  } catch {
+    return null;
+  }
+}
+
+function extractIdFromGoUrlOrId(input) {
+  const s = String(input || "").trim();
+  if (!s) return "";
+
+  // If full URL like https://tempqr.com/go/<id>
+  try {
+    if (s.startsWith("http://") || s.startsWith("https://")) {
+      const u = new URL(s);
+      const parts = u.pathname.split("/").filter(Boolean);
+      if (parts[0] === "go" && parts[1]) return parts[1];
+    }
+  } catch {}
+
+  // If just /go/<id>
+  if (s.startsWith("/go/")) return s.slice(4);
+
+  // Otherwise assume it's already an id
+  return s;
+}
+
+function tryResumeFromHash() {
+  try {
+    const raw = String(window.location.hash || "");
+    if (!raw || raw.length < 3) return;
+
+    const params = new URLSearchParams(raw.startsWith("#") ? raw.slice(1) : raw);
+    const r = params.get(RESUME_HASH_KEY);
+    if (!r) return;
+
+    const id = extractIdFromGoUrlOrId(decodeURIComponent(r));
+    if (!id) return;
+
+    const expiresAt = expiresAtFromV2Id(id);
+    if (!expiresAt) return;
+
+    const redirectUrl = `${window.location.origin}/go/${id}`;
+
+    saveLastResultToSession({
+      redirectUrl,
+      expiresAt,
+      minutes: null
+    });
+
+    // Clean URL so refresh doesn't keep re-processing the hash
+    try {
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    } catch {}
+  } catch {}
+}
+
+function buildReturnUrl(link) {
+  try {
+    const u = new URL(link);
+    const parts = u.pathname.split("/").filter(Boolean);
+    if (parts[0] === "go" && parts[1]) {
+      const id = parts[1];
+      return `${window.location.origin}/#${RESUME_HASH_KEY}=${encodeURIComponent(id)}`;
+    }
+  } catch {}
+  return `${window.location.origin}/`;
+}
+
+// Keep share text short-ish (some apps trim long text)
 function buildShareText(link) {
-  return `TempQR: ${link}`;
+  const back = buildReturnUrl(link);
+  return `TempQR: ${link}\nReturn: ${back}`;
 }
 
 function saveLastResultToSession({ redirectUrl, expiresAt, minutes }) {
@@ -440,6 +541,9 @@ function bindUI() {
     return;
   }
 
+  // NEW: if user came back via https://tempqr.com/#r=<id>, restore session first
+  tryResumeFromHash();
+
   urlInput.addEventListener("blur", () => {
     const norm = normalizeHttpUrl(urlInput.value);
     if (norm) urlInput.value = norm;
@@ -598,9 +702,7 @@ function bindUI() {
     }
   });
 
-  // IMPORTANT CHANGE:
-  // Share now tries to open Viber via viber://forward?text=... (better Back behavior).
-  // If that fails, it falls back to navigator.share() as before.
+  // Share: include both expiring link + Return link that restores the same result.
   shareBtn?.addEventListener("click", async () => {
     if (linkExpired) return;
     if (!lastRedirectUrl) return;
@@ -611,18 +713,12 @@ function bindUI() {
       // Do not overwrite without expiresAt; just proceed.
     }
 
-    // 1) Try Viber deep link first on mobile
-    if (isMobileUA()) {
-      const opened = await tryOpenViberShare(lastRedirectUrl);
-      if (opened) return; // Viber opened; user can hit Back and should return to browser more reliably
-    }
-
-    // 2) Fallback: system share sheet
+    // 1) System share sheet (preferred)
     if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
       try {
         await navigator.share({
           title: "TempQR",
-          text: "Expiring link:",
+          text: buildShareText(lastRedirectUrl),
           url: lastRedirectUrl
         });
       } catch (e) {
@@ -631,7 +727,7 @@ function bindUI() {
       return;
     }
 
-    // 3) Last fallback: copy link
+    // 2) Last fallback: copy link
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(lastRedirectUrl);
