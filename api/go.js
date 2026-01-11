@@ -130,7 +130,6 @@ export default async function handler(req) {
   <h1>Link expired</h1>
   <p>This link is no longer available.</p>
 
-  <!-- Advertisement (TEMP OFF)
   <div class="ad" aria-label="Advertisement">
     <script>
       atOptions = {
@@ -143,7 +142,6 @@ export default async function handler(req) {
     </script>
     <script src="https://www.highperformanceformat.com/50229c4eefa2707f1be8c13a32ca0a1c/invoke.js"></script>
   </div>
-  -->
 </body>
 </html>`;
     return new Response(html, {
