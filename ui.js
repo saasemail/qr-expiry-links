@@ -40,6 +40,40 @@ const CUSTOM_DAYS_MAX = 3650;
 const QR_ECL = "L";   // lower density than M/Q for long strings
 const QR_MARGIN = 4;  // quiet zone (modules)
 
+// Session resume (so Back from Viber returns to same generated result)
+const SESSION_KEY_LAST = "tempqr_last_result_v1";
+
+function saveLastResultToSession({ redirectUrl, expiresAt, minutes }) {
+  try {
+    if (!redirectUrl || !expiresAt) return;
+    const payload = {
+      redirectUrl,
+      expiresAt,
+      minutes: Number(minutes) || null,
+      savedAt: Date.now(),
+      origin: window.location.origin
+    };
+    sessionStorage.setItem(SESSION_KEY_LAST, JSON.stringify(payload));
+  } catch {}
+}
+
+function clearLastResultFromSession() {
+  try { sessionStorage.removeItem(SESSION_KEY_LAST); } catch {}
+}
+
+function readLastResultFromSession() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY_LAST);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (!obj?.redirectUrl || !obj?.expiresAt) return null;
+    if (obj.origin && obj.origin !== window.location.origin) return null;
+    return obj;
+  } catch {
+    return null;
+  }
+}
+
 function normalizeHttpUrl(input) {
   let s = String(input || "").trim();
   if (!s) return "";
@@ -89,6 +123,23 @@ function setDownloadButtonsEnabled(enabled) {
   } catch {}
 }
 
+function markExpiredUI() {
+  try {
+    const ctx = qrcodeCanvas.getContext("2d");
+    ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
+  } catch {}
+
+  generatedLink.textContent = "";
+  generatedLink.href = "#";
+  generatedLink.title = "";
+  expiryHint.textContent = "This link has expired.";
+  countdownEl.textContent = "Expired";
+
+  linkExpired = true;
+  setDownloadButtonsEnabled(false);
+  clearLastResultFromSession();
+}
+
 function startCountdown(iso) {
   const end = new Date(iso).getTime();
   clearInterval(countdownTimer);
@@ -97,23 +148,9 @@ function startCountdown(iso) {
     const left = end - Date.now();
     if (left <= 0) {
       clearInterval(countdownTimer);
-      countdownEl.textContent = "Expired";
-
-      try {
-        const ctx = qrcodeCanvas.getContext("2d");
-        ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
-      } catch {}
-
-      generatedLink.textContent = "";
-      generatedLink.href = "#";
-      generatedLink.title = "";
-      expiryHint.textContent = "This link has expired.";
-
-      linkExpired = true;
-      setDownloadButtonsEnabled(false);
+      markExpiredUI();
       return;
     }
-
     countdownEl.textContent = formatCountdown(left);
   }, 1000);
 }
@@ -319,6 +356,57 @@ function getSelectedMinutesOrThrow() {
   return minutes;
 }
 
+async function restoreLastResultIfPossible() {
+  const saved = readLastResultFromSession();
+  if (!saved) return;
+
+  const endMs = new Date(saved.expiresAt).getTime();
+  if (!Number.isFinite(endMs) || endMs <= 0) {
+    clearLastResultFromSession();
+    return;
+  }
+
+  // If already expired, clear and show expired state only if result card was visible before
+  if (Date.now() >= endMs) {
+    // If user had generated before, it's better UX to show expired message in result area
+    // but only if we can safely show result card.
+    try { resultCard?.classList?.remove("hidden"); } catch {}
+    markExpiredUI();
+    return;
+  }
+
+  // Restore UI
+  clearTimeout(expiryTimer);
+  clearInterval(countdownTimer);
+
+  const redirectUrl = saved.redirectUrl;
+  lastRedirectUrl = redirectUrl;
+  linkExpired = false;
+
+  setDownloadButtonsEnabled(true);
+
+  generatedLink.textContent = makeDisplayLink(redirectUrl);
+  generatedLink.href = redirectUrl;
+  generatedLink.title = redirectUrl;
+
+  resultCard.classList.remove("hidden");
+
+  // Render QR + set hints
+  await renderQr(redirectUrl);
+
+  const endLocal = new Date(saved.expiresAt);
+  const minsLabel = (saved.minutes && Number.isFinite(saved.minutes)) ? `${saved.minutes} min` : "custom";
+  expiryHint.textContent = `Expires in ${minsLabel} • Until ${endLocal.toLocaleString()}`;
+
+  // Expire timers based on remaining time
+  const remainingMs = Math.max(0, endMs - Date.now());
+  expiryTimer = setTimeout(() => {
+    markExpiredUI();
+  }, remainingMs);
+
+  startCountdown(saved.expiresAt);
+}
+
 function bindUI() {
   if (!generateBtn || !urlInput || !expirySelect || !resultCard || !qrcodeCanvas) {
     console.error("[ui] Missing required DOM elements. Check index.html IDs.");
@@ -408,6 +496,13 @@ function bindUI() {
       const redirectUrl = `${window.location.origin}/go/${created.id}`;
       lastRedirectUrl = redirectUrl;
 
+      // Save for "Back from Viber" resume (session only)
+      saveLastResultToSession({
+        redirectUrl,
+        expiresAt: created.expires_at,
+        minutes: created.minutes
+      });
+
       linkExpired = false;
       setDownloadButtonsEnabled(true);
 
@@ -421,21 +516,13 @@ function bindUI() {
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${created.minutes} min • Until ${endLocal.toLocaleString()}`;
 
+      // Use precise remaining time (safer if tab was paused)
+      const endMs = endLocal.getTime();
+      const remainingMs = Math.max(0, endMs - Date.now());
+
       expiryTimer = setTimeout(() => {
-        try {
-          const ctx = qrcodeCanvas.getContext("2d");
-          ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
-        } catch {}
-
-        generatedLink.textContent = "";
-        generatedLink.href = "#";
-        generatedLink.title = "";
-        expiryHint.textContent = "This link has expired.";
-        countdownEl.textContent = "Expired";
-
-        linkExpired = true;
-        setDownloadButtonsEnabled(false);
-      }, created.minutes * 60_000);
+        markExpiredUI();
+      }, remainingMs);
 
       startCountdown(created.expires_at);
     } catch (err) {
@@ -450,6 +537,15 @@ function bindUI() {
   window.addEventListener("resize", () => {
     if (!lastRedirectUrl || linkExpired) return;
     window.requestAnimationFrame(() => renderQr(lastRedirectUrl));
+  });
+
+  // When returning from external apps (Viber, WhatsApp...), browsers may restore via BFCache or reload.
+  // pageshow covers both cases.
+  window.addEventListener("pageshow", () => {
+    // Restore only if we don't already have an active result rendered.
+    // If page reloaded, lastRedirectUrl will be empty and this will restore.
+    // If BFCache, it will keep state, but restore is safe (idempotent).
+    restoreLastResultIfPossible().catch(() => {});
   });
 
   copyBtn?.addEventListener("click", async () => {
@@ -495,6 +591,13 @@ function bindUI() {
     if (!lastRedirectUrl) return;
     if (typeof navigator === "undefined" || typeof navigator.share !== "function") return;
 
+    // Make sure session has latest (extra safety before app switch)
+    const saved = readLastResultFromSession();
+    if (!saved || saved.redirectUrl !== lastRedirectUrl) {
+      // We may not know exact expiresAt here, but typically it exists.
+      // If it doesn't, don't overwrite; generation flow already saved it.
+    }
+
     try {
       await navigator.share({
         title: "TempQR",
@@ -537,6 +640,9 @@ function bindUI() {
       alert("Could not download SVG.");
     }
   });
+
+  // Also attempt restore on initial load (covers reloads where pageshow may be late)
+  restoreLastResultIfPossible().catch(() => {});
 }
 
 (function start() {
