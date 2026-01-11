@@ -43,6 +43,13 @@ const QR_MARGIN = 4;  // quiet zone (modules)
 // Session resume (so Back from Viber returns to same generated result)
 const SESSION_KEY_LAST = "tempqr_last_result_v1";
 
+// Viber share scheme (official)
+const VIBER_SCHEME_PREFIX = "viber://forward?text=";
+// Keep share text short (Viber trims long text; keep well under 200 chars)
+function buildShareText(link) {
+  return `TempQR: ${link}`;
+}
+
 function saveLastResultToSession({ redirectUrl, expiresAt, minutes }) {
   try {
     if (!redirectUrl || !expiresAt) return;
@@ -366,16 +373,12 @@ async function restoreLastResultIfPossible() {
     return;
   }
 
-  // If already expired, clear and show expired state only if result card was visible before
   if (Date.now() >= endMs) {
-    // If user had generated before, it's better UX to show expired message in result area
-    // but only if we can safely show result card.
     try { resultCard?.classList?.remove("hidden"); } catch {}
     markExpiredUI();
     return;
   }
 
-  // Restore UI
   clearTimeout(expiryTimer);
   clearInterval(countdownTimer);
 
@@ -391,14 +394,12 @@ async function restoreLastResultIfPossible() {
 
   resultCard.classList.remove("hidden");
 
-  // Render QR + set hints
   await renderQr(redirectUrl);
 
   const endLocal = new Date(saved.expiresAt);
   const minsLabel = (saved.minutes && Number.isFinite(saved.minutes)) ? `${saved.minutes} min` : "custom";
   expiryHint.textContent = `Expires in ${minsLabel} • Until ${endLocal.toLocaleString()}`;
 
-  // Expire timers based on remaining time
   const remainingMs = Math.max(0, endMs - Date.now());
   expiryTimer = setTimeout(() => {
     markExpiredUI();
@@ -407,33 +408,55 @@ async function restoreLastResultIfPossible() {
   startCountdown(saved.expiresAt);
 }
 
+function isMobileUA() {
+  const ua = String(navigator.userAgent || "");
+  return /Android|iPhone|iPad|iPod/i.test(ua);
+}
+
+// Try open Viber via scheme. If page does NOT get hidden quickly, assume it failed.
+async function tryOpenViberShare(link) {
+  const text = buildShareText(link);
+  const href = VIBER_SCHEME_PREFIX + encodeURIComponent(text);
+
+  let didHide = false;
+  const onVis = () => { if (document.hidden) didHide = true; };
+
+  document.addEventListener("visibilitychange", onVis, { passive: true });
+
+  // Attempt to open Viber
+  try { window.location.href = href; } catch {}
+
+  // Wait a bit: if Viber opens, page usually becomes hidden
+  await new Promise(r => setTimeout(r, 900));
+
+  document.removeEventListener("visibilitychange", onVis);
+
+  return didHide;
+}
+
 function bindUI() {
   if (!generateBtn || !urlInput || !expirySelect || !resultCard || !qrcodeCanvas) {
     console.error("[ui] Missing required DOM elements. Check index.html IDs.");
     return;
   }
 
-  // (Optional UX) Normalize on blur so user sees https:// added (but don't force while typing)
   urlInput.addEventListener("blur", () => {
     const norm = normalizeHttpUrl(urlInput.value);
     if (norm) urlInput.value = norm;
   });
 
-  // Show Share only if Web Share API exists
   if (shareBtn) {
     const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
     shareBtn.style.display = canShare ? "" : "none";
     shareBtn.disabled = true;
   }
 
-  // Initialize custom duration from default preset (10 minutes)
   lastPresetMinutes = parseInt(String(expirySelect.value || "10"), 10);
   if (!Number.isFinite(lastPresetMinutes) || lastPresetMinutes < 1) lastPresetMinutes = 10;
   setCustomFromMinutes(lastPresetMinutes);
   updateCustomHint();
   toggleCustomUI();
 
-  // Preset/custom UI behavior
   expirySelect.addEventListener("change", () => {
     const v = String(expirySelect.value);
 
@@ -441,7 +464,6 @@ function bindUI() {
       const mins = parseInt(v, 10);
       if (Number.isFinite(mins) && mins >= 1) {
         lastPresetMinutes = mins;
-        // Keep custom prefilled from latest preset (nice UX)
         if (!customTouched) setCustomFromMinutes(lastPresetMinutes);
         updateCustomHint();
       }
@@ -450,10 +472,8 @@ function bindUI() {
     toggleCustomUI();
   });
 
-  // Mark custom as touched + update hint live
   const onCustomChange = () => {
     customTouched = true;
-    // Clamp inputs immediately for clean UX
     if (customDays) customDays.value = String(clampInt(customDays.value, 0, CUSTOM_DAYS_MAX));
     if (customHours) customHours.value = String(clampInt(customHours.value, 0, 23));
     if (customMinutes) customMinutes.value = String(clampInt(customMinutes.value, 0, 59));
@@ -473,7 +493,6 @@ function bindUI() {
       return;
     }
 
-    // Write normalized value back so user sees what will be used
     urlInput.value = url;
 
     let minutes;
@@ -496,7 +515,6 @@ function bindUI() {
       const redirectUrl = `${window.location.origin}/go/${created.id}`;
       lastRedirectUrl = redirectUrl;
 
-      // Save for "Back from Viber" resume (session only)
       saveLastResultToSession({
         redirectUrl,
         expiresAt: created.expires_at,
@@ -516,7 +534,6 @@ function bindUI() {
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${created.minutes} min • Until ${endLocal.toLocaleString()}`;
 
-      // Use precise remaining time (safer if tab was paused)
       const endMs = endLocal.getTime();
       const remainingMs = Math.max(0, endMs - Date.now());
 
@@ -539,12 +556,7 @@ function bindUI() {
     window.requestAnimationFrame(() => renderQr(lastRedirectUrl));
   });
 
-  // When returning from external apps (Viber, WhatsApp...), browsers may restore via BFCache or reload.
-  // pageshow covers both cases.
   window.addEventListener("pageshow", () => {
-    // Restore only if we don't already have an active result rendered.
-    // If page reloaded, lastRedirectUrl will be empty and this will restore.
-    // If BFCache, it will keep state, but restore is safe (idempotent).
     restoreLastResultIfPossible().catch(() => {});
   });
 
@@ -586,27 +598,47 @@ function bindUI() {
     }
   });
 
+  // IMPORTANT CHANGE:
+  // Share now tries to open Viber via viber://forward?text=... (better Back behavior).
+  // If that fails, it falls back to navigator.share() as before.
   shareBtn?.addEventListener("click", async () => {
     if (linkExpired) return;
     if (!lastRedirectUrl) return;
-    if (typeof navigator === "undefined" || typeof navigator.share !== "function") return;
 
-    // Make sure session has latest (extra safety before app switch)
+    // Ensure we have session saved (generation already did this, but keep safe)
     const saved = readLastResultFromSession();
-    if (!saved || saved.redirectUrl !== lastRedirectUrl) {
-      // We may not know exact expiresAt here, but typically it exists.
-      // If it doesn't, don't overwrite; generation flow already saved it.
+    if (!saved) {
+      // Do not overwrite without expiresAt; just proceed.
     }
 
-    try {
-      await navigator.share({
-        title: "TempQR",
-        text: "Expiring link:",
-        url: lastRedirectUrl
-      });
-    } catch (e) {
-      // User cancel (AbortError) or other share issues — keep silent to avoid confusion.
+    // 1) Try Viber deep link first on mobile
+    if (isMobileUA()) {
+      const opened = await tryOpenViberShare(lastRedirectUrl);
+      if (opened) return; // Viber opened; user can hit Back and should return to browser more reliably
     }
+
+    // 2) Fallback: system share sheet
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      try {
+        await navigator.share({
+          title: "TempQR",
+          text: "Expiring link:",
+          url: lastRedirectUrl
+        });
+      } catch (e) {
+        // Cancel or error: silent
+      }
+      return;
+    }
+
+    // 3) Last fallback: copy link
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(lastRedirectUrl);
+        copyBtn.textContent = "Copied!";
+        setTimeout(() => (copyBtn.textContent = "Copy link"), 1200);
+      }
+    } catch {}
   });
 
   downloadSvgBtn?.addEventListener("click", async () => {
@@ -641,7 +673,6 @@ function bindUI() {
     }
   });
 
-  // Also attempt restore on initial load (covers reloads where pageshow may be late)
   restoreLastResultIfPossible().catch(() => {});
 }
 
