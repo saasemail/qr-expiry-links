@@ -40,148 +40,6 @@ const CUSTOM_DAYS_MAX = 3650;
 const QR_ECL = "L";   // lower density than M/Q for long strings
 const QR_MARGIN = 4;  // quiet zone (modules)
 
-// Session resume (so Back from Viber returns to same generated result)
-const SESSION_KEY_LAST = "tempqr_last_result_v1";
-
-// Viber share scheme (official)
-const VIBER_SCHEME_PREFIX = "viber://forward?text=";
-
-// --- NEW: Resume via link hash (#r=<id>) so returning from apps can restore the same result ---
-const RESUME_HASH_KEY = "r";
-
-// Base64URL decode -> Uint8Array
-function b64urlToBytes(b64u) {
-  const s0 = String(b64u || "").replace(/-/g, "+").replace(/_/g, "/");
-  const pad = s0.length % 4 ? "=".repeat(4 - (s0.length % 4)) : "";
-  const s = s0 + pad;
-
-  const bin = atob(s);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
-}
-
-// Parse TempQR v2 id -> expiresAt ISO string (payload: [1 byte v=2][4 bytes expirySeconds BE][utf8 url...])
-function expiresAtFromV2Id(id) {
-  try {
-    const payloadB64 = String(id || "").split(".")[0];
-    if (!payloadB64) return null;
-    const bytes = b64urlToBytes(payloadB64);
-    if (!bytes || bytes.length < 5) return null;
-    if (bytes[0] !== 2) return null;
-
-    const expirySeconds =
-      ((bytes[1] << 24) >>> 0) |
-      ((bytes[2] << 16) >>> 0) |
-      ((bytes[3] << 8) >>> 0)  |
-      (bytes[4] >>> 0);
-
-    if (!Number.isFinite(expirySeconds) || expirySeconds <= 0) return null;
-    return new Date(expirySeconds * 1000).toISOString();
-  } catch {
-    return null;
-  }
-}
-
-function extractIdFromGoUrlOrId(input) {
-  const s = String(input || "").trim();
-  if (!s) return "";
-
-  // If full URL like https://tempqr.com/go/<id>
-  try {
-    if (s.startsWith("http://") || s.startsWith("https://")) {
-      const u = new URL(s);
-      const parts = u.pathname.split("/").filter(Boolean);
-      if (parts[0] === "go" && parts[1]) return parts[1];
-    }
-  } catch {}
-
-  // If just /go/<id>
-  if (s.startsWith("/go/")) return s.slice(4);
-
-  // Otherwise assume it's already an id
-  return s;
-}
-
-function tryResumeFromHash() {
-  try {
-    const raw = String(window.location.hash || "");
-    if (!raw || raw.length < 3) return;
-
-    const params = new URLSearchParams(raw.startsWith("#") ? raw.slice(1) : raw);
-    const r = params.get(RESUME_HASH_KEY);
-    if (!r) return;
-
-    const id = extractIdFromGoUrlOrId(decodeURIComponent(r));
-    if (!id) return;
-
-    const expiresAt = expiresAtFromV2Id(id);
-    if (!expiresAt) return;
-
-    const redirectUrl = `${window.location.origin}/go/${id}`;
-
-    saveLastResultToSession({
-      redirectUrl,
-      expiresAt,
-      minutes: null
-    });
-
-    // Clean URL so refresh doesn't keep re-processing the hash
-    try {
-      window.history.replaceState(null, "", window.location.pathname + window.location.search);
-    } catch {}
-  } catch {}
-}
-
-function buildReturnUrl(link) {
-  try {
-    const u = new URL(link);
-    const parts = u.pathname.split("/").filter(Boolean);
-    if (parts[0] === "go" && parts[1]) {
-      const id = parts[1];
-      return `${window.location.origin}/#${RESUME_HASH_KEY}=${encodeURIComponent(id)}`;
-    }
-  } catch {}
-  return `${window.location.origin}/`;
-}
-
-// Keep share text short-ish (some apps trim long text)
-function buildShareText(link) {
-  const back = buildReturnUrl(link);
-  return `TempQR: ${link}\nReturn: ${back}`;
-}
-
-function saveLastResultToSession({ redirectUrl, expiresAt, minutes }) {
-  try {
-    if (!redirectUrl || !expiresAt) return;
-    const payload = {
-      redirectUrl,
-      expiresAt,
-      minutes: Number(minutes) || null,
-      savedAt: Date.now(),
-      origin: window.location.origin
-    };
-    sessionStorage.setItem(SESSION_KEY_LAST, JSON.stringify(payload));
-  } catch {}
-}
-
-function clearLastResultFromSession() {
-  try { sessionStorage.removeItem(SESSION_KEY_LAST); } catch {}
-}
-
-function readLastResultFromSession() {
-  try {
-    const raw = sessionStorage.getItem(SESSION_KEY_LAST);
-    if (!raw) return null;
-    const obj = JSON.parse(raw);
-    if (!obj?.redirectUrl || !obj?.expiresAt) return null;
-    if (obj.origin && obj.origin !== window.location.origin) return null;
-    return obj;
-  } catch {
-    return null;
-  }
-}
-
 function normalizeHttpUrl(input) {
   let s = String(input || "").trim();
   if (!s) return "";
@@ -231,23 +89,6 @@ function setDownloadButtonsEnabled(enabled) {
   } catch {}
 }
 
-function markExpiredUI() {
-  try {
-    const ctx = qrcodeCanvas.getContext("2d");
-    ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
-  } catch {}
-
-  generatedLink.textContent = "";
-  generatedLink.href = "#";
-  generatedLink.title = "";
-  expiryHint.textContent = "This link has expired.";
-  countdownEl.textContent = "Expired";
-
-  linkExpired = true;
-  setDownloadButtonsEnabled(false);
-  clearLastResultFromSession();
-}
-
 function startCountdown(iso) {
   const end = new Date(iso).getTime();
   clearInterval(countdownTimer);
@@ -256,9 +97,23 @@ function startCountdown(iso) {
     const left = end - Date.now();
     if (left <= 0) {
       clearInterval(countdownTimer);
-      markExpiredUI();
+      countdownEl.textContent = "Expired";
+
+      try {
+        const ctx = qrcodeCanvas.getContext("2d");
+        ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
+      } catch {}
+
+      generatedLink.textContent = "";
+      generatedLink.href = "#";
+      generatedLink.title = "";
+      expiryHint.textContent = "This link has expired.";
+
+      linkExpired = true;
+      setDownloadButtonsEnabled(false);
       return;
     }
+
     countdownEl.textContent = formatCountdown(left);
   }, 1000);
 }
@@ -464,103 +319,33 @@ function getSelectedMinutesOrThrow() {
   return minutes;
 }
 
-async function restoreLastResultIfPossible() {
-  const saved = readLastResultFromSession();
-  if (!saved) return;
-
-  const endMs = new Date(saved.expiresAt).getTime();
-  if (!Number.isFinite(endMs) || endMs <= 0) {
-    clearLastResultFromSession();
-    return;
-  }
-
-  if (Date.now() >= endMs) {
-    try { resultCard?.classList?.remove("hidden"); } catch {}
-    markExpiredUI();
-    return;
-  }
-
-  clearTimeout(expiryTimer);
-  clearInterval(countdownTimer);
-
-  const redirectUrl = saved.redirectUrl;
-  lastRedirectUrl = redirectUrl;
-  linkExpired = false;
-
-  setDownloadButtonsEnabled(true);
-
-  generatedLink.textContent = makeDisplayLink(redirectUrl);
-  generatedLink.href = redirectUrl;
-  generatedLink.title = redirectUrl;
-
-  resultCard.classList.remove("hidden");
-
-  await renderQr(redirectUrl);
-
-  const endLocal = new Date(saved.expiresAt);
-  const minsLabel = (saved.minutes && Number.isFinite(saved.minutes)) ? `${saved.minutes} min` : "custom";
-  expiryHint.textContent = `Expires in ${minsLabel} • Until ${endLocal.toLocaleString()}`;
-
-  const remainingMs = Math.max(0, endMs - Date.now());
-  expiryTimer = setTimeout(() => {
-    markExpiredUI();
-  }, remainingMs);
-
-  startCountdown(saved.expiresAt);
-}
-
-function isMobileUA() {
-  const ua = String(navigator.userAgent || "");
-  return /Android|iPhone|iPad|iPod/i.test(ua);
-}
-
-// Try open Viber via scheme. If page does NOT get hidden quickly, assume it failed.
-async function tryOpenViberShare(link) {
-  const text = buildShareText(link);
-  const href = VIBER_SCHEME_PREFIX + encodeURIComponent(text);
-
-  let didHide = false;
-  const onVis = () => { if (document.hidden) didHide = true; };
-
-  document.addEventListener("visibilitychange", onVis, { passive: true });
-
-  // Attempt to open Viber
-  try { window.location.href = href; } catch {}
-
-  // Wait a bit: if Viber opens, page usually becomes hidden
-  await new Promise(r => setTimeout(r, 900));
-
-  document.removeEventListener("visibilitychange", onVis);
-
-  return didHide;
-}
-
 function bindUI() {
   if (!generateBtn || !urlInput || !expirySelect || !resultCard || !qrcodeCanvas) {
     console.error("[ui] Missing required DOM elements. Check index.html IDs.");
     return;
   }
 
-  // NEW: if user came back via https://tempqr.com/#r=<id>, restore session first
-  tryResumeFromHash();
-
+  // (Optional UX) Normalize on blur so user sees https:// added (but don't force while typing)
   urlInput.addEventListener("blur", () => {
     const norm = normalizeHttpUrl(urlInput.value);
     if (norm) urlInput.value = norm;
   });
 
+  // Show Share only if Web Share API exists
   if (shareBtn) {
     const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
     shareBtn.style.display = canShare ? "" : "none";
     shareBtn.disabled = true;
   }
 
+  // Initialize custom duration from default preset (10 minutes)
   lastPresetMinutes = parseInt(String(expirySelect.value || "10"), 10);
   if (!Number.isFinite(lastPresetMinutes) || lastPresetMinutes < 1) lastPresetMinutes = 10;
   setCustomFromMinutes(lastPresetMinutes);
   updateCustomHint();
   toggleCustomUI();
 
+  // Preset/custom UI behavior
   expirySelect.addEventListener("change", () => {
     const v = String(expirySelect.value);
 
@@ -568,6 +353,7 @@ function bindUI() {
       const mins = parseInt(v, 10);
       if (Number.isFinite(mins) && mins >= 1) {
         lastPresetMinutes = mins;
+        // Keep custom prefilled from latest preset (nice UX)
         if (!customTouched) setCustomFromMinutes(lastPresetMinutes);
         updateCustomHint();
       }
@@ -576,8 +362,10 @@ function bindUI() {
     toggleCustomUI();
   });
 
+  // Mark custom as touched + update hint live
   const onCustomChange = () => {
     customTouched = true;
+    // Clamp inputs immediately for clean UX
     if (customDays) customDays.value = String(clampInt(customDays.value, 0, CUSTOM_DAYS_MAX));
     if (customHours) customHours.value = String(clampInt(customHours.value, 0, 23));
     if (customMinutes) customMinutes.value = String(clampInt(customMinutes.value, 0, 59));
@@ -597,6 +385,7 @@ function bindUI() {
       return;
     }
 
+    // Write normalized value back so user sees what will be used
     urlInput.value = url;
 
     let minutes;
@@ -619,12 +408,6 @@ function bindUI() {
       const redirectUrl = `${window.location.origin}/go/${created.id}`;
       lastRedirectUrl = redirectUrl;
 
-      saveLastResultToSession({
-        redirectUrl,
-        expiresAt: created.expires_at,
-        minutes: created.minutes
-      });
-
       linkExpired = false;
       setDownloadButtonsEnabled(true);
 
@@ -638,12 +421,21 @@ function bindUI() {
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${created.minutes} min • Until ${endLocal.toLocaleString()}`;
 
-      const endMs = endLocal.getTime();
-      const remainingMs = Math.max(0, endMs - Date.now());
-
       expiryTimer = setTimeout(() => {
-        markExpiredUI();
-      }, remainingMs);
+        try {
+          const ctx = qrcodeCanvas.getContext("2d");
+          ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
+        } catch {}
+
+        generatedLink.textContent = "";
+        generatedLink.href = "#";
+        generatedLink.title = "";
+        expiryHint.textContent = "This link has expired.";
+        countdownEl.textContent = "Expired";
+
+        linkExpired = true;
+        setDownloadButtonsEnabled(false);
+      }, created.minutes * 60_000);
 
       startCountdown(created.expires_at);
     } catch (err) {
@@ -658,10 +450,6 @@ function bindUI() {
   window.addEventListener("resize", () => {
     if (!lastRedirectUrl || linkExpired) return;
     window.requestAnimationFrame(() => renderQr(lastRedirectUrl));
-  });
-
-  window.addEventListener("pageshow", () => {
-    restoreLastResultIfPossible().catch(() => {});
   });
 
   copyBtn?.addEventListener("click", async () => {
@@ -702,39 +490,20 @@ function bindUI() {
     }
   });
 
-  // Share: include both expiring link + Return link that restores the same result.
   shareBtn?.addEventListener("click", async () => {
     if (linkExpired) return;
     if (!lastRedirectUrl) return;
+    if (typeof navigator === "undefined" || typeof navigator.share !== "function") return;
 
-    // Ensure we have session saved (generation already did this, but keep safe)
-    const saved = readLastResultFromSession();
-    if (!saved) {
-      // Do not overwrite without expiresAt; just proceed.
-    }
-
-    // 1) System share sheet (preferred)
-    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-      try {
-        await navigator.share({
-          title: "TempQR",
-          text: buildShareText(lastRedirectUrl),
-          url: lastRedirectUrl
-        });
-      } catch (e) {
-        // Cancel or error: silent
-      }
-      return;
-    }
-
-    // 2) Last fallback: copy link
     try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(lastRedirectUrl);
-        copyBtn.textContent = "Copied!";
-        setTimeout(() => (copyBtn.textContent = "Copy link"), 1200);
-      }
-    } catch {}
+      await navigator.share({
+        title: "TempQR",
+        text: "Expiring link:",
+        url: lastRedirectUrl
+      });
+    } catch (e) {
+      // User cancel (AbortError) or other share issues — keep silent to avoid confusion.
+    }
   });
 
   downloadSvgBtn?.addEventListener("click", async () => {
@@ -768,8 +537,6 @@ function bindUI() {
       alert("Could not download SVG.");
     }
   });
-
-  restoreLastResultIfPossible().catch(() => {});
 }
 
 (function start() {
