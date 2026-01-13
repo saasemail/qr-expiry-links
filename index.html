@@ -49,6 +49,153 @@
         height: 34px !important;
       }
     }
+
+    /* --- Use-cases chips + modal (compact, doesn't push the form) --- */
+    .usecases-bar{
+      margin: 12px auto 6px;
+      max-width: 860px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 0 12px;
+    }
+    .usecases-label{
+      font-size: 13px;
+      color: rgba(255,255,255,0.72);
+      letter-spacing: 0.2px;
+      margin-right: 2px;
+      white-space: nowrap;
+    }
+    .usecase-chips{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .chip{
+      font-size: 12.5px;
+      line-height: 1;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.86);
+      white-space: nowrap;
+      user-select: none;
+    }
+    .usecases-more{
+      font-size: 12.5px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.02);
+      color: rgba(255,255,255,0.92);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .usecases-more:hover{
+      background: rgba(255,255,255,0.06);
+    }
+    .usecases-more:focus{
+      outline: 2px solid rgba(125, 94, 255, 0.55);
+      outline-offset: 2px;
+    }
+
+    /* Modal */
+    .uc-modal-overlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.62);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 9999;
+    }
+    .uc-modal-overlay.open{ display: flex; }
+
+    .uc-modal{
+      width: min(740px, 100%);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(18, 22, 34, 0.92);
+      box-shadow: 0 20px 80px rgba(0,0,0,0.55);
+      overflow: hidden;
+    }
+    .uc-modal-header{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .uc-modal-title{
+      font-size: 14px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.92);
+      letter-spacing: 0.2px;
+    }
+    .uc-modal-close{
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.04);
+      color: rgba(255,255,255,0.90);
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+    }
+    .uc-modal-close:hover{
+      background: rgba(255,255,255,0.08);
+    }
+    .uc-modal-body{
+      padding: 14px 16px 16px;
+    }
+    .uc-grid{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 18px;
+      margin: 8px 0 10px;
+    }
+    @media (max-width: 640px){
+      .uc-grid{ grid-template-columns: 1fr; }
+    }
+    .uc-item{
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      color: rgba(255,255,255,0.86);
+      font-size: 13.5px;
+      line-height: 1.35;
+    }
+    .uc-check{
+      margin-top: 1px;
+      width: 18px;
+      height: 18px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(125, 94, 255, 0.35);
+      background: rgba(125, 94, 255, 0.12);
+      color: rgba(255,255,255,0.90);
+      flex: 0 0 auto;
+      font-size: 12px;
+    }
+    .uc-footer-note{
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      text-align: center;
+      color: rgba(255,255,255,0.66);
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
@@ -86,6 +233,18 @@
   <div class="container">
     <h2 class="hero-title">Create shareable QR codes with automatic expiry</h2>
     <p class="subtitle">TempQR turns any URL into a temporary, shareable QR code &amp; expiring link.<br>Because not everything should stay online forever.</p>
+
+    <!-- Use-cases chips (compact) -->
+    <div class="usecases-bar" aria-label="Use cases">
+      <span class="usecases-label">Popular use-cases:</span>
+      <div class="usecase-chips">
+        <span class="chip">Drive/PDF links</span>
+        <span class="chip">Figma/Notion previews</span>
+        <span class="chip">Client portfolio</span>
+        <span class="chip">Event info</span>
+        <button type="button" class="usecases-more" id="usecasesOpenBtn" aria-haspopup="dialog" aria-controls="usecasesModalOverlay">View more</button>
+      </div>
+    </div>
 
     <section class="card">
       <h2 class="card-title">Create Your QR Code</h2>
@@ -181,6 +340,34 @@
     <p class="benefits-note">Free, simple, and fast — designed for quick sharing.</p>
   </div>
 
+  <!-- Use-cases Modal -->
+  <div class="uc-modal-overlay" id="usecasesModalOverlay" role="dialog" aria-modal="true" aria-labelledby="usecasesModalTitle">
+    <div class="uc-modal" role="document">
+      <div class="uc-modal-header">
+        <div class="uc-modal-title" id="usecasesModalTitle">Use-cases (URL only)</div>
+        <button type="button" class="uc-modal-close" id="usecasesCloseBtn" aria-label="Close">×</button>
+      </div>
+      <div class="uc-modal-body">
+        <div class="uc-grid" aria-label="Use-case list">
+          <div class="uc-item"><span class="uc-check">✓</span><span>Temporary Google Drive / Dropbox / PDF links</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Temporary WeTransfer / Mega / File.io links</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Temporary pages / previews (e.g., Figma / Notion)</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Temporary promo landing page links</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Temporary coupon sharing on a website</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Temporary portfolio preview for a client</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Temporary links for ticket / event info</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Temporary links for sensitive / personal content</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Temporary client links (freelance handoff)</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Temporary QR for offline sharing of a URL</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Temporary affiliate URLs</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Temporary campaign links (influencers / TikTok)</span></div>
+        </div>
+
+        <div class="uc-footer-note">And much more…</div>
+      </div>
+    </div>
+  </div>
+
   <footer class="footer">
     <div class="footer-left">© TempQR</div>
     <div class="footer-links">
@@ -198,6 +385,42 @@
       <div id="container-04967c1b7abd898a3451fedeba4f822c"></div>
     </div>
   </div>
+
+  <!-- Minimal modal JS (does not touch ui.js) -->
+  <script>
+    (function(){
+      var openBtn = document.getElementById('usecasesOpenBtn');
+      var overlay = document.getElementById('usecasesModalOverlay');
+      var closeBtn = document.getElementById('usecasesCloseBtn');
+
+      if(!openBtn || !overlay || !closeBtn) return;
+
+      function openModal(){
+        overlay.classList.add('open');
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
+        closeBtn.focus();
+      }
+
+      function closeModal(){
+        overlay.classList.remove('open');
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
+        openBtn.focus();
+      }
+
+      openBtn.addEventListener('click', openModal);
+      closeBtn.addEventListener('click', closeModal);
+
+      overlay.addEventListener('click', function(e){
+        if(e.target === overlay) closeModal();
+      });
+
+      document.addEventListener('keydown', function(e){
+        if(e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
+      });
+    })();
+  </script>
 
   <script type="module" src="ui.js?v=fix_signout_ghost_1"></script>
 </body>
