@@ -40,6 +40,69 @@ const CUSTOM_DAYS_MAX = 3650;
 const QR_ECL = "L";   // lower density than M/Q for long strings
 const QR_MARGIN = 4;  // quiet zone (modules)
 
+/**
+ * Persist last generated result so if user opens native share app and comes back,
+ * we restore the QR/link instead of "session wiped".
+ *
+ * NOTE: This is NOT history; it's only "last result" and auto-clears after expiry.
+ */
+const LAST_STATE_KEY = "tempqr_last_state_v1";
+
+function safeJSONParse(str) {
+  try { return JSON.parse(str); } catch { return null; }
+}
+
+function saveLastState(state) {
+  try {
+    if (!state || !state.redirectUrl || !state.expiresAt) return;
+    const payload = {
+      redirectUrl: String(state.redirectUrl),
+      expiresAt: String(state.expiresAt),
+      minutes: Number(state.minutes || 0),
+      savedAt: Date.now()
+    };
+    localStorage.setItem(LAST_STATE_KEY, JSON.stringify(payload));
+  } catch {}
+}
+
+function clearLastState() {
+  try { localStorage.removeItem(LAST_STATE_KEY); } catch {}
+}
+
+function loadLastState() {
+  try {
+    const raw = localStorage.getItem(LAST_STATE_KEY);
+    if (!raw) return null;
+
+    const data = safeJSONParse(raw);
+    if (!data || !data.redirectUrl || !data.expiresAt) return null;
+
+    const end = new Date(data.expiresAt).getTime();
+    if (!Number.isFinite(end)) return null;
+
+    // If already expired, clear it.
+    if (Date.now() >= end) {
+      clearLastState();
+      return null;
+    }
+
+    // Safety: don't keep it forever in case expiresAt is wrong
+    const savedAt = Number(data.savedAt || 0);
+    if (savedAt && (Date.now() - savedAt) > 7 * 24 * 60 * 60 * 1000) {
+      clearLastState();
+      return null;
+    }
+
+    return {
+      redirectUrl: String(data.redirectUrl),
+      expiresAt: String(data.expiresAt),
+      minutes: Number(data.minutes || 0)
+    };
+  } catch {
+    return null;
+  }
+}
+
 function normalizeHttpUrl(input) {
   let s = String(input || "").trim();
   if (!s) return "";
@@ -89,6 +152,27 @@ function setDownloadButtonsEnabled(enabled) {
   } catch {}
 }
 
+function expireUINow() {
+  clearInterval(countdownTimer);
+  countdownEl.textContent = "Expired";
+
+  try {
+    const ctx = qrcodeCanvas.getContext("2d");
+    ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
+  } catch {}
+
+  generatedLink.textContent = "";
+  generatedLink.href = "#";
+  generatedLink.title = "";
+  expiryHint.textContent = "This link has expired.";
+
+  linkExpired = true;
+  setDownloadButtonsEnabled(false);
+
+  // Once expired, clear persisted state so it won't restore a dead link.
+  clearLastState();
+}
+
 function startCountdown(iso) {
   const end = new Date(iso).getTime();
   clearInterval(countdownTimer);
@@ -97,20 +181,7 @@ function startCountdown(iso) {
     const left = end - Date.now();
     if (left <= 0) {
       clearInterval(countdownTimer);
-      countdownEl.textContent = "Expired";
-
-      try {
-        const ctx = qrcodeCanvas.getContext("2d");
-        ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
-      } catch {}
-
-      generatedLink.textContent = "";
-      generatedLink.href = "#";
-      generatedLink.title = "";
-      expiryHint.textContent = "This link has expired.";
-
-      linkExpired = true;
-      setDownloadButtonsEnabled(false);
+      expireUINow();
       return;
     }
 
@@ -319,6 +390,56 @@ function getSelectedMinutesOrThrow() {
   return minutes;
 }
 
+function flashButtonText(btn, tempText, ms, fallbackText) {
+  if (!btn) return;
+  const original = btn.textContent;
+  btn.textContent = tempText;
+  setTimeout(() => {
+    // If user changed it in the meantime, don't fight it
+    btn.textContent = fallbackText || original;
+  }, ms);
+}
+
+async function restoreLastResultIfAny() {
+  const st = loadLastState();
+  if (!st) return;
+
+  // Avoid restoring if DOM missing
+  if (!resultCard || !generatedLink || !qrcodeCanvas) return;
+
+  const endMs = new Date(st.expiresAt).getTime();
+  const remainingMs = endMs - Date.now();
+  if (remainingMs <= 0) {
+    clearLastState();
+    return;
+  }
+
+  lastRedirectUrl = st.redirectUrl;
+  linkExpired = false;
+  setDownloadButtonsEnabled(true);
+
+  generatedLink.textContent = makeDisplayLink(st.redirectUrl);
+  generatedLink.href = st.redirectUrl;
+  generatedLink.title = st.redirectUrl;
+
+  resultCard.classList.remove("hidden");
+  await renderQr(st.redirectUrl);
+
+  const endLocal = new Date(st.expiresAt);
+  if (st.minutes && Number.isFinite(st.minutes)) {
+    expiryHint.textContent = `Expires in ${st.minutes} min • Until ${endLocal.toLocaleString()}`;
+  } else {
+    expiryHint.textContent = `Until ${endLocal.toLocaleString()}`;
+  }
+
+  clearTimeout(expiryTimer);
+  expiryTimer = setTimeout(() => {
+    expireUINow();
+  }, remainingMs);
+
+  startCountdown(st.expiresAt);
+}
+
 function bindUI() {
   if (!generateBtn || !urlInput || !expirySelect || !resultCard || !qrcodeCanvas) {
     console.error("[ui] Missing required DOM elements. Check index.html IDs.");
@@ -421,21 +542,15 @@ function bindUI() {
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${created.minutes} min • Until ${endLocal.toLocaleString()}`;
 
+      // Persist last result so coming back from Messages doesn't wipe it.
+      saveLastState({ redirectUrl, expiresAt: created.expires_at, minutes: created.minutes });
+
+      const endMs = new Date(created.expires_at).getTime();
+      const remainingMs = endMs - Date.now();
+
       expiryTimer = setTimeout(() => {
-        try {
-          const ctx = qrcodeCanvas.getContext("2d");
-          ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
-        } catch {}
-
-        generatedLink.textContent = "";
-        generatedLink.href = "#";
-        generatedLink.title = "";
-        expiryHint.textContent = "This link has expired.";
-        countdownEl.textContent = "Expired";
-
-        linkExpired = true;
-        setDownloadButtonsEnabled(false);
-      }, created.minutes * 60_000);
+        expireUINow();
+      }, Math.max(0, remainingMs));
 
       startCountdown(created.expires_at);
     } catch (err) {
@@ -450,6 +565,19 @@ function bindUI() {
   window.addEventListener("resize", () => {
     if (!lastRedirectUrl || linkExpired) return;
     window.requestAnimationFrame(() => renderQr(lastRedirectUrl));
+  });
+
+  // When user returns from native share app, some browsers will restore tab; some will reload.
+  // On focus/visibility, try restoring last result if current state is empty.
+  window.addEventListener("focus", () => {
+    if (!lastRedirectUrl && !linkExpired) {
+      restoreLastResultIfAny();
+    }
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && !lastRedirectUrl && !linkExpired) {
+      restoreLastResultIfAny();
+    }
   });
 
   copyBtn?.addEventListener("click", async () => {
@@ -495,12 +623,27 @@ function bindUI() {
     if (!lastRedirectUrl) return;
     if (typeof navigator === "undefined" || typeof navigator.share !== "function") return;
 
+    // Ensure we persist before leaving to any external app
+    // (in case tab gets killed and user reopens).
+    // We don't know expiresAt here unless we saved it earlier, but saveLastState already ran on create.
+    // This is just a safe no-op.
+    try {
+      // refresh savedAt to keep it "recent" while still expiring naturally
+      const st = loadLastState();
+      if (st && st.redirectUrl === lastRedirectUrl && st.expiresAt) {
+        saveLastState({ redirectUrl: st.redirectUrl, expiresAt: st.expiresAt, minutes: st.minutes });
+      }
+    } catch {}
+
     try {
       await navigator.share({
         title: "TempQR",
         text: "Expiring link:",
         url: lastRedirectUrl
       });
+
+      // If share succeeds and we remain/return to the page:
+      flashButtonText(shareBtn, "Sent!", 1400, "Share");
     } catch (e) {
       // User cancel (AbortError) or other share issues — keep silent to avoid confusion.
     }
@@ -539,7 +682,10 @@ function bindUI() {
   });
 }
 
-(function start() {
+(async function start() {
   console.info("[ui] init @", location.origin);
   bindUI();
+
+  // Restore last generated result (if any) so share doesn't "wipe the session" on mobile.
+  await restoreLastResultIfAny();
 })();
