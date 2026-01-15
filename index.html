@@ -104,6 +104,15 @@
       outline-offset: 2px;
     }
 
+    /* Desktop-only: keep 5 chips on first row, force View more to its own centered row */
+    @media (min-width: 641px){
+      .usecases-more{
+        flex: 0 0 100%;
+        width: max-content;
+        margin: 6px auto 0;
+      }
+    }
+
     /* Modal */
     .uc-modal-overlay{
       position: fixed;
