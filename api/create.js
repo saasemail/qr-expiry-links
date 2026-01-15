@@ -71,6 +71,162 @@ function normalizeHttpUrl(input) {
   }
 }
 
+/* ---------------- Anti-abuse (no captcha) ---------------- */
+
+const HARMFUL_MSG = "Harmful URLs are not allowed.";
+
+// Lightweight in-memory rate limit (best-effort on serverless; per-instance).
+const RL = {
+  perMinute: 10,
+  perDay: 150,
+  minuteMs: 60_000,
+  dayMs: 24 * 60 * 60_000,
+  maxEntries: 25_000
+};
+
+const buckets = new Map();
+
+function getClientIp(req) {
+  const xf = String(req.headers["x-forwarded-for"] || "");
+  if (xf) return xf.split(",")[0].trim() || "unknown";
+  const xr = String(req.headers["x-real-ip"] || "");
+  if (xr) return xr.trim();
+  return String(req.socket?.remoteAddress || "unknown");
+}
+
+function pruneBucketsIfNeeded() {
+  if (buckets.size <= RL.maxEntries) return;
+  // Simple prune: delete oldest-ish entries by iterating (insertion order).
+  const target = Math.floor(RL.maxEntries * 0.9);
+  for (const k of buckets.keys()) {
+    buckets.delete(k);
+    if (buckets.size <= target) break;
+  }
+}
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  let b = buckets.get(ip);
+  if (!b) {
+    b = {
+      mCount: 0,
+      mReset: now + RL.minuteMs,
+      dCount: 0,
+      dReset: now + RL.dayMs
+    };
+    buckets.set(ip, b);
+    pruneBucketsIfNeeded();
+  }
+
+  if (now >= b.mReset) {
+    b.mCount = 0;
+    b.mReset = now + RL.minuteMs;
+  }
+  if (now >= b.dReset) {
+    b.dCount = 0;
+    b.dReset = now + RL.dayMs;
+  }
+
+  b.mCount += 1;
+  b.dCount += 1;
+
+  if (b.mCount > RL.perMinute) {
+    return { ok: false, retryAfterSec: Math.ceil((b.mReset - now) / 1000) };
+  }
+  if (b.dCount > RL.perDay) {
+    return { ok: false, retryAfterSec: Math.ceil((b.dReset - now) / 1000) };
+  }
+  return { ok: true, retryAfterSec: 0 };
+}
+
+function isIPv4(host) {
+  return /^(\d{1,3}\.){3}\d{1,3}$/.test(host);
+}
+
+function ipv4ToInt(host) {
+  const parts = host.split(".").map((x) => parseInt(x, 10));
+  if (parts.length !== 4) return null;
+  for (const p of parts) if (!Number.isFinite(p) || p < 0 || p > 255) return null;
+  return ((parts[0] << 24) >>> 0) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
+}
+
+function inRange(n, a, b) {
+  return n != null && n >= a && n <= b;
+}
+
+function isPrivateIPv4(host) {
+  const n = ipv4ToInt(host);
+  if (n == null) return false;
+
+  // 10.0.0.0/8
+  if (inRange(n, ipv4ToInt("10.0.0.0"), ipv4ToInt("10.255.255.255"))) return true;
+  // 127.0.0.0/8
+  if (inRange(n, ipv4ToInt("127.0.0.0"), ipv4ToInt("127.255.255.255"))) return true;
+  // 172.16.0.0/12
+  if (inRange(n, ipv4ToInt("172.16.0.0"), ipv4ToInt("172.31.255.255"))) return true;
+  // 192.168.0.0/16
+  if (inRange(n, ipv4ToInt("192.168.0.0"), ipv4ToInt("192.168.255.255"))) return true;
+  // 169.254.0.0/16 (link-local)
+  if (inRange(n, ipv4ToInt("169.254.0.0"), ipv4ToInt("169.254.255.255"))) return true;
+
+  return false;
+}
+
+function isPrivateIPv6(host) {
+  const h = host.toLowerCase();
+  if (h === "::1") return true;
+  if (h.startsWith("fe80:")) return true; // link-local
+  if (h.startsWith("fc") || h.startsWith("fd")) return true; // unique-local (fc00::/7)
+  return false;
+}
+
+const DISALLOWED_HOSTS = new Set([
+  "bit.ly",
+  "tinyurl.com",
+  "t.co",
+  "goo.gl",
+  "is.gd",
+  "buff.ly",
+  "cutt.ly",
+  "rebrand.ly",
+  "rb.gy",
+  "shorturl.at"
+]);
+
+const DISALLOWED_EXT_RE = /\.(exe|msi|bat|cmd|scr|ps1|apk|jar|dmg|pkg|iso)(\?|#|$)/i;
+
+function isHarmfulUrl(urlStr) {
+  let u;
+  try { u = new URL(urlStr); } catch { return true; }
+
+  // block user:pass@host
+  if (u.username || u.password) return true;
+
+  const host = (u.hostname || "").toLowerCase();
+
+  // localhost / internal-ish
+  if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal") || host.endsWith(".lan")) return true;
+
+  // direct IP checks (no DNS resolve here)
+  if (isIPv4(host) && isPrivateIPv4(host)) return true;
+  if (host.includes(":") && isPrivateIPv6(host)) return true;
+
+  // disallow common shorteners
+  if (DISALLOWED_HOSTS.has(host)) return true;
+
+  // disallow odd ports (allow empty, 80, 443)
+  const port = u.port ? parseInt(u.port, 10) : 0;
+  if (u.port && port !== 80 && port !== 443) return true;
+
+  // disallow obvious executable downloads
+  const path = (u.pathname || "") + (u.search || "") + (u.hash || "");
+  if (DISALLOWED_EXT_RE.test(path)) return true;
+
+  return false;
+}
+
+/* ---------------------------------------------------------- */
+
 export default async function handler(req, res) {
   const t0 = Date.now();
   try {
@@ -81,6 +237,14 @@ export default async function handler(req, res) {
     if (req.method !== "POST") {
       res.setHeader("Allow", "POST");
       return res.status(405).send("Method Not Allowed");
+    }
+
+    // Rate limit early (counts all attempts)
+    const ip = getClientIp(req);
+    const rl = checkRateLimit(ip);
+    if (!rl.ok) {
+      res.setHeader("Retry-After", String(rl.retryAfterSec || 30));
+      return res.status(429).send("Too many requests. Please try again later.");
     }
 
     let body;
@@ -94,6 +258,11 @@ export default async function handler(req, res) {
 
     if (!url) return res.status(400).send("Bad url");
     if (!Number.isFinite(minutes) || minutes < 1) return res.status(400).send("Bad minutes");
+
+    // Harmful filter (no captcha)
+    if (isHarmfulUrl(url)) {
+      return res.status(403).send(HARMFUL_MSG);
+    }
 
     const SIGNING_SECRET = process.env.SIGNING_SECRET || "dev-secret";
 

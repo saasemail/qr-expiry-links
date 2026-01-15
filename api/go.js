@@ -3,6 +3,8 @@
 
 export const config = { runtime: "edge" };
 
+const HARMFUL_MSG = "Harmful URLs are not allowed.";
+
 function b64urlToBytes(b64u) {
   const s = b64u.replace(/-/g, "+").replace(/_/g, "/");
   const pad = s.length % 4 ? "=".repeat(4 - (s.length % 4)) : "";
@@ -73,6 +75,87 @@ function escapeHtml(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
+
+/* --------- Harmful re-check on redirect (edge) ---------- */
+
+function isIPv4(host) {
+  return /^(\d{1,3}\.){3}\d{1,3}$/.test(host);
+}
+
+function ipv4ToInt(host) {
+  const parts = host.split(".").map((x) => parseInt(x, 10));
+  if (parts.length !== 4) return null;
+  for (const p of parts) if (!Number.isFinite(p) || p < 0 || p > 255) return null;
+  return ((parts[0] << 24) >>> 0) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
+}
+
+function inRange(n, a, b) {
+  return n != null && n >= a && n <= b;
+}
+
+function isPrivateIPv4(host) {
+  const n = ipv4ToInt(host);
+  if (n == null) return false;
+
+  if (inRange(n, ipv4ToInt("10.0.0.0"), ipv4ToInt("10.255.255.255"))) return true;
+  if (inRange(n, ipv4ToInt("127.0.0.0"), ipv4ToInt("127.255.255.255"))) return true;
+  if (inRange(n, ipv4ToInt("172.16.0.0"), ipv4ToInt("172.31.255.255"))) return true;
+  if (inRange(n, ipv4ToInt("192.168.0.0"), ipv4ToInt("192.168.255.255"))) return true;
+  if (inRange(n, ipv4ToInt("169.254.0.0"), ipv4ToInt("169.254.255.255"))) return true;
+
+  return false;
+}
+
+function isPrivateIPv6(host) {
+  const h = host.toLowerCase();
+  if (h === "::1") return true;
+  if (h.startsWith("fe80:")) return true;
+  if (h.startsWith("fc") || h.startsWith("fd")) return true;
+  return false;
+}
+
+const DISALLOWED_HOSTS = new Set([
+  "bit.ly",
+  "tinyurl.com",
+  "t.co",
+  "goo.gl",
+  "is.gd",
+  "buff.ly",
+  "cutt.ly",
+  "rebrand.ly",
+  "rb.gy",
+  "shorturl.at"
+]);
+
+const DISALLOWED_EXT_RE = /\.(exe|msi|bat|cmd|scr|ps1|apk|jar|dmg|pkg|iso)(\?|#|$)/i;
+
+function isHarmfulUrl(urlStr) {
+  let u;
+  try { u = new URL(urlStr); } catch { return true; }
+
+  if (u.protocol !== "http:" && u.protocol !== "https:") return true;
+  if (u.username || u.password) return true;
+
+  const host = (u.hostname || "").toLowerCase();
+  if (!host) return true;
+
+  if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal") || host.endsWith(".lan")) return true;
+
+  if (isIPv4(host) && isPrivateIPv4(host)) return true;
+  if (host.includes(":") && isPrivateIPv6(host)) return true;
+
+  if (DISALLOWED_HOSTS.has(host)) return true;
+
+  const port = u.port ? parseInt(u.port, 10) : 0;
+  if (u.port && port !== 80 && port !== 443) return true;
+
+  const path = (u.pathname || "") + (u.search || "") + (u.hash || "");
+  if (DISALLOWED_EXT_RE.test(path)) return true;
+
+  return false;
+}
+
+/* -------------------------------------------------------- */
 
 export default async function handler(req) {
   const url = new URL(req.url);
@@ -147,6 +230,38 @@ export default async function handler(req) {
     return new Response(html, {
       status: 410,
       headers: { "content-type": "text/html; charset=utf-8" }
+    });
+  }
+
+  // Harmful re-check BEFORE any redirect
+  if (isHarmfulUrl(payload.u)) {
+    const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Blocked</title>
+  <meta name="robots" content="noindex,nofollow">
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:40px;background:#0b0b0f;color:#e6e6f0}
+    a{color:#7aa7ff}
+    .box{max-width:640px}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Blocked</h1>
+    <p>${escapeHtml(HARMFUL_MSG)}</p>
+    <p><a href="${escapeHtml(url.origin)}">Back to TempQR</a></p>
+  </div>
+</body>
+</html>`;
+    return new Response(html, {
+      status: 451,
+      headers: {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "no-store, max-age=0"
+      }
     });
   }
 
