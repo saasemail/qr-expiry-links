@@ -6,9 +6,6 @@
   <title>TempQR</title>
   <link rel="canonical" href="https://tempqr.com/">
 
-  <!-- Minimal SEO description (directories/approval) -->
-  <meta name="description" content="Temporary QR codes and expiring links for private sharing, client previews, and time-sensitive info. Privacy-first, no signup, no history." />
-
   <link rel="stylesheet" href="styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -208,39 +205,6 @@
       color: rgba(255,255,255,0.66);
       font-size: 13px;
     }
-
-    /* Small helper text blocks (copy-only, no functional impact) */
-    .why-block{
-      max-width: 860px;
-      margin: 8px auto 10px;
-      padding: 0 12px;
-      color: rgba(255,255,255,0.78);
-      font-size: 13.5px;
-      line-height: 1.45;
-      text-align: center;
-    }
-    .micro-note{
-      max-width: 860px;
-      margin: 10px auto 0;
-      padding: 0 12px;
-      color: rgba(255,255,255,0.70);
-      font-size: 13px;
-      text-align: center;
-    }
-    .mini-faq details{
-      margin: 8px 0;
-    }
-    .mini-faq summary{
-      cursor: pointer;
-      font-weight: 600;
-      color: rgba(255,255,255,0.90);
-    }
-    .mini-faq p{
-      margin: 6px 0 0;
-      color: rgba(255,255,255,0.75);
-      font-size: 13.5px;
-      line-height: 1.45;
-    }
   </style>
 </head>
 <body>
@@ -271,24 +235,15 @@
     </div>
 
     <div class="nav-links">
-      <!-- Support replaced by How it works modal trigger (Support remains in footer) -->
-      <button type="button" class="usecases-more" id="howItWorksOpenBtn" aria-haspopup="dialog" aria-controls="howitworksModalOverlay">How TempQR works</button>
+      <a href="mailto:support@tempqr.com" rel="nofollow">Support</a>
     </div>
   </nav>
 
   <div class="container">
     <h2 class="hero-title">Create shareable QR codes with automatic expiry</h2>
+    <p class="subtitle">TempQR turns any URL into a temporary, shareable QR code &amp; expiring link.<br>Because not everything should stay online forever.</p>
 
-    <p class="subtitle">
-      TempQR turns any URL into a temporary, shareable QR code and expiring link &mdash; ideal for private previews, client work, and anything that shouldn&rsquo;t stay online forever.
-    </p>
-
-    <p class="why-block">
-      Not everything you share should live online forever.<br>
-      TempQR lets you send a link or QR code that automatically disappears after a chosen time &mdash; without accounts, history, or permanent traces.
-    </p>
-
-    <!-- Use-cases chips (unchanged) -->
+    <!-- Use-cases chips (compact) -->
     <div class="usecases-bar" aria-label="Use cases">
       <span class="usecases-label">Popular use-cases:</span>
       <div class="usecase-chips">
@@ -359,10 +314,6 @@
       <p><a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a></p>
       <p class="countdown" id="countdown"></p>
       <p class="hint" id="expiryHint"></p>
-
-      <!-- Trigger moment (copy-only) -->
-      <p class="hint">Share before it expires. Once the timer hits zero, the link is gone.</p>
-
       <p class="hint"><em>No history is stored—save the link and download the PNG before leaving.</em></p>
     </section>
 
@@ -382,137 +333,47 @@
       </div>
     </div>
 
-    <!-- Key Features (replacing the 3 benefits copy only; structure preserved) -->
-    <section class="benefits" aria-label="Key Features">
+    <section class="benefits" aria-label="Benefits">
       <div class="benefit">
-        <div class="benefit-title">Privacy-first</div>
-        <div class="benefit-text">No login, no tracking, no saved history.</div>
+        <div class="benefit-title">No signup</div>
+        <div class="benefit-text">Paste a URL and generate in seconds.</div>
       </div>
       <div class="benefit">
         <div class="benefit-title">Auto-expiry</div>
-        <div class="benefit-text">Links and QR codes automatically disappear.</div>
+        <div class="benefit-text">Links stop working after your chosen time.</div>
       </div>
       <div class="benefit">
-        <div class="benefit-title">Share-first workflow</div>
-        <div class="benefit-text">Copy the link or download the QR in one tap.</div>
-      </div>
-      <div class="benefit">
-        <div class="benefit-title">Temporary by design</div>
-        <div class="benefit-text">Ideal for previews, one-off sharing, and client work.</div>
+        <div class="benefit-title">Share-ready</div>
+        <div class="benefit-text">Share in one tap, copy the link, or download a clean PNG QR.</div>
       </div>
     </section>
-    <p class="benefits-note">Designed for quick sharing — not archiving.</p>
-
-    <!-- Differentiator (copy-only, no functional impact) -->
-    <section class="card" style="margin-top: 14px; text-align:left;">
-      <h2 style="margin:0 0 8px;">What Makes It Different</h2>
-      <p style="margin:0 0 10px;" class="field-hint">
-        Unlike standard QR generators and URL shorteners, TempQR creates temporary shareable links. Everything you generate automatically expires — without accounts, logs, or permanent storage.
-      </p>
-
-      <p style="margin:0 0 10px;" class="field-hint"><strong>Who it's for:</strong></p>
-      <p style="margin:0;" class="field-hint">
-        designers &amp; freelancers • agencies &amp; clients • event organizers • remote teams • privacy-focused sharing • offline QR workflows • personal use
-      </p>
-
-      <p class="micro-note"><strong>Designed for quick sharing — not archiving.</strong></p>
-    </section>
-
-    <!-- Mini FAQ (copy-only, details elements; links to full FAQ page) -->
-    <section class="card" style="margin-top: 14px; text-align:left;">
-      <h2 style="margin:0 0 8px;">FAQ</h2>
-      <div class="mini-faq">
-        <details>
-          <summary>Why would I want expiration?</summary>
-          <p>Because not everything needs to live online forever — especially previews, work-in-progress files, personal info, or temporary event data.</p>
-        </details>
-        <details>
-          <summary>Do you store history?</summary>
-          <p>No. Nothing you create is kept after expiration, and there’s no dashboard or history list.</p>
-        </details>
-        <details>
-          <summary>Do you require an account?</summary>
-          <p>No login, no signup, no dashboard.</p>
-        </details>
-        <details>
-          <summary>Can I use it for client work?</summary>
-          <p>Yes — especially useful for temporary previews and drafts.</p>
-        </details>
-        <details>
-          <summary>Can someone recover expired links?</summary>
-          <p>No. Expired links stop working and cannot be reactivated.</p>
-        </details>
-      </div>
-
-      <p class="micro-note" style="text-align:left;">
-        Full FAQ: <a href="faq.html" rel="nofollow" style="color: rgba(255,255,255,0.92); text-decoration: underline;">Open FAQ</a>
-      </p>
-    </section>
+    <p class="benefits-note">Free, simple, and fast — designed for quick sharing.</p>
   </div>
 
-  <!-- Use-cases Modal (expanded with concrete examples; modal-only change) -->
+  <!-- Use-cases Modal -->
   <div class="uc-modal-overlay" id="usecasesModalOverlay" role="dialog" aria-modal="true" aria-labelledby="usecasesModalTitle">
     <div class="uc-modal" role="document">
       <div class="uc-modal-header">
-        <div class="uc-modal-title" id="usecasesModalTitle">Use-cases &amp; concrete examples (URL only)</div>
+        <div class="uc-modal-title" id="usecasesModalTitle">Use-cases (URL only)</div>
         <button type="button" class="uc-modal-close" id="usecasesCloseBtn" aria-label="Close">×</button>
       </div>
       <div class="uc-modal-body">
         <div class="uc-grid" aria-label="Use-case list">
-          <div class="uc-item"><span class="uc-check">✓</span><span><strong>Freelancers &amp; Designers:</strong> send a Figma prototype for review (expires after 24h)</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span><strong>Freelancers &amp; Designers:</strong> share a Notion doc draft for feedback (expires after the meeting)</span></div>
-
-          <div class="uc-item"><span class="uc-check">✓</span><span><strong>Agencies &amp; Clients:</strong> portfolio / proposal link that disappears after the decision deadline</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span><strong>Agencies &amp; Clients:</strong> staging / preview build link for a client handoff (expires in 3 days)</span></div>
-
-          <div class="uc-item"><span class="uc-check">✓</span><span><strong>Drive / Dropbox / PDF links:</strong> temporary access to a PDF (expires in 1 hour)</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span><strong>WeTransfer / Mega / File links:</strong> share a file link, auto-expire after download window</span></div>
-
-          <div class="uc-item"><span class="uc-check">✓</span><span><strong>Event Organizers:</strong> event schedule/location QR (expires when the event ends)</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span><strong>Offline QR moments:</strong> workshop resources QR on slides (expires after 48h)</span></div>
-
-          <div class="uc-item"><span class="uc-check">✓</span><span><strong>Private Sharing:</strong> personal document/photo link (expires tonight)</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span><strong>Private Sharing:</strong> one-time info page (expires in 10 minutes)</span></div>
-
-          <div class="uc-item"><span class="uc-check">✓</span><span><strong>Promo landing pages:</strong> time-limited promo QR for booths/flyers (expires after campaign)</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span><strong>Coupons:</strong> share a coupon page temporarily (expires after X hours)</span></div>
-
-          <div class="uc-item"><span class="uc-check">✓</span><span><strong>Client links (handoff):</strong> drafts / working docs that shouldn&rsquo;t stay online forever</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span><strong>Remote teams:</strong> temporary access to internal links during a sprint/review</span></div>
-
-          <div class="uc-item"><span class="uc-check">✓</span><span><strong>Affiliate URLs:</strong> share a tracking link that expires after a short window</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span><strong>Campaign links:</strong> influencer / TikTok link that expires after the post window</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Google Drive / Dropbox / PDF links</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>WeTransfer / Mega / File.io links</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Pages / previews (e.g., Figma / Notion)</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Promo landing page links</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Coupon sharing on a website</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Portfolio preview for a client</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Links for ticket / event info</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Links for sensitive / personal content</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Client links (freelance handoff)</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>QR for offline sharing of a URL</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Affiliate URLs</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Campaign links (influencers / TikTok)</span></div>
         </div>
 
-        <div class="uc-footer-note">
-          TempQR doesn&rsquo;t host files &mdash; it creates an expiring share link/QR for any URL.
-          Once the timer hits zero, the link is gone.
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- How it works Modal (navbar trigger; modal-only, no ui.js changes) -->
-  <div class="uc-modal-overlay" id="howitworksModalOverlay" role="dialog" aria-modal="true" aria-labelledby="howitworksModalTitle">
-    <div class="uc-modal" role="document">
-      <div class="uc-modal-header">
-        <div class="uc-modal-title" id="howitworksModalTitle">How TempQR works</div>
-        <button type="button" class="uc-modal-close" id="howitworksCloseBtn" aria-label="Close">×</button>
-      </div>
-      <div class="uc-modal-body">
-        <div class="uc-grid" aria-label="How it works steps">
-          <div class="uc-item"><span class="uc-check">1</span><span><strong>Paste a URL</strong> (Figma, Notion, Drive, PDFs, event pages, portfolios)</span></div>
-          <div class="uc-item"><span class="uc-check">2</span><span><strong>Choose an expiry</strong> (minutes/hours/days or custom duration)</span></div>
-          <div class="uc-item"><span class="uc-check">3</span><span><strong>Generate</strong> a temporary share link + QR code</span></div>
-          <div class="uc-item"><span class="uc-check">4</span><span><strong>Share</strong> the link or QR &mdash; when time runs out, it disappears</span></div>
-        </div>
-
-        <div class="uc-footer-note">
-          Unlike standard QR generators and URL shorteners, TempQR creates <strong>temporary shareable links</strong>.
-          Designed for quick sharing — not archiving.
-          <br><br>
-          Support: <a href="mailto:support@tempqr.com" rel="nofollow" style="color: rgba(255,255,255,0.92); text-decoration: underline;">support@tempqr.com</a>
-        </div>
+        <div class="uc-footer-note">And much more…</div>
       </div>
     </div>
   </div>
@@ -524,7 +385,6 @@
       <a href="privacy.html" rel="nofollow">Privacy</a>
       <a href="faq.html" rel="nofollow">FAQ</a>
       <a href="feedback.html" rel="nofollow">Feedback</a>
-      <a href="mailto:support@tempqr.com" rel="nofollow">Support</a>
     </div>
   </footer>
 
@@ -539,60 +399,35 @@
   <!-- Minimal modal JS (does not touch ui.js) -->
   <script>
     (function(){
-      // Use-cases modal (existing IDs)
       var openBtn = document.getElementById('usecasesOpenBtn');
       var overlay = document.getElementById('usecasesModalOverlay');
       var closeBtn = document.getElementById('usecasesCloseBtn');
 
-      function openModal(o, c){
-        o.classList.add('open');
+      if(!openBtn || !overlay || !closeBtn) return;
+
+      function openModal(){
+        overlay.classList.add('open');
         document.documentElement.style.overflow = 'hidden';
         document.body.style.overflow = 'hidden';
-        if(c) c.focus();
+        closeBtn.focus();
       }
 
-      function closeModal(o, focusEl){
-        o.classList.remove('open');
-        if(!document.querySelector('.uc-modal-overlay.open')){
-          document.documentElement.style.overflow = '';
-          document.body.style.overflow = '';
-        }
-        if(focusEl) focusEl.focus();
+      function closeModal(){
+        overlay.classList.remove('open');
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
+        openBtn.focus();
       }
 
-      if(openBtn && overlay && closeBtn){
-        openBtn.addEventListener('click', function(){ openModal(overlay, closeBtn); });
-        closeBtn.addEventListener('click', function(){ closeModal(overlay, openBtn); });
-        overlay.addEventListener('click', function(e){
-          if(e.target === overlay) closeModal(overlay, openBtn);
-        });
-      }
+      openBtn.addEventListener('click', openModal);
+      closeBtn.addEventListener('click', closeModal);
 
-      // How it works modal (new IDs)
-      var hiwOpen = document.getElementById('howItWorksOpenBtn');
-      var hiwOverlay = document.getElementById('howitworksModalOverlay');
-      var hiwClose = document.getElementById('howitworksCloseBtn');
+      overlay.addEventListener('click', function(e){
+        if(e.target === overlay) closeModal();
+      });
 
-      if(hiwOpen && hiwOverlay && hiwClose){
-        hiwOpen.addEventListener('click', function(){ openModal(hiwOverlay, hiwClose); });
-        hiwClose.addEventListener('click', function(){ closeModal(hiwOverlay, hiwOpen); });
-        hiwOverlay.addEventListener('click', function(e){
-          if(e.target === hiwOverlay) closeModal(hiwOverlay, hiwOpen);
-        });
-      }
-
-      // Escape closes whichever modal is open (if any)
       document.addEventListener('keydown', function(e){
-        if(e.key !== 'Escape') return;
-
-        if(overlay && overlay.classList.contains('open')){
-          closeModal(overlay, openBtn);
-          return;
-        }
-        if(hiwOverlay && hiwOverlay.classList.contains('open')){
-          closeModal(hiwOverlay, hiwOpen);
-          return;
-        }
+        if(e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
       });
     })();
   </script>
