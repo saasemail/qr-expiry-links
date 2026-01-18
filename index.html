@@ -205,6 +205,72 @@
       color: rgba(255,255,255,0.66);
       font-size: 13px;
     }
+
+    /* Extra explanation block (how it works) */
+    .field-hint-secondary{
+      margin-top: 4px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.75);
+    }
+
+    .explainer{
+      max-width: 880px;
+      margin: 28px auto 16px;
+      padding: 16px 16px 18px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(10, 12, 20, 0.94);
+    }
+    .explainer-title{
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 10px;
+      text-align: left;
+    }
+    .explainer-grid{
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px 18px;
+    }
+    @media (max-width: 768px){
+      .explainer-grid{
+        grid-template-columns: 1fr;
+      }
+    }
+    .explainer-heading{
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: rgba(255,255,255,0.88);
+    }
+    .explainer-list{
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 13px;
+      color: rgba(255,255,255,0.8);
+    }
+    .explainer-list li{
+      margin-bottom: 4px;
+      line-height: 1.4;
+      position: relative;
+      padding-left: 12px;
+    }
+    .explainer-list li::before{
+      content: "•";
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: rgba(255,255,255,0.55);
+    }
+    .explainer-note{
+      margin-top: 10px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.7);
+      text-align: left;
+    }
   </style>
 </head>
 <body>
@@ -241,7 +307,10 @@
 
   <div class="container">
     <h2 class="hero-title">Create shareable QR codes with automatic expiry</h2>
-    <p class="subtitle">TempQR turns any URL into a temporary, shareable QR code &amp; expiring link.<br>Because not everything should stay online forever.</p>
+    <p class="subtitle">
+      TempQR turns any safe URL into a temporary, shareable QR code &amp; expiring link.<br>
+      We don’t host your files – we just wrap the links you already use.
+    </p>
 
     <!-- Use-cases chips (compact) -->
     <div class="usecases-bar" aria-label="Use cases">
@@ -262,6 +331,9 @@
         Enter URL
         <input type="url" id="urlInput" placeholder="example.com" />
       </label>
+      <p class="field-hint field-hint-secondary">
+        TempQR works only with URLs (no file uploads). Paste a link to a page, document, or file that already lives online.
+      </p>
 
       <label>
         Expiration Time
@@ -348,32 +420,69 @@
       </div>
     </section>
     <p class="benefits-note">Free, simple, and fast — designed for quick sharing.</p>
+
+    <!-- How TempQR works / for directory sites + korisnike -->
+    <section class="explainer" aria-label="How TempQR works">
+      <div class="explainer-title">How TempQR works</div>
+      <div class="explainer-grid">
+        <div class="explainer-block">
+          <div class="explainer-heading">What TempQR does</div>
+          <ul class="explainer-list">
+            <li>Turns any URL into a QR code and short expiring link.</li>
+            <li>Lets you choose how long the link stays live (from minutes to days).</li>
+            <li>Lets you copy, share, or download a clean QR as PNG or SVG.</li>
+          </ul>
+        </div>
+        <div class="explainer-block">
+          <div class="explainer-heading">What TempQR doesn’t do</div>
+          <ul class="explainer-list">
+            <li>Doesn’t host files or media – your content stays on Drive, Dropbox, etc.</li>
+            <li>Doesn’t keep a history or analytics of generated links.</li>
+            <li>Doesn’t bypass paywalls or remove copyright / access protection.</li>
+          </ul>
+        </div>
+        <div class="explainer-block">
+          <div class="explainer-heading">Who it’s for</div>
+          <ul class="explainer-list">
+            <li>Freelancers &amp; agencies sharing previews and handoffs with clients.</li>
+            <li>Creators &amp; marketers sharing time-limited campaign or promo links.</li>
+            <li>Anyone who occasionally needs a QR code that disappears after use.</li>
+          </ul>
+        </div>
+      </div>
+      <p class="explainer-note">
+        TempQR is a thin layer on top of the URLs you already use. Harmful or clearly malicious URLs are blocked where detected – please share only safe, legal content you have the right to share.
+      </p>
+    </section>
   </div>
 
   <!-- Use-cases Modal -->
   <div class="uc-modal-overlay" id="usecasesModalOverlay" role="dialog" aria-modal="true" aria-labelledby="usecasesModalTitle">
     <div class="uc-modal" role="document">
       <div class="uc-modal-header">
-        <div class="uc-modal-title" id="usecasesModalTitle">Use-cases (URL only)</div>
+        <div class="uc-modal-title" id="usecasesModalTitle">Use-cases &amp; examples (URL only)</div>
         <button type="button" class="uc-modal-close" id="usecasesCloseBtn" aria-label="Close">×</button>
       </div>
       <div class="uc-modal-body">
         <div class="uc-grid" aria-label="Use-case list">
-          <div class="uc-item"><span class="uc-check">✓</span><span>Google Drive / Dropbox / PDF links</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>WeTransfer / Mega / File.io links</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Pages / previews (e.g., Figma / Notion)</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Promo landing page links</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Coupon sharing on a website</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Portfolio preview for a client</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Links for ticket / event info</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Links for sensitive / personal content</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Client links (freelance handoff)</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>QR for offline sharing of a URL</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Affiliate URLs</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Campaign links (influencers / TikTok)</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Google Drive / Dropbox / PDF document links</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>WeTransfer / Mega / File.io download links</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Pages &amp; previews (e.g., Figma / Notion / design review)</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Promo landing page or microsite links</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Coupon codes or temporary offers on your website</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Portfolio preview or case study for a client</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Links with ticket / event info (maps, schedules, check-in)</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Links with sensitive / personal content you don’t want to stay online</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Client links for freelance handoff and quick approvals</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Simple QR codes for offline sharing of a URL</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Affiliate or tracking URLs that should expire after a campaign</span></div>
+          <div class="uc-item"><span class="uc-check">✓</span><span>Campaign links used by influencers, TikTok, or social posts</span></div>
         </div>
 
-        <div class="uc-footer-note">And much more…</div>
+        <div class="uc-footer-note">
+          <div><strong>TempQR wraps links only.</strong> Files and pages stay on their original services – TempQR never uploads or hosts your content.</div>
+          <div style="margin-top:6px;">Please share only safe, legal URLs you control. Clearly malicious or phishing URLs are blocked where detected.</div>
+        </div>
       </div>
     </div>
   </div>
