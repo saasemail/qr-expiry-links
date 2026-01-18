@@ -1,695 +1,354 @@
-// ui.js — FREE version (no Pro / no auth).
-// Fix: QR must be scannable. We auto-size QR based on its actual module count
-// (because the encoded /go/<id> is long and can require a dense QR version).
+/* ui.js
+ * Client-only UI logic for TempQR
+ * - Generates QR based on a short/redirect link returned by /api/create
+ * - Handles copy, download, share, countdown
+ * - Supports "custom duration" and presets
+ */
 
-const urlInput         = document.getElementById("urlInput");
-const expirySelect     = document.getElementById("expirySelect");
+const urlInput = document.getElementById("urlInput");
+const expirySelect = document.getElementById("expirySelect");
 const customExpiryWrap = document.getElementById("customExpiryWrap");
-
-const customDays       = document.getElementById("customDays");
-const customHours      = document.getElementById("customHours");
-const customMinutes    = document.getElementById("customMinutes");
+const customDays = document.getElementById("customDays");
+const customHours = document.getElementById("customHours");
+const customMinutes = document.getElementById("customMinutes");
 const customDurationHint = document.getElementById("customDurationHint");
 
-const generateBtn      = document.getElementById("generateBtn");
+const generateBtn = document.getElementById("generateBtn");
+const resultCard = document.getElementById("resultCard");
+const qrcodeEl = document.getElementById("qrcode");
+const copyBtn = document.getElementById("copyBtn");
+const downloadBtn = document.getElementById("downloadBtn");
+const shareBtn = document.getElementById("shareBtn");
+const downloadSvgBtn = document.getElementById("downloadSvgBtn");
 
-const resultCard       = document.getElementById("resultCard");
-const qrcodeCanvas     = document.getElementById("qrcode");
-const generatedLink    = document.getElementById("generatedLink");
-const expiryHint       = document.getElementById("expiryHint");
-const countdownEl      = document.getElementById("countdown");
+const generatedLink = document.getElementById("generatedLink");
+const countdownEl = document.getElementById("countdown");
+const expiryHint = document.getElementById("expiryHint");
 
-const copyBtn          = document.getElementById("copyBtn");
-const downloadBtn      = document.getElementById("downloadBtn");       // PNG
-const shareBtn         = document.getElementById("shareBtn");          // Web Share API
-const downloadSvgBtn   = document.getElementById("downloadSvgBtn");    // SVG (currently hidden in HTML)
-
-let expiryTimer = null;
+let lastShortUrl = "";
+let lastExpiresAt = 0;
 let countdownTimer = null;
-let lastRedirectUrl = "";
-let linkExpired = false;
+let qrInstance = null;
 
-// Track last preset minutes so switching to Custom can prefill nicely
-let lastPresetMinutes = 10;
-let customTouched = false;
-
-// Custom duration hard max (10 years in days)
-const CUSTOM_DAYS_MAX = 3650;
-
-// QR rendering params (tuned for scan reliability)
-const QR_ECL = "L";   // lower density than M/Q for long strings
-const QR_MARGIN = 4;  // quiet zone (modules)
-
-/**
- * Persist last generated result so if user opens native share app and comes back,
- * we restore the QR/link instead of "session wiped".
- *
- * NOTE: This is NOT history; it's only "last result" and auto-clears after expiry.
- */
-const LAST_STATE_KEY = "tempqr_last_state_v1";
-
-function safeJSONParse(str) {
-  try { return JSON.parse(str); } catch { return null; }
-}
-
-function saveLastState(state) {
+// ---------- helpers ----------
+function isValidUrl(value) {
   try {
-    if (!state || !state.redirectUrl || !state.expiresAt) return;
-    const payload = {
-      redirectUrl: String(state.redirectUrl),
-      expiresAt: String(state.expiresAt),
-      minutes: Number(state.minutes || 0),
-      savedAt: Date.now()
-    };
-    localStorage.setItem(LAST_STATE_KEY, JSON.stringify(payload));
-  } catch {}
-}
-
-function clearLastState() {
-  try { localStorage.removeItem(LAST_STATE_KEY); } catch {}
-}
-
-function loadLastState() {
-  try {
-    const raw = localStorage.getItem(LAST_STATE_KEY);
-    if (!raw) return null;
-
-    const data = safeJSONParse(raw);
-    if (!data || !data.redirectUrl || !data.expiresAt) return null;
-
-    const end = new Date(data.expiresAt).getTime();
-    if (!Number.isFinite(end)) return null;
-
-    // If already expired, clear it.
-    if (Date.now() >= end) {
-      clearLastState();
-      return null;
-    }
-
-    // Safety: don't keep it forever in case expiresAt is wrong
-    const savedAt = Number(data.savedAt || 0);
-    if (savedAt && (Date.now() - savedAt) > 7 * 24 * 60 * 60 * 1000) {
-      clearLastState();
-      return null;
-    }
-
-    return {
-      redirectUrl: String(data.redirectUrl),
-      expiresAt: String(data.expiresAt),
-      minutes: Number(data.minutes || 0)
-    };
-  } catch {
-    return null;
-  }
-}
-
-function normalizeHttpUrl(input) {
-  let s = String(input || "").trim();
-  if (!s) return "";
-
-  // If user pasted spaces/newlines, kill it early
-  if (/\s/.test(s)) return "";
-
-  // Allow protocol-relative //example.com
-  if (s.startsWith("//")) s = "https:" + s;
-
-  // Add https:// if missing scheme
-  if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(s)) {
-    s = "https://" + s;
-  }
-
-  // Validate + enforce http/https only
-  try {
-    const u = new URL(s);
-    if (u.protocol !== "http:" && u.protocol !== "https:") return "";
-    if (!u.hostname) return "";
-    return u.toString();
-  } catch {
-    return "";
-  }
-}
-
-function setLoading(state) {
-  if (!generateBtn) return;
-  generateBtn.disabled = state;
-  generateBtn.textContent = state ? "Generating..." : "Generate QR";
-}
-
-function formatCountdown(ms) {
-  ms = Math.max(0, ms | 0);
-  const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${m}m ${sec}s`;
-}
-
-function setDownloadButtonsEnabled(enabled) {
-  try {
-    if (downloadBtn) downloadBtn.disabled = !enabled;
-    if (downloadSvgBtn) downloadSvgBtn.disabled = !enabled;
-    if (copyBtn) copyBtn.disabled = !enabled;
-    if (shareBtn) shareBtn.disabled = !enabled;
-  } catch {}
-}
-
-function expireUINow() {
-  clearInterval(countdownTimer);
-  countdownEl.textContent = "Expired";
-
-  try {
-    const ctx = qrcodeCanvas.getContext("2d");
-    ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
-  } catch {}
-
-  generatedLink.textContent = "";
-  generatedLink.href = "#";
-  generatedLink.title = "";
-  expiryHint.textContent = "This link has expired.";
-
-  linkExpired = true;
-  setDownloadButtonsEnabled(false);
-
-  // Once expired, clear persisted state so it won't restore a dead link.
-  clearLastState();
-}
-
-function startCountdown(iso) {
-  const end = new Date(iso).getTime();
-  clearInterval(countdownTimer);
-
-  countdownTimer = setInterval(() => {
-    const left = end - Date.now();
-    if (left <= 0) {
-      clearInterval(countdownTimer);
-      expireUINow();
-      return;
-    }
-
-    countdownEl.textContent = formatCountdown(left);
-  }, 1000);
-}
-
-async function fetchJSON(url, opts = {}, timeoutMs = 15000) {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, { ...opts, signal: ctrl.signal });
-    if (!res.ok) {
-      let msg = "";
-      try { msg = (await res.text()) || ""; } catch {}
-      throw new Error(msg || `HTTP ${res.status}`);
-    }
-    return await res.json();
-  } finally {
-    clearTimeout(t);
-  }
-}
-
-async function createLink(url, minutes) {
-  return fetchJSON(
-    "/api/create",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url, minutes })
-    },
-    15000
-  );
-}
-
-/** Short display text: show domain + /go/ + short id preview */
-function makeDisplayLink(fullUrl) {
-  try {
-    const u = new URL(fullUrl);
-    const host = u.host;
-    const parts = u.pathname.split("/").filter(Boolean);
-    if (parts[0] === "go" && parts[1]) {
-      const id = parts[1];
-      const shortId = id.length > 14 ? `${id.slice(0, 12)}…` : id;
-      return `${host}/go/${shortId}`;
-    }
-    const path = u.pathname.length > 20 ? `${u.pathname.slice(0, 18)}…` : u.pathname;
-    return `${host}${path}`;
-  } catch {
-    if (fullUrl.length > 28) return `${fullUrl.slice(0, 26)}…`;
-    return fullUrl;
-  }
-}
-
-/**
- * Compute a *minimum scannable* QR size in CSS pixels:
- * - Determine module count (QR version) for the given text
- * - Ensure module size >= target px/module (bigger on mobile)
- * - Also respect container width, but never shrink below scannable minimum
- */
-function computeScannableQrSizePx(text) {
-  // Container/viewport constraints
-  const cardW = resultCard?.getBoundingClientRect?.().width || 0;
-  const usable = cardW ? Math.max(240, Math.floor(cardW - 64)) : Math.max(240, Math.floor(window.innerWidth * 0.78));
-  const maxCss = Math.min(420, Math.max(280, usable)); // allow bigger when needed, but keep it reasonable
-
-  // Target module size: mobile needs bigger modules to scan reliably
-  const mobile = window.matchMedia && window.matchMedia("(max-width: 520px)").matches;
-  const pxPerModule = mobile ? 7 : 6; // key scan reliability knob
-
-  // Estimate module count by building QR matrix
-  let moduleCount = 0;
-  try {
-    if (QRCode?.create) {
-      const q = QRCode.create(text, { errorCorrectionLevel: QR_ECL });
-      moduleCount = q?.modules?.size || 0;
-    }
-  } catch {}
-
-  // Fallback if create() not present
-  if (!moduleCount || !Number.isFinite(moduleCount)) moduleCount = 33; // ~Version 4-ish
-
-  // Total modules including quiet zone on both sides
-  const totalModules = moduleCount + (QR_MARGIN * 2);
-
-  // Required minimum CSS size for scannability
-  const minCss = Math.ceil(totalModules * pxPerModule);
-
-  // Final: not smaller than min scannable, not larger than maxCss
-  // If minCss exceeds maxCss, we still allow it (because otherwise it won't scan),
-  // but we cap it to 520 to prevent absurdly huge UI.
-  const css = Math.min(520, Math.max(minCss, Math.min(maxCss, 320)));
-
-  // Make divisible by 4 for nicer output
-  return Math.floor(css / 4) * 4;
-}
-
-async function renderQr(redirectUrl) {
-  const cssSize = computeScannableQrSizePx(redirectUrl);
-
-  try {
-    // Avoid browser downscaling blur: keep canvas internal size equal to displayed size
-    qrcodeCanvas.style.width = `${cssSize}px`;
-    qrcodeCanvas.style.height = `${cssSize}px`;
-    qrcodeCanvas.width = cssSize;
-    qrcodeCanvas.height = cssSize;
-
-    await new Promise((resolve, reject) => {
-      QRCode.toCanvas(
-        qrcodeCanvas,
-        redirectUrl,
-        {
-          width: cssSize,
-          margin: QR_MARGIN,
-          errorCorrectionLevel: QR_ECL,
-          color: { dark: "#000000", light: "#FFFFFF" }
-        },
-        (err) => (err ? reject(err) : resolve())
-      );
-    });
+    const u = new URL(value.includes("://") ? value : "https://" + value);
+    return !!u.hostname;
   } catch (e) {
-    console.warn("[ui] QRCode draw failed:", e);
+    return false;
   }
 }
 
-function clampInt(v, min, max) {
-  const n = parseInt(String(v ?? "").trim(), 10);
-  if (!Number.isFinite(n)) return min;
-  return Math.min(max, Math.max(min, n));
+function normalizeUrl(value) {
+  if (!value.includes("://")) return "https://" + value;
+  return value;
 }
 
-function minutesToParts(total) {
-  total = Math.max(0, total | 0);
-  const days = Math.floor(total / 1440);
-  total -= days * 1440;
-  const hours = Math.floor(total / 60);
-  const minutes = total - hours * 60;
-  return { days, hours, minutes };
+function getCustomMinutesTotal() {
+  const d = Number(customDays.value || 0);
+  const h = Number(customHours.value || 0);
+  const m = Number(customMinutes.value || 0);
+  const total = d * 24 * 60 + h * 60 + m;
+  return total;
 }
 
-function partsToMinutes(days, hours, minutes) {
-  return (days * 1440) + (hours * 60) + minutes;
-}
-
-function formatDurationText(totalMinutes) {
-  totalMinutes = Math.max(0, totalMinutes | 0);
-  const { days, hours, minutes } = minutesToParts(totalMinutes);
-
-  const parts = [];
-  if (days) parts.push(`${days} day${days === 1 ? "" : "s"}`);
-  if (hours) parts.push(`${hours} hour${hours === 1 ? "" : "s"}`);
-  if (minutes || parts.length === 0) parts.push(`${minutes} minute${minutes === 1 ? "" : "s"}`);
-
-  return parts.join(" ");
-}
-
-function setCustomFromMinutes(mins) {
-  if (!customDays || !customHours || !customMinutes) return;
-  const p = minutesToParts(mins);
-
-  customDays.value = String(clampInt(p.days, 0, CUSTOM_DAYS_MAX));
-  customHours.value = String(clampInt(p.hours, 0, 23));
-  customMinutes.value = String(clampInt(p.minutes, 0, 59));
-}
-
-function getCustomMinutes() {
-  const d = clampInt(customDays?.value, 0, CUSTOM_DAYS_MAX);
-  const h = clampInt(customHours?.value, 0, 23);
-  const m = clampInt(customMinutes?.value, 0, 59);
-  return partsToMinutes(d, h, m);
-}
-
-function updateCustomHint() {
-  if (!customDurationHint) return;
-  const mins = getCustomMinutes();
-  customDurationHint.textContent = `Expires in ${formatDurationText(mins)}.`;
-}
-
-function toggleCustomUI() {
-  if (!expirySelect || !customExpiryWrap) return;
-
-  const isCustom = String(expirySelect.value) === "custom";
-  customExpiryWrap.classList.toggle("hidden", !isCustom);
-
-  if (isCustom) {
-    // If user never touched custom, prefill from last preset
-    if (!customTouched) {
-      setCustomFromMinutes(lastPresetMinutes || 10);
-    }
-    updateCustomHint();
-  }
-}
-
-function getSelectedMinutesOrThrow() {
-  const mode = String(expirySelect?.value || "10");
-
-  if (mode !== "custom") {
-    const minutes = parseInt(mode, 10);
-    if (!Number.isFinite(minutes) || minutes < 1) {
-      throw new Error("Please choose a valid expiration time.");
-    }
-    return minutes;
-  }
-
-  // custom duration
-  const minutes = getCustomMinutes();
-  if (!Number.isFinite(minutes) || minutes < 1) {
-    throw new Error("Custom duration must be at least 1 minute.");
-  }
+function clampCustomDuration(minutes) {
+  // Max ~10 years
+  const max = 10 * 365 * 24 * 60;
+  if (minutes < 1) return 1;
+  if (minutes > max) return max;
   return minutes;
 }
 
-function flashButtonText(btn, tempText, ms, fallbackText) {
-  if (!btn) return;
-  const original = btn.textContent;
-  btn.textContent = tempText;
-  setTimeout(() => {
-    // If user changed it in the meantime, don't fight it
-    btn.textContent = fallbackText || original;
-  }, ms);
-}
-
-async function restoreLastResultIfAny() {
-  const st = loadLastState();
-  if (!st) return;
-
-  // Avoid restoring if DOM missing
-  if (!resultCard || !generatedLink || !qrcodeCanvas) return;
-
-  const endMs = new Date(st.expiresAt).getTime();
-  const remainingMs = endMs - Date.now();
-  if (remainingMs <= 0) {
-    clearLastState();
-    return;
-  }
-
-  lastRedirectUrl = st.redirectUrl;
-  linkExpired = false;
-  setDownloadButtonsEnabled(true);
-
-  generatedLink.textContent = makeDisplayLink(st.redirectUrl);
-  generatedLink.href = st.redirectUrl;
-  generatedLink.title = st.redirectUrl;
-
-  resultCard.classList.remove("hidden");
-  await renderQr(st.redirectUrl);
-
-  const endLocal = new Date(st.expiresAt);
-  if (st.minutes && Number.isFinite(st.minutes)) {
-    expiryHint.textContent = `Expires in ${st.minutes} min • Until ${endLocal.toLocaleString()}`;
+function setCustomHint(totalMinutes) {
+  if (!customDurationHint) return;
+  const max = 10 * 365 * 24 * 60;
+  if (totalMinutes >= max) {
+    customDurationHint.textContent = "Max reached (~10 years).";
+  } else if (totalMinutes < 1) {
+    customDurationHint.textContent = "Minimum is 1 minute.";
   } else {
-    expiryHint.textContent = `Until ${endLocal.toLocaleString()}`;
+    customDurationHint.textContent = "Tip: set a mix of days, hours, and minutes. Max ~10 years.";
   }
-
-  clearTimeout(expiryTimer);
-  expiryTimer = setTimeout(() => {
-    expireUINow();
-  }, remainingMs);
-
-  startCountdown(st.expiresAt);
 }
 
-function bindUI() {
-  if (!generateBtn || !urlInput || !expirySelect || !resultCard || !qrcodeCanvas) {
-    console.error("[ui] Missing required DOM elements. Check index.html IDs.");
+function msToHMS(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(total / 86400);
+  const h = Math.floor((total % 86400) / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+
+  if (d > 0) return `${d}d ${h}h ${m}m ${s}s`;
+  if (h > 0) return `${h}h ${m}m ${s}s`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (e) {
+    // fallback
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.top = "-9999px";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      return true;
+    } catch (e2) {
+      document.body.removeChild(ta);
+      return false;
+    }
+  }
+}
+
+function setButtonsEnabled(enabled) {
+  copyBtn.disabled = !enabled;
+  downloadBtn.disabled = !enabled;
+  shareBtn.disabled = !enabled;
+  downloadSvgBtn.disabled = !enabled;
+}
+
+// ---------- UI events ----------
+expirySelect?.addEventListener("change", () => {
+  const isCustom = expirySelect.value === "custom";
+  customExpiryWrap.style.display = isCustom ? "block" : "none";
+
+  if (isCustom) {
+    const t = getCustomMinutesTotal();
+    setCustomHint(t);
+  }
+});
+
+[customDays, customHours, customMinutes].forEach((el) => {
+  el?.addEventListener("input", () => {
+    const total = getCustomMinutesTotal();
+    setCustomHint(total);
+  });
+});
+
+// ---------- QR ----------
+function renderQR(shortUrl) {
+  qrcodeEl.innerHTML = "";
+  qrInstance = new QRCode(qrcodeEl, {
+    text: shortUrl,
+    width: 220,
+    height: 220,
+    colorDark: "#000000",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.M,
+  });
+}
+
+function downloadPNG(filename = "tempqr.png") {
+  const img = qrcodeEl.querySelector("img");
+  const canvas = qrcodeEl.querySelector("canvas");
+  let dataUrl = "";
+
+  if (img?.src) dataUrl = img.src;
+  else if (canvas) dataUrl = canvas.toDataURL("image/png");
+
+  if (!dataUrl) return;
+
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function canvasToSVGDataURL(canvas) {
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width;
+  const h = canvas.height;
+  const imgData = ctx.getImageData(0, 0, w, h).data;
+
+  // Build a very simple pixel-based SVG (compact enough for QR)
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`;
+  svg += `<rect width="100%" height="100%" fill="#fff"/>`;
+
+  // Draw dark pixels as 1x1 rects
+  // (This is not the most efficient possible, but works well and is deterministic.)
+  svg += `<g fill="#000">`;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const r = imgData[i], g = imgData[i + 1], b = imgData[i + 2], a = imgData[i + 3];
+      // dark pixel threshold
+      if (a > 0 && r < 100 && g < 100 && b < 100) {
+        svg += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
+      }
+    }
+  }
+  svg += `</g></svg>`;
+
+  const blob = new Blob([svg], { type: "image/svg+xml" });
+  return URL.createObjectURL(blob);
+}
+
+function downloadSVG(filename = "tempqr.svg") {
+  const canvas = qrcodeEl.querySelector("canvas");
+  if (!canvas) return;
+  const url = canvasToSVGDataURL(canvas);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ---------- countdown ----------
+function expireUINow() {
+  clearInterval(countdownTimer);
+  countdownEl.textContent = "Link expired";
+  generatedLink.textContent = "";
+  generatedLink.removeAttribute("href");
+  expiryHint.textContent = "This temporary link is no longer available.";
+  setButtonsEnabled(false);
+}
+
+function startCountdown(expiresAtMs) {
+  clearInterval(countdownTimer);
+  const tick = () => {
+    const left = expiresAtMs - Date.now();
+    if (left <= 0) {
+      expireUINow();
+      return;
+    }
+    countdownEl.textContent = `Expires in: ${msToHMS(left)}`;
+  };
+  tick();
+  countdownTimer = setInterval(tick, 1000);
+}
+
+// ---------- API ----------
+async function fetchJSON(url, opts) {
+  const res = await fetch(url, { ...opts });
+  const txt = await res.text();
+  try {
+    return { ok: res.ok, status: res.status, json: JSON.parse(txt) };
+  } catch {
+    return { ok: res.ok, status: res.status, json: { error: txt || "Invalid response" } };
+  }
+}
+
+// ---------- generate ----------
+generateBtn?.addEventListener("click", async () => {
+  const raw = (urlInput.value || "").trim();
+  if (!raw) {
+    alert("Please enter a URL.");
+    return;
+  }
+  if (!isValidUrl(raw)) {
+    alert("Please enter a valid URL (example.com or https://example.com).");
     return;
   }
 
-  // (Optional UX) Normalize on blur so user sees https:// added (but don't force while typing)
-  urlInput.addEventListener("blur", () => {
-    const norm = normalizeHttpUrl(urlInput.value);
-    if (norm) urlInput.value = norm;
-  });
+  const url = normalizeUrl(raw);
 
-  // Show Share only if Web Share API exists
-  if (shareBtn) {
-    const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
-    shareBtn.style.display = canShare ? "" : "none";
-    shareBtn.disabled = true;
+  let minutes = 0;
+  if (expirySelect.value === "custom") {
+    minutes = clampCustomDuration(getCustomMinutesTotal());
+    setCustomHint(minutes);
+  } else {
+    minutes = Number(expirySelect.value);
+    if (!minutes || minutes < 1) minutes = 5;
   }
 
-  // Initialize custom duration from default preset (10 minutes)
-  lastPresetMinutes = parseInt(String(expirySelect.value || "10"), 10);
-  if (!Number.isFinite(lastPresetMinutes) || lastPresetMinutes < 1) lastPresetMinutes = 10;
-  setCustomFromMinutes(lastPresetMinutes);
-  updateCustomHint();
-  toggleCustomUI();
+  generateBtn.disabled = true;
+  generateBtn.textContent = "Generating...";
+  setButtonsEnabled(false);
 
-  // Preset/custom UI behavior
-  expirySelect.addEventListener("change", () => {
-    const v = String(expirySelect.value);
+  try {
+    const payload = { url, minutes };
 
-    if (v !== "custom") {
-      const mins = parseInt(v, 10);
-      if (Number.isFinite(mins) && mins >= 1) {
-        lastPresetMinutes = mins;
-        // Keep custom prefilled from latest preset (nice UX)
-        if (!customTouched) setCustomFromMinutes(lastPresetMinutes);
-        updateCustomHint();
-      }
-    }
+    const { ok, json } = await fetchJSON("/api/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-    toggleCustomUI();
-  });
-
-  // Mark custom as touched + update hint live
-  const onCustomChange = () => {
-    customTouched = true;
-    // Clamp inputs immediately for clean UX
-    if (customDays) customDays.value = String(clampInt(customDays.value, 0, CUSTOM_DAYS_MAX));
-    if (customHours) customHours.value = String(clampInt(customHours.value, 0, 23));
-    if (customMinutes) customMinutes.value = String(clampInt(customMinutes.value, 0, 59));
-    updateCustomHint();
-  };
-
-  customDays?.addEventListener("input", onCustomChange);
-  customHours?.addEventListener("input", onCustomChange);
-  customMinutes?.addEventListener("input", onCustomChange);
-
-  generateBtn.addEventListener("click", async () => {
-    const raw = String(urlInput.value || "").trim();
-    const url = normalizeHttpUrl(raw);
-
-    if (!url) {
-      alert("Please enter a valid URL (e.g. google.com or https://example.com).");
+    if (!ok || !json?.shortUrl) {
+      const msg = json?.error || "Failed to generate link.";
+      alert(msg);
       return;
     }
 
-    // Write normalized value back so user sees what will be used
-    urlInput.value = url;
+    lastShortUrl = json.shortUrl;
+    lastExpiresAt = json.expiresAt;
 
-    let minutes;
-    try {
-      minutes = getSelectedMinutesOrThrow();
-    } catch (e) {
-      alert(e?.message || "Invalid expiration time.");
-      return;
-    }
+    // show UI
+    resultCard.style.display = "block";
+    generatedLink.href = lastShortUrl;
+    generatedLink.textContent = lastShortUrl;
+    expiryHint.textContent = "";
 
-    clearTimeout(expiryTimer);
-    clearInterval(countdownTimer);
-    setLoading(true);
+    renderQR(lastShortUrl);
+    setButtonsEnabled(true);
 
-    const safety = setTimeout(() => setLoading(false), 9000);
+    startCountdown(lastExpiresAt);
+  } catch (e) {
+    console.error(e);
+    alert("Something went wrong. Please try again.");
+  } finally {
+    generateBtn.disabled = false;
+    generateBtn.textContent = "Generate QR Code";
+  }
+});
 
-    try {
-      const created = await createLink(url, minutes);
+// ---------- actions ----------
+copyBtn?.addEventListener("click", async () => {
+  if (!lastShortUrl) return;
+  const ok = await copyText(lastShortUrl);
+  copyBtn.textContent = ok ? "Copied!" : "Copy failed";
+  setTimeout(() => (copyBtn.textContent = "Copy Link"), 900);
+});
 
-      const redirectUrl = `${window.location.origin}/go/${created.id}`;
-      lastRedirectUrl = redirectUrl;
+downloadBtn?.addEventListener("click", () => {
+  if (!lastShortUrl) return;
+  downloadPNG("tempqr.png");
+});
 
-      linkExpired = false;
-      setDownloadButtonsEnabled(true);
+downloadSvgBtn?.addEventListener("click", () => {
+  if (!lastShortUrl) return;
+  downloadSVG("tempqr.svg");
+});
 
-      generatedLink.textContent = makeDisplayLink(redirectUrl);
-      generatedLink.href = redirectUrl;
-      generatedLink.title = redirectUrl;
+shareBtn?.addEventListener("click", async () => {
+  if (!lastShortUrl) return;
 
-      resultCard.classList.remove("hidden");
-      await renderQr(redirectUrl);
-
-      const endLocal = new Date(created.expires_at);
-      expiryHint.textContent = `Expires in ${created.minutes} min • Until ${endLocal.toLocaleString()}`;
-
-      // Persist last result so coming back from Messages doesn't wipe it.
-      saveLastState({ redirectUrl, expiresAt: created.expires_at, minutes: created.minutes });
-
-      const endMs = new Date(created.expires_at).getTime();
-      const remainingMs = endMs - Date.now();
-
-      expiryTimer = setTimeout(() => {
-        expireUINow();
-      }, Math.max(0, remainingMs));
-
-      startCountdown(created.expires_at);
-    } catch (err) {
-      console.error("[ui] Create error:", err);
-      alert(err?.message || "Could not create link.");
-    } finally {
-      clearTimeout(safety);
-      setLoading(false);
-    }
-  });
-
-  window.addEventListener("resize", () => {
-    if (!lastRedirectUrl || linkExpired) return;
-    window.requestAnimationFrame(() => renderQr(lastRedirectUrl));
-  });
-
-  // When user returns from native share app, some browsers will restore tab; some will reload.
-  // On focus/visibility, try restoring last result if current state is empty.
-  window.addEventListener("focus", () => {
-    if (!lastRedirectUrl && !linkExpired) {
-      restoreLastResultIfAny();
-    }
-  });
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden && !lastRedirectUrl && !linkExpired) {
-      restoreLastResultIfAny();
-    }
-  });
-
-  copyBtn?.addEventListener("click", async () => {
-    if (linkExpired) return;
-    if (!lastRedirectUrl) return;
-
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(lastRedirectUrl);
-        copyBtn.textContent = "Copied!";
-        setTimeout(() => (copyBtn.textContent = "Copy link"), 1200);
-      } else {
-        const ta = document.createElement("textarea");
-        ta.value = lastRedirectUrl;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-      }
-    } catch {
-      alert("Could not copy link.");
-    }
-  });
-
-  downloadBtn?.addEventListener("click", () => {
-    if (linkExpired) return;
-
-    try {
-      const url = qrcodeCanvas.toDataURL("image/png");
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "qr-link.png";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch {
-      alert("Could not download QR.");
-    }
-  });
-
-  shareBtn?.addEventListener("click", async () => {
-    if (linkExpired) return;
-    if (!lastRedirectUrl) return;
-    if (typeof navigator === "undefined" || typeof navigator.share !== "function") return;
-
-    // Ensure we persist before leaving to any external app
-    // (in case tab gets killed and user reopens).
-    // We don't know expiresAt here unless we saved it earlier, but saveLastState already ran on create.
-    // This is just a safe no-op.
-    try {
-      // refresh savedAt to keep it "recent" while still expiring naturally
-      const st = loadLastState();
-      if (st && st.redirectUrl === lastRedirectUrl && st.expiresAt) {
-        saveLastState({ redirectUrl: st.redirectUrl, expiresAt: st.expiresAt, minutes: st.minutes });
-      }
-    } catch {}
-
+  // Prefer native share if available
+  if (navigator.share) {
     try {
       await navigator.share({
         title: "TempQR",
-        text: "Expiring link:",
-        url: lastRedirectUrl
+        text: "Temporary QR code (expires automatically):",
+        url: lastShortUrl,
       });
-
-      // If share succeeds and we remain/return to the page:
-      flashButtonText(shareBtn, "Sent!", 1400, "Share");
+      return;
     } catch (e) {
-      // User cancel (AbortError) or other share issues — keep silent to avoid confusion.
+      // fall back below
     }
-  });
+  }
 
-  downloadSvgBtn?.addEventListener("click", async () => {
-    if (linkExpired) return;
-    if (!lastRedirectUrl) return;
+  // fallback: copy
+  const ok = await copyText(lastShortUrl);
+  shareBtn.textContent = ok ? "Link copied" : "Copy failed";
+  setTimeout(() => (shareBtn.textContent = "Share"), 900);
+});
 
-    try {
-      if (!QRCode?.toString) throw new Error("SVG generator not available");
-
-      const svgText = await QRCode.toString(lastRedirectUrl, {
-        type: "svg",
-        width: 320,
-        margin: QR_MARGIN,
-        errorCorrectionLevel: QR_ECL,
-        color: { dark: "#000000", light: "#FFFFFF" }
-      });
-
-      const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "qr-link.svg";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (e) {
-      console.error("[ui] SVG download failed:", e);
-      alert("Could not download SVG.");
-    }
-  });
-}
-
-(async function start() {
-  console.info("[ui] init @", location.origin);
-  bindUI();
-
-  // Restore last generated result (if any) so share doesn't "wipe the session" on mobile.
-  await restoreLastResultIfAny();
-})();
+// Basic init
+setButtonsEnabled(false);

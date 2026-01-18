@@ -6,171 +6,125 @@
   <title>TempQR</title>
   <link rel="canonical" href="https://tempqr.com/">
 
-  <link rel="stylesheet" href="styles.css" />
+  <meta name="description" content="Temporary QR codes and expiring links for private sharing, client previews, and time-sensitive info. Privacy-first, no signup, no history." />
+
+  <link rel="stylesheet" href="styles.css?v=fix_signout_ghost_1" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 
-  <!-- Remove colored top border/strip -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-    }
-    body::before, html::before {
-      display: none !important;
-      content: none !important;
-    }
-    .navbar {
-      border-top: none !important;
-      box-shadow: none !important;
-      background-image: none !important;
-    }
-    .navbar::before,
-    .navbar::after {
-      display: none !important;
-      content: none !important;
-    }
-
-    /* Bigger brand logo (desktop) */
-    .brand-icon img{
-      width: 40px !important;
-      height: 40px !important;
-    }
-
-    /* Hide top ad on small screens */
-    @media (max-width: 560px) {
-      #topAdBar { display: none !important; }
-
-      /* Slightly smaller on phones */
-      .brand-icon img{
-        width: 34px !important;
-        height: 34px !important;
-      }
-    }
-
-    /* --- Use-cases chips + modal (compact, doesn't push the form) --- */
-    .usecases-bar{
-      margin: 12px auto 6px;
-      max-width: 860px;
+    /* Use-cases modal */
+    .usecase-bar {
+      margin: 1.25rem auto 1.25rem;
+      max-width: 760px;
       display: flex;
       align-items: center;
-      justify-content: center;
       gap: 10px;
       flex-wrap: wrap;
-      padding: 0 12px;
-    }
-    .usecases-label{
-      font-size: 13px;
-      color: rgba(255,255,255,0.72);
-      letter-spacing: 0.2px;
-      margin-right: 2px;
-      white-space: nowrap;
-    }
-    .usecase-chips{
-      display: flex;
-      align-items: center;
       justify-content: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .usecases-label {
+      font-weight: 600;
+      color: rgba(255,255,255,0.78);
+    }
+    .usecase-chips {
+      display: flex;
       gap: 8px;
       flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
     }
-    .chip{
-      font-size: 12.5px;
-      line-height: 1;
-      padding: 8px 10px;
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.05);
-      color: rgba(255,255,255,0.86);
+      background: rgba(255,255,255,0.04);
+      color: rgba(255,255,255,0.74);
+      font-size: 13px;
+      line-height: 1;
       white-space: nowrap;
-      user-select: none;
     }
-    .usecases-more{
-      font-size: 12.5px;
-      padding: 8px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.02);
-      color: rgba(255,255,255,0.92);
+    .usecases-more {
+      background: transparent;
+      border: 0;
+      color: rgba(255,255,255,0.78);
+      font-weight: 700;
       cursor: pointer;
-      text-decoration: none;
+      text-decoration: underline;
+      padding: 6px 6px;
+      border-radius: 8px;
     }
-    .usecases-more:hover{
-      background: rgba(255,255,255,0.06);
-    }
-    .usecases-more:focus{
-      outline: 2px solid rgba(125, 94, 255, 0.55);
-      outline-offset: 2px;
+    .usecases-more:hover {
+      color: rgba(255,255,255,0.95);
     }
 
-    /* Desktop-only: keep 5 chips on first row, force View more to its own centered row */
-    @media (min-width: 641px){
-      .usecases-more{
-        flex: 0 0 100%;
-        width: max-content;
-        margin: 6px auto 0;
-      }
-    }
-
-    /* Modal */
     .uc-modal-overlay{
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.62);
-      backdrop-filter: blur(6px);
+      background: rgba(0,0,0,0.65);
       display: none;
       align-items: center;
       justify-content: center;
-      padding: 18px;
+      padding: 22px;
       z-index: 9999;
     }
     .uc-modal-overlay.open{ display: flex; }
-
     .uc-modal{
-      width: min(740px, 100%);
-      border-radius: 16px;
+      width: min(720px, 94vw);
+      background: linear-gradient(180deg, rgba(21,24,31,0.98) 0%, rgba(15,18,24,0.98) 100%);
       border: 1px solid rgba(255,255,255,0.10);
-      background: rgba(18, 22, 34, 0.92);
-      box-shadow: 0 20px 80px rgba(0,0,0,0.55);
+      border-radius: 16px;
+      box-shadow: 0 22px 60px rgba(0,0,0,0.45);
       overflow: hidden;
     }
     .uc-modal-header{
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
       padding: 14px 16px;
       border-bottom: 1px solid rgba(255,255,255,0.08);
     }
     .uc-modal-title{
-      font-size: 14px;
-      font-weight: 700;
+      font-weight: 800;
+      font-size: 16px;
       color: rgba(255,255,255,0.92);
-      letter-spacing: 0.2px;
     }
     .uc-modal-close{
-      border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.04);
-      color: rgba(255,255,255,0.90);
+      appearance: none;
+      border: 0;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.85);
       width: 34px;
       height: 34px;
       border-radius: 10px;
       cursor: pointer;
       font-size: 18px;
-      line-height: 1;
+      line-height: 34px;
+      text-align: center;
     }
     .uc-modal-close:hover{
-      background: rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.10);
+      color: rgba(255,255,255,0.95);
     }
     .uc-modal-body{
-      padding: 14px 16px 16px;
+      padding: 14px 16px 18px;
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.5;
     }
     .uc-grid{
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px 18px;
-      margin: 8px 0 10px;
+      gap: 10px 14px;
+      margin: 10px 0 8px;
     }
     @media (max-width: 640px){
       .uc-grid{ grid-template-columns: 1fr; }
@@ -179,23 +133,24 @@
       display: flex;
       gap: 10px;
       align-items: flex-start;
-      color: rgba(255,255,255,0.86);
-      font-size: 13.5px;
-      line-height: 1.35;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
     }
     .uc-check{
-      margin-top: 1px;
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
       border-radius: 6px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid rgba(125, 94, 255, 0.35);
-      background: rgba(125, 94, 255, 0.12);
-      color: rgba(255,255,255,0.90);
-      flex: 0 0 auto;
+      background: rgba(0, 255, 209, 0.10);
+      color: rgba(0, 255, 209, 0.95);
+      font-weight: 900;
+      flex: 0 0 20px;
       font-size: 12px;
+      margin-top: 1px;
     }
     .uc-footer-note{
       margin-top: 10px;
@@ -206,121 +161,109 @@
       font-size: 13px;
     }
 
-    /* Extra explanation block (how it works) */
-    .field-hint-secondary{
-      margin-top: 4px;
+    /* Modal section blocks (use-cases + how-it-works) */
+    .uc-modal-subtitle{
+      margin: 6px 0 12px;
+      color: rgba(255,255,255,0.72);
       font-size: 13px;
-      color: rgba(255,255,255,0.75);
+      line-height: 1.45;
     }
-
-    .explainer{
-      max-width: 880px;
-      margin: 28px auto 16px;
-      padding: 16px 16px 18px;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(10, 12, 20, 0.94);
-    }
-    .explainer-title{
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: 0.2px;
-      color: rgba(255,255,255,0.9);
-      margin-bottom: 10px;
-      text-align: left;
-    }
-    .explainer-grid{
+    .uc-sections{
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px 18px;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 14px;
+      margin: 10px 0 8px;
     }
-    @media (max-width: 768px){
-      .explainer-grid{
-        grid-template-columns: 1fr;
-      }
+    @media (max-width: 640px){
+      .uc-sections{ grid-template-columns: 1fr; }
     }
-    .explainer-heading{
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 6px;
-      color: rgba(255,255,255,0.88);
+    .uc-section{
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 12px 12px;
     }
-    .explainer-list{
-      list-style: none;
-      padding: 0;
+    .uc-section h4{
+      margin: 0 0 8px;
+      font-size: 13.5px;
+      font-weight: 800;
+      color: rgba(255,255,255,0.92);
+    }
+    .uc-section ul{
       margin: 0;
+      padding-left: 18px;
+      color: rgba(255,255,255,0.78);
       font-size: 13px;
-      color: rgba(255,255,255,0.8);
+      line-height: 1.45;
     }
-    .explainer-list li{
-      margin-bottom: 4px;
-      line-height: 1.4;
-      position: relative;
-      padding-left: 12px;
+    .uc-section li{ margin: 6px 0; }
+
+    .hiw-grid{
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px 14px;
+      margin: 10px 0 8px;
     }
-    .explainer-list li::before{
-      content: "•";
-      position: absolute;
-      left: 0;
-      top: 0;
-      color: rgba(255,255,255,0.55);
+    @media (max-width: 900px){
+      .hiw-grid{ grid-template-columns: 1fr; }
     }
-    .explainer-note{
-      margin-top: 10px;
+    .hiw-card{
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 12px 12px;
+    }
+    .hiw-card h4{
+      margin: 0 0 8px;
+      font-size: 13.5px;
+      font-weight: 800;
+      color: rgba(255,255,255,0.92);
+    }
+    .hiw-card ul{
+      margin: 0;
+      padding-left: 18px;
+      color: rgba(255,255,255,0.78);
       font-size: 13px;
-      color: rgba(255,255,255,0.7);
-      text-align: left;
+      line-height: 1.45;
     }
+    .hiw-card li{ margin: 6px 0; }
   </style>
 </head>
 <body>
-
-  <!-- Adsterra Top Banner 468x60 -->
+  <!-- Adsterra Top Ad Bar -->
   <div id="topAdBar" aria-label="Advertisement" style="width:100%; display:block;">
-    <div style="max-width: 468px; min-height: 60px; margin: 0 auto; padding: 8px 16px; text-align:center;">
-      <script>
-        atOptions = {
-          'key' : 'ecc29ebf10b3a2ba72c17c05cbb4431c',
-          'format' : 'iframe',
-          'height' : 60,
-          'width' : 468,
-          'params' : {}
-        };
-      </script>
-      <script src="https://www.highperformanceformat.com/ecc29ebf10b3a2ba72c17c05cbb4431c/invoke.js"></script>
-    </div>
+    <script async="async" data-cfasync="false" src="https://pl28430936.effectivegatecpm.com/04967c1b7abd898a3451fedeba4f822c/invoke.js"></script>
+    <div id="container-04967c1b7abd898a3451fedeba4f822c"></div>
   </div>
 
-  <!-- Navbar -->
   <nav class="navbar">
     <div class="nav-left">
       <span class="brand-icon" aria-hidden="true">
-        <img src="TempQRlogo.svg" alt="" width="34" height="34" style="display:block; width:34px; height:34px; border-radius:8px;" />
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm10 0h2v2h-2v-2Zm2 2h2v2h-2v-2Zm-2 2h2v2h-2v-2Zm4-6h2v6h-2v-6Z" fill="currentColor"/>
+        </svg>
       </span>
       <h1 class="brand-name">TempQR</h1>
     </div>
-
     <div class="nav-links">
-      <a href="mailto:support@tempqr.com" rel="nofollow">Support</a>
+      <button type="button" class="nav-link-btn" id="howItWorksOpenBtn" aria-haspopup="dialog" aria-controls="howItWorksModalOverlay">How it works</button>
     </div>
   </nav>
 
   <div class="container">
     <h2 class="hero-title">Create shareable QR codes with automatic expiry</h2>
-    <p class="subtitle">
-      TempQR turns any safe URL into a temporary, shareable QR code &amp; expiring link.<br>
-      We don’t host your files – we just wrap the links you already use.
-    </p>
+    <p class="subtitle">TempQR turns any URL into a temporary, shareable QR code and expiring link &mdash; ideal for private previews, client work, and anything that shouldn&rsquo;t stay online forever.</p>
+    <p class="why">Not everything you share should live online forever.<br>TempQR lets you send a link or QR code that automatically disappears after a chosen time &mdash; without accounts, saved history, or permanent traces.</p>
 
-    <!-- Use-cases chips (compact) -->
-    <div class="usecases-bar" aria-label="Use cases">
+    <!-- Popular use-cases chips + View more modal trigger -->
+    <div class="usecase-bar" aria-label="Popular use-cases">
       <span class="usecases-label">Popular use-cases:</span>
       <div class="usecase-chips">
-        <span class="chip">Drive/PDF links</span>
-        <span class="chip">Figma/Notion previews</span>
-        <span class="chip">Client portfolio</span>
-        <span class="chip">Event info</span>
-        <span class="chip">Private content</span>
+        <span class="chip">Freelancers &amp; Designers</span>
+        <span class="chip">Agencies &amp; Clients</span>
+        <span class="chip">Event Organizers</span>
+        <span class="chip">Private Sharing</span>
+        <span class="chip">Offline QR Moments</span>
         <button type="button" class="usecases-more" id="usecasesOpenBtn" aria-haspopup="dialog" aria-controls="usecasesModalOverlay">View more</button>
       </div>
     </div>
@@ -331,127 +274,120 @@
         Enter URL
         <input type="url" id="urlInput" placeholder="example.com" />
       </label>
-      <p class="field-hint field-hint-secondary">
-        TempQR works only with URLs (no file uploads). Paste a link to a page, document, or file that already lives online.
-      </p>
+
+      <p class="field-hint">Paste any URL (Figma, Notion, Drive, PDFs, event pages). TempQR creates an expiring link and QR code you can share.</p>
 
       <label>
         Expiration Time
         <select id="expirySelect" aria-label="Expiration Time">
           <option value="1">1 minute</option>
           <option value="5">5 minutes</option>
-          <option value="10" selected>10 minutes</option>
-          <option value="30">30 minutes</option>
           <option value="60">1 hour</option>
-          <option value="360">6 hours</option>
           <option value="1440">1 day</option>
           <option value="10080">7 days</option>
+          <option value="43200">30 days</option>
+          <option value="525600">1 year</option>
           <option value="custom">Custom duration</option>
         </select>
       </label>
-      <p class="field-hint">This QR will expire after the selected time.</p>
 
-      <div id="customExpiryWrap" class="custom-expiry hidden">
-        <div class="custom-grid" role="group" aria-label="Custom duration">
-          <div class="custom-field">
-            <span class="custom-field-label">Days</span>
-            <input type="number" id="customDays" min="0" max="3650" step="1" value="0" inputmode="numeric" />
-          </div>
-          <div class="custom-field">
-            <span class="custom-field-label">Hours</span>
-            <input type="number" id="customHours" min="0" max="23" step="1" value="0" inputmode="numeric" />
-          </div>
-          <div class="custom-field">
-            <span class="custom-field-label">Minutes</span>
-            <input type="number" id="customMinutes" min="0" max="59" step="1" value="10" inputmode="numeric" />
-          </div>
+      <div id="customExpiryWrap" class="custom-expiry">
+        <div class="custom-expiry-grid">
+          <label>
+            Days
+            <input type="number" min="0" max="3650" step="1" id="customDays" placeholder="0" />
+          </label>
+          <label>
+            Hours
+            <input type="number" min="0" max="23" step="1" id="customHours" placeholder="0" />
+          </label>
+          <label>
+            Minutes
+            <input type="number" min="0" max="59" step="1" id="customMinutes" placeholder="0" />
+          </label>
         </div>
-        <p class="custom-duration-hint" id="customDurationHint">Expires in 10 minutes.</p>
+        <p class="field-hint" id="customDurationHint">Tip: set a mix of days, hours, and minutes. Max ~10 years.</p>
       </div>
 
-      <div class="button-group">
-        <button id="generateBtn" class="btn btn-primary" type="button">Generate QR</button>
-      </div>
+      <button id="generateBtn" class="btn-primary">Generate QR Code</button>
     </section>
 
-    <section class="card hidden" id="resultCard">
-      <h2>Your Expiring Link</h2>
-      <canvas id="qrcode"></canvas>
-      <div class="button-group gap">
-        <button class="btn btn-ghost" id="copyBtn" type="button">Copy link</button>
-        <button class="btn btn-ghost" id="downloadBtn" type="button">Download PNG</button>
-        <button class="btn btn-ghost" id="shareBtn" type="button" style="display:none;">Share</button>
-        <button class="btn btn-ghost" id="downloadSvgBtn" type="button" style="display:none;">Download SVG</button>
+    <section class="card result-card" id="resultCard" style="display:none;">
+      <h2>✅ Your QR Code is Ready</h2>
+
+      <div id="qrcode"></div>
+
+      <div class="actions">
+        <button id="copyBtn" class="btn-secondary">Copy Link</button>
+        <button id="downloadBtn" class="btn-secondary">Download PNG</button>
+        <button id="downloadSvgBtn" class="btn-secondary">Download SVG</button>
+        <button id="shareBtn" class="btn-secondary">Share</button>
       </div>
+
       <p><a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a></p>
       <p class="countdown" id="countdown"></p>
       <p class="hint" id="expiryHint"></p>
-      <p class="hint"><em>No history is stored—save the link and download the PNG before leaving.</em></p>
+      <p class="hint">Share before it expires. Once the timer hits zero, the link is gone.</p>
+      <p class="hint"><em>No history is stored—save the link and download the PNG before it expires.</em></p>
     </section>
-
-    <!-- Adsterra Banner 320x50 -->
-    <div aria-label="Advertisement" style="width:100%; display:block;">
-      <div style="max-width: 320px; margin: 14px auto; text-align:center;">
-        <script>
-          atOptions = {
-            'key' : 'ba7916ade6aa2b3462d9c63a04e93ffd',
-            'format' : 'iframe',
-            'height' : 50,
-            'width' : 320,
-            'params' : {}
-          };
-        </script>
-        <script src="https://www.highperformanceformat.com/ba7916ade6aa2b3462d9c63a04e93ffd/invoke.js"></script>
-      </div>
-    </div>
 
     <section class="benefits" aria-label="Benefits">
       <div class="benefit">
-        <div class="benefit-title">No signup</div>
-        <div class="benefit-text">Paste a URL and generate in seconds.</div>
+        <div class="benefit-title">Privacy-first</div>
+        <div class="benefit-text">No login, no dashboard, no saved history.</div>
       </div>
       <div class="benefit">
         <div class="benefit-title">Auto-expiry</div>
-        <div class="benefit-text">Links stop working after your chosen time.</div>
+        <div class="benefit-text">Links and QR codes automatically stop working.</div>
       </div>
       <div class="benefit">
-        <div class="benefit-title">Share-ready</div>
-        <div class="benefit-text">Share in one tap, copy the link, or download a clean PNG QR.</div>
+        <div class="benefit-title">Share-first workflow</div>
+        <div class="benefit-text">Copy link or download the QR in one tap.</div>
+      </div>
+      <div class="benefit">
+        <div class="benefit-title">Temporary by design</div>
+        <div class="benefit-text">Ideal for previews, one-off sharing, and client work.</div>
       </div>
     </section>
-    <p class="benefits-note">Free, simple, and fast — designed for quick sharing.</p>
+    <p class="benefits-note">Designed for quick sharing &mdash; not archiving.</p>
 
-    <!-- How TempQR works / for directory sites + korisnike -->
-    <section class="explainer" aria-label="How TempQR works">
-      <div class="explainer-title">How TempQR works</div>
-      <div class="explainer-grid">
-        <div class="explainer-block">
-          <div class="explainer-heading">What TempQR does</div>
-          <ul class="explainer-list">
-            <li>Turns any URL into a QR code and short expiring link.</li>
-            <li>Lets you choose how long the link stays live (from minutes to days).</li>
-            <li>Lets you copy, share, or download a clean QR as PNG or SVG.</li>
-          </ul>
-        </div>
-        <div class="explainer-block">
-          <div class="explainer-heading">What TempQR doesn’t do</div>
-          <ul class="explainer-list">
-            <li>Doesn’t host files or media – your content stays on Drive, Dropbox, etc.</li>
-            <li>Doesn’t keep a history or analytics of generated links.</li>
-            <li>Doesn’t bypass paywalls or remove copyright / access protection.</li>
-          </ul>
-        </div>
-        <div class="explainer-block">
-          <div class="explainer-heading">Who it’s for</div>
-          <ul class="explainer-list">
-            <li>Freelancers &amp; agencies sharing previews and handoffs with clients.</li>
-            <li>Creators &amp; marketers sharing time-limited campaign or promo links.</li>
-            <li>Anyone who occasionally needs a QR code that disappears after use.</li>
-          </ul>
-        </div>
+    <section class="page-card" aria-label="What makes it different" style="margin-top: 1rem;">
+      <h2 style="margin:0 0 10px;">What makes it different</h2>
+      <p style="margin:0 0 12px; color: var(--muted);">
+        Unlike standard QR generators and URL shorteners, TempQR creates temporary shareable links. Everything you generate automatically expires &mdash; without accounts, logs, or permanent storage.
+      </p>
+      <p style="margin:0; color: var(--muted);">
+        <strong style="color: rgba(255,255,255,0.92);">Who it&rsquo;s for:</strong>
+        designers &amp; freelancers, agencies &amp; clients, event organizers, remote teams, privacy-focused sharing, offline QR workflows, personal use.
+      </p>
+    </section>
+
+    <section class="page-card" aria-label="FAQ preview" style="margin-top: 1rem;">
+      <h2 style="margin:0 0 10px;">FAQ</h2>
+      <div class="faq">
+        <details>
+          <summary>Why would I want expiration?</summary>
+          <p>Because not everything needs to live online forever &mdash; especially previews, work-in-progress files, personal info, or temporary event data.</p>
+        </details>
+        <details>
+          <summary>Do you store history?</summary>
+          <p>No. TempQR does not provide an account/dashboard or a history list. Once a link expires, it&rsquo;s gone.</p>
+        </details>
+        <details>
+          <summary>Do you require an account?</summary>
+          <p>No login, no signup, no dashboard.</p>
+        </details>
+        <details>
+          <summary>Can I use it for client work?</summary>
+          <p>Yes &mdash; especially useful for temporary previews and drafts (Figma/Notion, PDFs, staging links, and other review links).</p>
+        </details>
+        <details>
+          <summary>Can someone recover expired links?</summary>
+          <p>Expired links stop working and cannot be reactivated.</p>
+        </details>
       </div>
-      <p class="explainer-note">
-        TempQR is a thin layer on top of the URLs you already use. Harmful or clearly malicious URLs are blocked where detected – please share only safe, legal content you have the right to share.
+      <p style="margin: 12px 0 0; color: var(--muted);">
+        Want the full FAQ? <a href="faq.html" rel="nofollow" style="color: rgba(255,255,255,0.92); text-decoration: underline;">Open here</a>.
       </p>
     </section>
   </div>
@@ -460,28 +396,104 @@
   <div class="uc-modal-overlay" id="usecasesModalOverlay" role="dialog" aria-modal="true" aria-labelledby="usecasesModalTitle">
     <div class="uc-modal" role="document">
       <div class="uc-modal-header">
-        <div class="uc-modal-title" id="usecasesModalTitle">Use-cases &amp; examples (URL only)</div>
+        <div class="uc-modal-title" id="usecasesModalTitle">Popular use-cases (with examples)</div>
         <button type="button" class="uc-modal-close" id="usecasesCloseBtn" aria-label="Close">×</button>
       </div>
       <div class="uc-modal-body">
-        <div class="uc-grid" aria-label="Use-case list">
-          <div class="uc-item"><span class="uc-check">✓</span><span>Google Drive / Dropbox / PDF document links</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>WeTransfer / Mega / File.io download links</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Pages &amp; previews (e.g., Figma / Notion / design review)</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Promo landing page or microsite links</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Coupon codes or temporary offers on your website</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Portfolio preview or case study for a client</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Links with ticket / event info (maps, schedules, check-in)</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Links with sensitive / personal content you don’t want to stay online</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Client links for freelance handoff and quick approvals</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Simple QR codes for offline sharing of a URL</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Affiliate or tracking URLs that should expire after a campaign</span></div>
-          <div class="uc-item"><span class="uc-check">✓</span><span>Campaign links used by influencers, TikTok, or social posts</span></div>
+        <p class="uc-modal-subtitle">Pick a use-case that matches what you&rsquo;re sharing. TempQR works with any URL.</p>
+
+        <div class="uc-sections" aria-label="Use-case examples">
+          <div class="uc-section">
+            <h4>Freelancers &amp; Designers</h4>
+            <ul>
+              <li>Send Figma or Notion previews that vanish after review</li>
+              <li>Share a time-limited Google Drive PDF for feedback</li>
+              <li>One-off handoffs: Loom links, prototypes, drafts</li>
+            </ul>
+          </div>
+
+          <div class="uc-section">
+            <h4>Agencies &amp; Clients</h4>
+            <ul>
+              <li>Portfolios, PDFs, drafts, and working files for a client</li>
+              <li>Temporary access to staging pages or preview builds</li>
+              <li>Share a single link/QR that expires automatically</li>
+            </ul>
+          </div>
+
+          <div class="uc-section">
+            <h4>Event Organizers</h4>
+            <ul>
+              <li>Event details, schedules, or locations that shouldn&rsquo;t stay online</li>
+              <li>Print a QR for a booth/workshop and let it expire after the event</li>
+              <li>Avoid stale links when the event is over</li>
+            </ul>
+          </div>
+
+          <div class="uc-section">
+            <h4>Private Sharing</h4>
+            <ul>
+              <li>Share personal documents, pictures, or info without leaving traces</li>
+              <li>Time-limited access to sensitive URLs</li>
+              <li>No account, no dashboard, no history list</li>
+            </ul>
+          </div>
+
+          <div class="uc-section">
+            <h4>Offline QR Moments</h4>
+            <ul>
+              <li>Meetings, workshops, signage, time-sensitive info</li>
+              <li>Drop a QR on a slide/handout &mdash; it auto-expires later</li>
+              <li>Good for one-off sharing (not archiving)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="uc-footer-note">Designed for quick sharing &mdash; not archiving. Want the full flow? Open <strong>How it works</strong> in the top menu.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- How it works Modal (opens from navbar) -->
+  <div class="uc-modal-overlay" id="howItWorksModalOverlay" role="dialog" aria-modal="true" aria-labelledby="howItWorksModalTitle">
+    <div class="uc-modal" role="document">
+      <div class="uc-modal-header">
+        <div class="uc-modal-title" id="howItWorksModalTitle">How TempQR works</div>
+        <button type="button" class="uc-modal-close" id="howItWorksCloseBtn" aria-label="Close">×</button>
+      </div>
+      <div class="uc-modal-body">
+        <p class="uc-modal-subtitle">A quick explainer, kept out of the way so the page stays fast and clean.</p>
+
+        <div class="hiw-grid" aria-label="How TempQR works">
+          <div class="hiw-card">
+            <h4>1) Paste a URL</h4>
+            <ul>
+              <li>Any standard URL: Figma, Notion, Google Drive, PDFs, event pages</li>
+              <li>No files are uploaded here &mdash; TempQR works with links</li>
+            </ul>
+          </div>
+
+          <div class="hiw-card">
+            <h4>2) Choose an expiry</h4>
+            <ul>
+              <li>Pick minutes, hours, days (or set a custom duration)</li>
+              <li>When the timer hits zero, the link stops working</li>
+            </ul>
+          </div>
+
+          <div class="hiw-card">
+            <h4>3) Share</h4>
+            <ul>
+              <li>Copy the expiring link or download the QR PNG</li>
+              <li>Ideal for previews, one-off sharing, and client work</li>
+            </ul>
+          </div>
         </div>
 
         <div class="uc-footer-note">
-          <div><strong>TempQR wraps links only.</strong> Files and pages stay on their original services – TempQR never uploads or hosts your content.</div>
-          <div style="margin-top:6px;">Please share only safe, legal URLs you control. Clearly malicious or phishing URLs are blocked where detected.</div>
+          Unlike standard QR generators and URL shorteners, TempQR creates <strong>temporary shareable links</strong>. Everything you generate automatically expires.
+          <br><br>
+          Questions? <a href="mailto:support@tempqr.com" rel="nofollow" style="color: rgba(255,255,255,0.92); text-decoration: underline;">support@tempqr.com</a>
         </div>
       </div>
     </div>
@@ -508,35 +520,53 @@
   <!-- Minimal modal JS (does not touch ui.js) -->
   <script>
     (function(){
-      var openBtn = document.getElementById('usecasesOpenBtn');
-      var overlay = document.getElementById('usecasesModalOverlay');
-      var closeBtn = document.getElementById('usecasesCloseBtn');
+      function wireModal(openId, overlayId, closeId){
+        var openBtn = document.getElementById(openId);
+        var overlay = document.getElementById(overlayId);
+        var closeBtn = document.getElementById(closeId);
+        if(!openBtn || !overlay || !closeBtn) return null;
 
-      if(!openBtn || !overlay || !closeBtn) return;
+        function openModal(){
+          overlay.classList.add('open');
+          document.documentElement.style.overflow = 'hidden';
+          document.body.style.overflow = 'hidden';
+          closeBtn.focus();
+        }
 
-      function openModal(){
-        overlay.classList.add('open');
-        document.documentElement.style.overflow = 'hidden';
-        document.body.style.overflow = 'hidden';
-        closeBtn.focus();
+        function closeModal(){
+          overlay.classList.remove('open');
+          // Restore scroll only if no other modal is open
+          if(!document.querySelector('.uc-modal-overlay.open')){
+            document.documentElement.style.overflow = '';
+            document.body.style.overflow = '';
+          }
+          openBtn.focus();
+        }
+
+        openBtn.addEventListener('click', openModal);
+        closeBtn.addEventListener('click', closeModal);
+
+        overlay.addEventListener('click', function(e){
+          if(e.target === overlay) closeModal();
+        });
+
+        return { overlay: overlay, close: closeModal, openBtn: openBtn };
       }
 
-      function closeModal(){
-        overlay.classList.remove('open');
-        document.documentElement.style.overflow = '';
-        document.body.style.overflow = '';
-        openBtn.focus();
-      }
-
-      openBtn.addEventListener('click', openModal);
-      closeBtn.addEventListener('click', closeModal);
-
-      overlay.addEventListener('click', function(e){
-        if(e.target === overlay) closeModal();
-      });
+      var usecases = wireModal('usecasesOpenBtn', 'usecasesModalOverlay', 'usecasesCloseBtn');
+      var howitworks = wireModal('howItWorksOpenBtn', 'howItWorksModalOverlay', 'howItWorksCloseBtn');
 
       document.addEventListener('keydown', function(e){
-        if(e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
+        if(e.key !== 'Escape') return;
+        var openOverlay = document.querySelector('.uc-modal-overlay.open');
+        if(!openOverlay) return;
+        openOverlay.classList.remove('open');
+        if(!document.querySelector('.uc-modal-overlay.open')){
+          document.documentElement.style.overflow = '';
+          document.body.style.overflow = '';
+        }
+        if(openOverlay.id === 'usecasesModalOverlay' && usecases && usecases.openBtn) usecases.openBtn.focus();
+        if(openOverlay.id === 'howItWorksModalOverlay' && howitworks && howitworks.openBtn) howitworks.openBtn.focus();
       });
     })();
   </script>
