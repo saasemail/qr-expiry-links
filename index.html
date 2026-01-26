@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -239,7 +240,23 @@
     </div>
   </nav>
 
-  <div class="container">
+  <!-- Full-screen Unlock step (placeholder for now; video comes later) -->
+  <section id="unlockScreen" class="unlock-screen hidden" aria-label="Unlock step">
+    <div class="unlock-card" role="region" aria-label="Unlock content">
+      <div class="unlock-badge">Step 2 of 3</div>
+      <h2 class="unlock-title">Unlock your QR + link</h2>
+      <p class="unlock-subtitle">This is a placeholder step. Next, we’ll replace this with “Watch to unlock”.</p>
+
+      <div class="unlock-actions">
+        <button id="unlockContinueBtn" class="btn btn-primary" type="button">Continue</button>
+        <button id="unlockBackBtn" class="btn btn-ghost" type="button">Back</button>
+      </div>
+
+      <p class="unlock-trust">No account. No history. No tracking.</p>
+    </div>
+  </section>
+
+  <div class="container" id="mainContainer">
     <h2 class="hero-title">Create shareable QR codes with automatic expiry</h2>
     <p class="subtitle">TempQR turns any URL into a temporary, shareable QR code &amp; expiring link.<br>Because not everything should stay online forever.</p>
 
@@ -256,7 +273,7 @@
       </div>
     </div>
 
-    <section class="card">
+    <section class="card" id="formCard">
       <h2 class="card-title">Create Your QR Code</h2>
       <label>
         Enter URL
@@ -266,19 +283,14 @@
       <label>
         Expiration Time
         <select id="expirySelect" aria-label="Expiration Time">
-          <option value="1">1 minute</option>
-          <option value="5">5 minutes</option>
-          <option value="10" selected>10 minutes</option>
-          <option value="30">30 minutes</option>
-          <option value="60">1 hour</option>
-          <option value="360">6 hours</option>
-          <option value="1440">1 day</option>
-          <option value="10080">7 days</option>
-          <option value="custom">Custom duration</option>
+          <option value="2">2 minutes</option>
+          <option value="10">10 minutes</option>
+          <option value="60" selected>1 hour</option>
         </select>
       </label>
       <p class="field-hint">This QR will expire after the selected time.</p>
 
+      <!-- Kept for compatibility (hidden; custom comes back later with pay-per-use) -->
       <div id="customExpiryWrap" class="custom-expiry hidden">
         <div class="custom-grid" role="group" aria-label="Custom duration">
           <div class="custom-field">
@@ -310,6 +322,7 @@
         <button class="btn btn-ghost" id="downloadBtn" type="button">Download PNG</button>
         <button class="btn btn-ghost" id="shareBtn" type="button" style="display:none;">Share</button>
         <button class="btn btn-ghost" id="downloadSvgBtn" type="button" style="display:none;">Download SVG</button>
+        <button class="btn btn-ghost" id="regenerateBtn" type="button">New link (same URL)</button>
       </div>
       <p><a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a></p>
       <p class="countdown" id="countdown"></p>

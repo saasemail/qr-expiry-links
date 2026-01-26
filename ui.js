@@ -1,6 +1,6 @@
 // ui.js — FREE version (no Pro / no auth).
-// Fix: QR must be scannable. We auto-size QR based on its actual module count
-// (because the encoded /go/<id> is long and can require a dense QR version).
+// Funnel step added: Form -> Unlock (placeholder) -> Result
+// Regenerate: same original URL, new ID (NO unlock).
 
 const urlInput         = document.getElementById("urlInput");
 const expirySelect     = document.getElementById("expirySelect");
@@ -13,6 +13,13 @@ const customDurationHint = document.getElementById("customDurationHint");
 
 const generateBtn      = document.getElementById("generateBtn");
 
+const formCard         = document.getElementById("formCard");
+const mainContainer    = document.getElementById("mainContainer");
+
+const unlockScreen     = document.getElementById("unlockScreen");
+const unlockContinueBtn= document.getElementById("unlockContinueBtn");
+const unlockBackBtn    = document.getElementById("unlockBackBtn");
+
 const resultCard       = document.getElementById("resultCard");
 const qrcodeCanvas     = document.getElementById("qrcode");
 const generatedLink    = document.getElementById("generatedLink");
@@ -23,6 +30,7 @@ const copyBtn          = document.getElementById("copyBtn");
 const downloadBtn      = document.getElementById("downloadBtn");       // PNG
 const shareBtn         = document.getElementById("shareBtn");          // Web Share API
 const downloadSvgBtn   = document.getElementById("downloadSvgBtn");    // SVG (currently hidden in HTML)
+const regenerateBtn    = document.getElementById("regenerateBtn");     // New link (same URL)
 
 let expiryTimer = null;
 let countdownTimer = null;
@@ -33,7 +41,14 @@ let linkExpired = false;
 let lastPresetMinutes = 10;
 let customTouched = false;
 
-// Custom duration hard max (10 years in days)
+// Store last successful input so regenerate can re-use the same URL + minutes
+let lastSourceUrl = "";
+let lastMinutesUsed = 0;
+
+// Pending create request (Form -> Unlock -> Create)
+let pendingCreate = null;
+
+// Custom duration hard max (10 years in days) — kept for later compatibility
 const CUSTOM_DAYS_MAX = 3650;
 
 // QR rendering params (tuned for scan reliability)
@@ -59,6 +74,8 @@ function saveLastState(state) {
       redirectUrl: String(state.redirectUrl),
       expiresAt: String(state.expiresAt),
       minutes: Number(state.minutes || 0),
+      // Store original URL used for regenerate
+      sourceUrl: String(state.sourceUrl || ""),
       savedAt: Date.now()
     };
     localStorage.setItem(LAST_STATE_KEY, JSON.stringify(payload));
@@ -96,7 +113,8 @@ function loadLastState() {
     return {
       redirectUrl: String(data.redirectUrl),
       expiresAt: String(data.expiresAt),
-      minutes: Number(data.minutes || 0)
+      minutes: Number(data.minutes || 0),
+      sourceUrl: String(data.sourceUrl || "")
     };
   } catch {
     return null;
@@ -129,10 +147,33 @@ function normalizeHttpUrl(input) {
   }
 }
 
-function setLoading(state) {
-  if (!generateBtn) return;
-  generateBtn.disabled = state;
-  generateBtn.textContent = state ? "Generating..." : "Generate QR";
+function showUnlockScreen() {
+  if (!unlockScreen) return;
+  unlockScreen.classList.remove("hidden");
+  // Keep main visible (so background stays consistent), but prevent interactions
+  if (mainContainer) mainContainer.classList.add("is-disabled");
+  try { unlockContinueBtn?.focus(); } catch {}
+}
+
+function hideUnlockScreen() {
+  if (!unlockScreen) return;
+  unlockScreen.classList.add("hidden");
+  if (mainContainer) mainContainer.classList.remove("is-disabled");
+}
+
+function setBusy(state, label = "") {
+  try {
+    if (generateBtn) {
+      generateBtn.disabled = state;
+      generateBtn.textContent = state ? (label || "Working...") : "Generate QR";
+    }
+    if (unlockContinueBtn) {
+      unlockContinueBtn.disabled = state;
+      unlockContinueBtn.textContent = state ? (label || "Working...") : "Continue";
+    }
+    if (unlockBackBtn) unlockBackBtn.disabled = state;
+    if (regenerateBtn) regenerateBtn.disabled = state || !lastSourceUrl || linkExpired;
+  } catch {}
 }
 
 function formatCountdown(ms) {
@@ -169,6 +210,9 @@ function expireUINow() {
   linkExpired = true;
   setDownloadButtonsEnabled(false);
 
+  // Disable regenerate once expired
+  if (regenerateBtn) regenerateBtn.disabled = true;
+
   // Once expired, clear persisted state so it won't restore a dead link.
   clearLastState();
 }
@@ -184,7 +228,6 @@ function startCountdown(iso) {
       expireUINow();
       return;
     }
-
     countdownEl.textContent = formatCountdown(left);
   }, 1000);
 }
@@ -367,7 +410,6 @@ function toggleCustomUI() {
   customExpiryWrap.classList.toggle("hidden", !isCustom);
 
   if (isCustom) {
-    // If user never touched custom, prefill from last preset
     if (!customTouched) {
       setCustomFromMinutes(lastPresetMinutes || 10);
     }
@@ -376,7 +418,7 @@ function toggleCustomUI() {
 }
 
 function getSelectedMinutesOrThrow() {
-  const mode = String(expirySelect?.value || "10");
+  const mode = String(expirySelect?.value || "60");
 
   if (mode !== "custom") {
     const minutes = parseInt(mode, 10);
@@ -386,7 +428,7 @@ function getSelectedMinutesOrThrow() {
     return minutes;
   }
 
-  // custom duration
+  // custom duration (unused right now)
   const minutes = getCustomMinutes();
   if (!Number.isFinite(minutes) || minutes < 1) {
     throw new Error("Custom duration must be at least 1 minute.");
@@ -399,7 +441,6 @@ function flashButtonText(btn, tempText, ms, fallbackText) {
   const original = btn.textContent;
   btn.textContent = tempText;
   setTimeout(() => {
-    // If user changed it in the meantime, don't fight it
     btn.textContent = fallbackText || original;
   }, ms);
 }
@@ -426,6 +467,14 @@ async function restoreLastResultIfAny() {
   generatedLink.href = st.redirectUrl;
   generatedLink.title = st.redirectUrl;
 
+  // Restore regenerate inputs
+  lastSourceUrl = st.sourceUrl || "";
+  lastMinutesUsed = Number(st.minutes || 0) || 0;
+  if (regenerateBtn) regenerateBtn.disabled = !lastSourceUrl;
+
+  // Ensure unlock screen isn't stuck visible after reload
+  hideUnlockScreen();
+
   resultCard.classList.remove("hidden");
   await renderQr(st.redirectUrl);
 
@@ -444,8 +493,70 @@ async function restoreLastResultIfAny() {
   startCountdown(st.expiresAt);
 }
 
+async function doCreate(url, minutes, { hideUnlockOnStart = true } = {}) {
+  clearTimeout(expiryTimer);
+  clearInterval(countdownTimer);
+
+  setBusy(true, "Generating...");
+
+  const safety = setTimeout(() => setBusy(false), 9000);
+
+  try {
+    if (hideUnlockOnStart) hideUnlockScreen();
+
+    const created = await createLink(url, minutes);
+
+    const redirectUrl = `${window.location.origin}/go/${created.id}`;
+    lastRedirectUrl = redirectUrl;
+
+    // Save last inputs for regenerate
+    lastSourceUrl = url;
+    lastMinutesUsed = created.minutes;
+
+    linkExpired = false;
+    setDownloadButtonsEnabled(true);
+
+    generatedLink.textContent = makeDisplayLink(redirectUrl);
+    generatedLink.href = redirectUrl;
+    generatedLink.title = redirectUrl;
+
+    resultCard.classList.remove("hidden");
+    await renderQr(redirectUrl);
+
+    const endLocal = new Date(created.expires_at);
+    expiryHint.textContent = `Expires in ${created.minutes} min • Until ${endLocal.toLocaleString()}`;
+
+    // Persist last result so coming back from share doesn't wipe it.
+    saveLastState({ redirectUrl, expiresAt: created.expires_at, minutes: created.minutes, sourceUrl: url });
+
+    const endMs = new Date(created.expires_at).getTime();
+    const remainingMs = endMs - Date.now();
+
+    expiryTimer = setTimeout(() => {
+      expireUINow();
+    }, Math.max(0, remainingMs));
+
+    startCountdown(created.expires_at);
+
+    // Enable regenerate now that we have a source URL
+    if (regenerateBtn) regenerateBtn.disabled = false;
+  } catch (err) {
+    console.error("[ui] Create error:", err);
+    alert(err?.message || "Could not create link.");
+    // If create failed, keep unlock visible so user can retry
+    if (pendingCreate) showUnlockScreen();
+  } finally {
+    clearTimeout(safety);
+    setBusy(false);
+  }
+}
+
 function bindUI() {
-  if (!generateBtn || !urlInput || !expirySelect || !resultCard || !qrcodeCanvas) {
+  if (
+    !generateBtn || !urlInput || !expirySelect ||
+    !resultCard || !qrcodeCanvas ||
+    !unlockScreen || !unlockContinueBtn || !unlockBackBtn
+  ) {
     console.error("[ui] Missing required DOM elements. Check index.html IDs.");
     return;
   }
@@ -463,34 +574,29 @@ function bindUI() {
     shareBtn.disabled = true;
   }
 
-  // Initialize custom duration from default preset (10 minutes)
-  lastPresetMinutes = parseInt(String(expirySelect.value || "10"), 10);
-  if (!Number.isFinite(lastPresetMinutes) || lastPresetMinutes < 1) lastPresetMinutes = 10;
+  // Initialize custom duration from default preset (kept for later, but UI doesn't expose custom now)
+  lastPresetMinutes = parseInt(String(expirySelect.value || "60"), 10);
+  if (!Number.isFinite(lastPresetMinutes) || lastPresetMinutes < 1) lastPresetMinutes = 60;
   setCustomFromMinutes(lastPresetMinutes);
   updateCustomHint();
   toggleCustomUI();
 
-  // Preset/custom UI behavior
   expirySelect.addEventListener("change", () => {
     const v = String(expirySelect.value);
-
     if (v !== "custom") {
       const mins = parseInt(v, 10);
       if (Number.isFinite(mins) && mins >= 1) {
         lastPresetMinutes = mins;
-        // Keep custom prefilled from latest preset (nice UX)
         if (!customTouched) setCustomFromMinutes(lastPresetMinutes);
         updateCustomHint();
       }
     }
-
     toggleCustomUI();
   });
 
-  // Mark custom as touched + update hint live
+  // Mark custom as touched + update hint live (kept for later)
   const onCustomChange = () => {
     customTouched = true;
-    // Clamp inputs immediately for clean UX
     if (customDays) customDays.value = String(clampInt(customDays.value, 0, CUSTOM_DAYS_MAX));
     if (customHours) customHours.value = String(clampInt(customHours.value, 0, 23));
     if (customMinutes) customMinutes.value = String(clampInt(customMinutes.value, 0, 59));
@@ -501,6 +607,7 @@ function bindUI() {
   customHours?.addEventListener("input", onCustomChange);
   customMinutes?.addEventListener("input", onCustomChange);
 
+  // Step 1: Form -> Unlock (no API call here)
   generateBtn.addEventListener("click", async () => {
     const raw = String(urlInput.value || "").trim();
     const url = normalizeHttpUrl(raw);
@@ -521,49 +628,31 @@ function bindUI() {
       return;
     }
 
-    clearTimeout(expiryTimer);
-    clearInterval(countdownTimer);
-    setLoading(true);
+    pendingCreate = { url, minutes };
+    showUnlockScreen();
+  });
 
-    const safety = setTimeout(() => setLoading(false), 9000);
+  // Step 2: Unlock -> Create (API call happens here)
+  unlockContinueBtn.addEventListener("click", async () => {
+    if (!pendingCreate?.url || !pendingCreate?.minutes) return;
+    const { url, minutes } = pendingCreate;
+    pendingCreate = null;
+    await doCreate(url, minutes, { hideUnlockOnStart: true });
+  });
 
-    try {
-      const created = await createLink(url, minutes);
+  unlockBackBtn.addEventListener("click", () => {
+    pendingCreate = null;
+    hideUnlockScreen();
+    try { generateBtn?.focus(); } catch {}
+  });
 
-      const redirectUrl = `${window.location.origin}/go/${created.id}`;
-      lastRedirectUrl = redirectUrl;
+  // Regenerate: same URL, new ID (NO unlock)
+  regenerateBtn?.addEventListener("click", async () => {
+    if (linkExpired) return;
+    if (!lastSourceUrl) return;
 
-      linkExpired = false;
-      setDownloadButtonsEnabled(true);
-
-      generatedLink.textContent = makeDisplayLink(redirectUrl);
-      generatedLink.href = redirectUrl;
-      generatedLink.title = redirectUrl;
-
-      resultCard.classList.remove("hidden");
-      await renderQr(redirectUrl);
-
-      const endLocal = new Date(created.expires_at);
-      expiryHint.textContent = `Expires in ${created.minutes} min • Until ${endLocal.toLocaleString()}`;
-
-      // Persist last result so coming back from Messages doesn't wipe it.
-      saveLastState({ redirectUrl, expiresAt: created.expires_at, minutes: created.minutes });
-
-      const endMs = new Date(created.expires_at).getTime();
-      const remainingMs = endMs - Date.now();
-
-      expiryTimer = setTimeout(() => {
-        expireUINow();
-      }, Math.max(0, remainingMs));
-
-      startCountdown(created.expires_at);
-    } catch (err) {
-      console.error("[ui] Create error:", err);
-      alert(err?.message || "Could not create link.");
-    } finally {
-      clearTimeout(safety);
-      setLoading(false);
-    }
+    const mins = Number(lastMinutesUsed || 0) || parseInt(String(expirySelect?.value || "60"), 10) || 60;
+    await doCreate(lastSourceUrl, mins, { hideUnlockOnStart: false });
   });
 
   window.addEventListener("resize", () => {
@@ -627,15 +716,10 @@ function bindUI() {
     if (!lastRedirectUrl) return;
     if (typeof navigator === "undefined" || typeof navigator.share !== "function") return;
 
-    // Ensure we persist before leaving to any external app
-    // (in case tab gets killed and user reopens).
-    // We don't know expiresAt here unless we saved it earlier, but saveLastState already ran on create.
-    // This is just a safe no-op.
     try {
-      // refresh savedAt to keep it "recent" while still expiring naturally
       const st = loadLastState();
       if (st && st.redirectUrl === lastRedirectUrl && st.expiresAt) {
-        saveLastState({ redirectUrl: st.redirectUrl, expiresAt: st.expiresAt, minutes: st.minutes });
+        saveLastState({ redirectUrl: st.redirectUrl, expiresAt: st.expiresAt, minutes: st.minutes, sourceUrl: st.sourceUrl });
       }
     } catch {}
 
@@ -645,11 +729,9 @@ function bindUI() {
         text: "Expiring link:",
         url: lastRedirectUrl
       });
-
-      // If share succeeds and we remain/return to the page:
       flashButtonText(shareBtn, "Sent!", 1400, "Share");
     } catch (e) {
-      // User cancel (AbortError) or other share issues — keep silent to avoid confusion.
+      // User cancel (AbortError) or other share issues — keep silent.
     }
   });
 
