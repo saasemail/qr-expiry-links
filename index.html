@@ -308,6 +308,7 @@
       <div class="button-group gap">
         <button class="btn btn-ghost" id="copyBtn" type="button">Copy link</button>
         <button class="btn btn-ghost" id="downloadBtn" type="button">Download PNG</button>
+        <button class="btn btn-ghost" id="regenBtn" type="button" disabled>Regenerate</button>
         <button class="btn btn-ghost" id="shareBtn" type="button" style="display:none;">Share</button>
         <button class="btn btn-ghost" id="downloadSvgBtn" type="button" style="display:none;">Download SVG</button>
       </div>
@@ -348,6 +349,34 @@
       </div>
     </section>
     <p class="benefits-note">Free, simple, and fast — designed for quick sharing.</p>
+  </div>
+
+  <!-- Unlock Overlay (full-screen step) -->
+  <div class="unlock-overlay" id="unlockOverlay" role="dialog" aria-modal="true" aria-labelledby="unlockTitle" aria-hidden="true">
+    <div class="unlock-card" role="document">
+      <div class="unlock-header">
+        <div class="unlock-title" id="unlockTitle">Unlock your QR</div>
+        <button type="button" class="unlock-close" id="unlockCancelBtn" aria-label="Close">×</button>
+      </div>
+      <div class="unlock-body">
+        <p class="unlock-text">
+          Watch a short video to unlock your temporary QR and expiring link.
+        </p>
+        <p class="unlock-meta" id="unlockMeta">Expires in 10 minutes.</p>
+
+        <!-- Video placeholder (integration comes later) -->
+        <div class="unlock-video" aria-label="Video placeholder">
+          <div class="unlock-video-inner">Video placeholder</div>
+        </div>
+
+        <div class="unlock-actions">
+          <button type="button" class="btn btn-primary" id="unlockContinueBtn">Unlock &amp; Create</button>
+          <button type="button" class="btn btn-ghost" id="unlockBackBtn">Back</button>
+        </div>
+
+        <p class="unlock-footnote">No signup. No tracking. Link auto-expires.</p>
+      </div>
+    </div>
   </div>
 
   <!-- Use-cases Modal -->
