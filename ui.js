@@ -24,23 +24,10 @@ const downloadBtn      = document.getElementById("downloadBtn");       // PNG
 const shareBtn         = document.getElementById("shareBtn");          // Web Share API
 const downloadSvgBtn   = document.getElementById("downloadSvgBtn");    // SVG (currently hidden in HTML)
 
-const regenBtn         = document.getElementById("regenBtn");          // Regenerate (new ID, same URL)
-
-// Full-screen unlock step (video gate placeholder)
-const unlockOverlay    = document.getElementById("unlockOverlay");
-const unlockContinueBtn= document.getElementById("unlockContinueBtn");
-const unlockCancelBtn  = document.getElementById("unlockCancelBtn");
-const unlockBackBtn    = document.getElementById("unlockBackBtn");
-const unlockMeta       = document.getElementById("unlockMeta");
-
 let expiryTimer = null;
 let countdownTimer = null;
 let lastRedirectUrl = "";
 let linkExpired = false;
-
-let pendingCreate = null; // { url, minutes }
-let lastSourceUrl = "";
-let lastSourceMinutes = 0;
 
 // Track last preset minutes so switching to Custom can prefill nicely
 let lastPresetMinutes = 10;
@@ -165,36 +152,6 @@ function setDownloadButtonsEnabled(enabled) {
   } catch {}
 }
 
-function openUnlockOverlay() {
-  if (!unlockOverlay) return;
-  unlockOverlay.classList.add("open");
-  unlockOverlay.setAttribute("aria-hidden", "false");
-  document.documentElement.style.overflow = "hidden";
-  document.body.style.overflow = "hidden";
-  try { unlockContinueBtn?.focus?.(); } catch {}
-}
-
-function closeUnlockOverlay() {
-  if (!unlockOverlay) return;
-  unlockOverlay.classList.remove("open");
-  unlockOverlay.setAttribute("aria-hidden", "true");
-  document.documentElement.style.overflow = "";
-  document.body.style.overflow = "";
-  try {
-    if (unlockContinueBtn) {
-      unlockContinueBtn.disabled = false;
-      unlockContinueBtn.textContent = "Unlock & Create";
-    }
-  } catch {}
-}
-
-function setButtonLoading(btn, state, busyText, idleText) {
-  if (!btn) return;
-  btn.disabled = !!state;
-  if (state && busyText) btn.textContent = busyText;
-  if (!state && idleText) btn.textContent = idleText;
-}
-
 function expireUINow() {
   clearInterval(countdownTimer);
   countdownEl.textContent = "Expired";
@@ -258,71 +215,6 @@ async function createLink(url, minutes) {
     },
     15000
   );
-}
-
-async function createAndRender(url, minutes, btnForLoading, btnIdleText) {
-  // Reset any previous result timers (new link = new countdown)
-  clearTimeout(expiryTimer);
-  clearInterval(countdownTimer);
-
-  // Clear expiry UI state
-  linkExpired = false;
-
-  // Loading state on the caller button (unlock/regenerate)
-  const idle = btnIdleText || (btnForLoading ? btnForLoading.textContent : "");
-  setButtonLoading(btnForLoading, true, "Generating...", idle);
-
-  // Safety timer to avoid stuck UI
-  const safety = setTimeout(() => {
-    setButtonLoading(btnForLoading, false, "", idle);
-  }, 9000);
-
-  try {
-    const created = await createLink(url, minutes);
-
-    const redirectUrl = `${window.location.origin}/go/${created.id}`;
-    lastRedirectUrl = redirectUrl;
-
-    // Enable post-result actions
-    setDownloadButtonsEnabled(true);
-
-    generatedLink.textContent = makeDisplayLink(redirectUrl);
-    generatedLink.href = redirectUrl;
-    generatedLink.title = redirectUrl;
-
-    resultCard.classList.remove("hidden");
-    await renderQr(redirectUrl);
-
-    const endLocal = new Date(created.expires_at);
-    expiryHint.textContent = `Expires in ${created.minutes} min • Until ${endLocal.toLocaleString()}`;
-
-    // Persist last result so coming back from share apps doesn't wipe it.
-    saveLastState({ redirectUrl, expiresAt: created.expires_at, minutes: created.minutes });
-
-    const endMs = new Date(created.expires_at).getTime();
-    const remainingMs = endMs - Date.now();
-
-    expiryTimer = setTimeout(() => {
-      expireUINow();
-    }, Math.max(0, remainingMs));
-
-    startCountdown(created.expires_at);
-
-    // Regenerate support: keep last source URL + minutes (same URL, new ID)
-    lastSourceUrl = url;
-    lastSourceMinutes = minutes;
-    if (regenBtn) regenBtn.disabled = false;
-
-    // Close unlock overlay if it was used
-    closeUnlockOverlay();
-    pendingCreate = null;
-  } catch (err) {
-    console.error("[ui] Create error:", err);
-    alert(err?.message || "Could not create link.");
-  } finally {
-    clearTimeout(safety);
-    setButtonLoading(btnForLoading, false, "", idle);
-  }
 }
 
 /** Short display text: show domain + /go/ + short id preview */
@@ -571,8 +463,6 @@ function bindUI() {
     shareBtn.disabled = true;
   }
 
-  if (regenBtn) regenBtn.disabled = true;
-
   // Initialize custom duration from default preset (10 minutes)
   lastPresetMinutes = parseInt(String(expirySelect.value || "10"), 10);
   if (!Number.isFinite(lastPresetMinutes) || lastPresetMinutes < 1) lastPresetMinutes = 10;
@@ -631,53 +521,49 @@ function bindUI() {
       return;
     }
 
-    // If unlock UI is missing for any reason, fall back to direct creation.
-    if (!unlockOverlay || !unlockContinueBtn) {
-      await createAndRender(url, minutes, generateBtn, "Generate QR");
-      return;
+    clearTimeout(expiryTimer);
+    clearInterval(countdownTimer);
+    setLoading(true);
+
+    const safety = setTimeout(() => setLoading(false), 9000);
+
+    try {
+      const created = await createLink(url, minutes);
+
+      const redirectUrl = `${window.location.origin}/go/${created.id}`;
+      lastRedirectUrl = redirectUrl;
+
+      linkExpired = false;
+      setDownloadButtonsEnabled(true);
+
+      generatedLink.textContent = makeDisplayLink(redirectUrl);
+      generatedLink.href = redirectUrl;
+      generatedLink.title = redirectUrl;
+
+      resultCard.classList.remove("hidden");
+      await renderQr(redirectUrl);
+
+      const endLocal = new Date(created.expires_at);
+      expiryHint.textContent = `Expires in ${created.minutes} min • Until ${endLocal.toLocaleString()}`;
+
+      // Persist last result so coming back from Messages doesn't wipe it.
+      saveLastState({ redirectUrl, expiresAt: created.expires_at, minutes: created.minutes });
+
+      const endMs = new Date(created.expires_at).getTime();
+      const remainingMs = endMs - Date.now();
+
+      expiryTimer = setTimeout(() => {
+        expireUINow();
+      }, Math.max(0, remainingMs));
+
+      startCountdown(created.expires_at);
+    } catch (err) {
+      console.error("[ui] Create error:", err);
+      alert(err?.message || "Could not create link.");
+    } finally {
+      clearTimeout(safety);
+      setLoading(false);
     }
-
-    // Store pending request and open the full-screen unlock step.
-    pendingCreate = { url, minutes };
-
-    if (unlockMeta) {
-      unlockMeta.textContent = `Expires in ${formatDurationText(minutes)}.`;
-    }
-
-    openUnlockOverlay();
-  });
-
-  // Unlock overlay controls
-  unlockCancelBtn?.addEventListener("click", () => {
-    pendingCreate = null;
-    closeUnlockOverlay();
-  });
-
-  unlockBackBtn?.addEventListener("click", () => {
-    pendingCreate = null;
-    closeUnlockOverlay();
-  });
-
-  unlockContinueBtn?.addEventListener("click", async () => {
-    if (!pendingCreate?.url || !pendingCreate?.minutes) return;
-    await createAndRender(pendingCreate.url, pendingCreate.minutes, unlockContinueBtn, "Unlock & Create");
-  });
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && unlockOverlay?.classList?.contains("open")) {
-      pendingCreate = null;
-      closeUnlockOverlay();
-    }
-  });
-
-  // Regenerate: same source URL, new ID (no unlock required)
-  regenBtn?.addEventListener("click", async () => {
-    if (!lastSourceUrl) return;
-    const mins = lastSourceMinutes || (() => {
-      try { return getSelectedMinutesOrThrow(); } catch { return 10; }
-    })();
-
-    await createAndRender(lastSourceUrl, mins, regenBtn, "Regenerate");
   });
 
   window.addEventListener("resize", () => {
