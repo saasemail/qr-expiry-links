@@ -240,8 +240,8 @@
   </nav>
 
   <div class="container">
-    <h2 class="hero-title">Create shareable QR codes with automatic expiry</h2>
-    <p class="subtitle">TempQR turns any URL into a temporary, shareable QR code &amp; expiring link.<br>Because not everything should stay online forever.</p>
+    <h2 class="hero-title">Mask it. Share it. Let it expire.</h2>
+    <p class="subtitle">Turn any URL into a private temporary QR &amp; link that works only as long as you want. No tracking. No history.</p>
 
     <!-- Use-cases chips (compact) -->
     <div class="usecases-bar" aria-label="Use cases">
@@ -257,7 +257,7 @@
     </div>
 
     <section class="card">
-      <h2 class="card-title">Create Your QR Code</h2>
+      <h2 class="card-title">Create Your Private Link</h2>
       <label>
         Enter URL
         <input type="url" id="urlInput" placeholder="example.com" />
@@ -277,7 +277,7 @@
           <option value="custom">Custom duration</option>
         </select>
       </label>
-      <p class="field-hint">This QR will expire after the selected time.</p>
+      <p class="field-hint">This QR &amp; link will expire after the selected time.</p>
 
       <div id="customExpiryWrap" class="custom-expiry hidden">
         <div class="custom-grid" role="group" aria-label="Custom duration">
@@ -298,12 +298,12 @@
       </div>
 
       <div class="button-group">
-        <button id="generateBtn" class="btn btn-primary" type="button">Generate QR</button>
+        <button id="generateBtn" class="btn btn-primary" type="button">Create Private Link</button>
       </div>
     </section>
 
     <section class="card hidden" id="resultCard">
-      <h2>Your Expiring Link</h2>
+      <h2>Your Private QR &amp; Link</h2>
       <canvas id="qrcode"></canvas>
       <div class="button-group gap">
         <button class="btn btn-ghost" id="copyBtn" type="button">Copy link</button>
@@ -314,7 +314,7 @@
       <p><a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a></p>
       <p class="countdown" id="countdown"></p>
       <p class="hint" id="expiryHint"></p>
-      <p class="hint"><em>No history is stored—save the link and download the PNG before leaving.</em></p>
+      <p class="hint"><em>No history is stored—save the link and download the PNG before leaving if you need multiple usage.</em></p>
     </section>
 
     <!-- Adsterra Banner 320x50 -->
@@ -336,25 +336,25 @@
     <section class="benefits" aria-label="Benefits">
       <div class="benefit">
         <div class="benefit-title">No signup</div>
-        <div class="benefit-text">Paste a URL and generate in seconds.</div>
+        <div class="benefit-text">Paste a URL and turn it temporary &amp; private in seconds.</div>
       </div>
       <div class="benefit">
         <div class="benefit-title">Auto-expiry</div>
         <div class="benefit-text">Links stop working after your chosen time.</div>
       </div>
       <div class="benefit">
-        <div class="benefit-title">Share-ready</div>
-        <div class="benefit-text">Share in one tap, copy the link, or download a clean PNG QR.</div>
+        <div class="benefit-title">Privacy-first</div>
+        <div class="benefit-text">No history. No tracking. No analytics.</div>
       </div>
     </section>
-    <p class="benefits-note">Free, simple, and fast — designed for quick sharing.</p>
+    <p class="benefits-note">Free, simple, and fast — designed for quick &amp; private sharing.</p>
   </div>
 
   <!-- Use-cases Modal -->
   <div class="uc-modal-overlay" id="usecasesModalOverlay" role="dialog" aria-modal="true" aria-labelledby="usecasesModalTitle">
     <div class="uc-modal" role="document">
       <div class="uc-modal-header">
-        <div class="uc-modal-title" id="usecasesModalTitle">Use-cases (URL only)</div>
+        <div class="uc-modal-title" id="usecasesModalTitle">Perfect for:</div>
         <button type="button" class="uc-modal-close" id="usecasesCloseBtn" aria-label="Close">×</button>
       </div>
       <div class="uc-modal-body">
