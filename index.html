@@ -251,6 +251,29 @@
 .seo-explainer li{
   margin: 6px 0;
 }
+.result-actions-secondary{
+  margin-top: 14px;
+  text-align: center;
+}
+
+.secondary-cta{
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.92);
+  cursor: pointer;
+}
+
+.secondary-cta:hover{
+  background: rgba(255,255,255,0.12);
+}
+
+.secondary-note{
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.60);
+}
   </style>
 </head>
 <body>
@@ -334,19 +357,28 @@
     </section>
 
     <section class="card hidden" id="resultCard">
-      <h2>Your Private QR &amp; Link</h2>
-      <canvas id="qrcode"></canvas>
-      <div class="button-group gap">
-        <button class="btn btn-ghost" id="copyBtn" type="button">Copy link</button>
-        <button class="btn btn-ghost" id="downloadBtn" type="button">Download PNG</button>
-        <button class="btn btn-ghost" id="shareBtn" type="button" style="display:none;">Share</button>
-        <button class="btn btn-ghost" id="downloadSvgBtn" type="button" style="display:none;">Download SVG</button>
-      </div>
-      <p><a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a></p>
-      <p class="countdown" id="countdown"></p>
-      <p class="hint" id="expiryHint"></p>
-      <p class="hint"><em>No history is stored—save the link and download the PNG before leaving if you need multiple usage.</em></p>
-    </section>
+  <h2>Your Private QR &amp; Link</h2>
+  <canvas id="qrcode"></canvas>
+
+  <div class="button-group gap">
+    <button class="btn btn-ghost" id="copyBtn" type="button">Copy link</button>
+    <button class="btn btn-ghost" id="downloadBtn" type="button">Download PNG</button>
+    <button class="btn btn-ghost" id="shareBtn" type="button" style="display:none;">Share</button>
+    <button class="btn btn-ghost" id="downloadSvgBtn" type="button" style="display:none;">Download SVG</button>
+  </div>
+
+  <p><a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a></p>
+  <p class="countdown" id="countdown"></p>
+  <p class="hint" id="expiryHint"></p>
+  <p class="hint"><em>No history is stored—save the link and download the PNG before leaving if you need multiple usage.</em></p>
+
+  <!-- NEW: Create another link (Variant A: does NOT remove current QR/link) -->
+  <div class="result-actions-secondary">
+    <button type="button" id="createAnotherBtn" class="btn btn-ghost secondary-cta">Create Another Link</button>
+    <div class="secondary-note">Previous links stay active until they expire.</div>
+  </div>
+</section>
+
 
     <!-- Adsterra Banner 320x50 -->
     <div aria-label="Advertisement" style="width:100%; display:block;">
@@ -523,8 +555,47 @@
         if(e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
       });
     })();
+    
   </script>
 
-  <script type="module" src="ui.js?v=fix_signout_ghost_1"></script>
+<!-- NEW: "Create Another Link" (UI-only reset; does NOT remove current QR/link) -->
+<script>
+  (function(){
+    var btn = document.getElementById('createAnotherBtn');
+    if(!btn) return;
+
+    btn.addEventListener('click', function(){
+      // clear URL
+      var urlInput = document.getElementById('urlInput');
+      if(urlInput) urlInput.value = '';
+
+      // reset expiry to default (your current default is 10 minutes)
+      var expirySelect = document.getElementById('expirySelect');
+      if(expirySelect) expirySelect.value = '10';
+
+      // hide custom duration UI (if it was open)
+      var customWrap = document.getElementById('customExpiryWrap');
+      if(customWrap) customWrap.classList.add('hidden');
+
+      // reset custom fields
+      var d = document.getElementById('customDays');
+      var h = document.getElementById('customHours');
+      var m = document.getElementById('customMinutes');
+      if(d) d.value = 0;
+      if(h) h.value = 0;
+      if(m) m.value = 10;
+
+      // scroll to the form card
+      var formCard = document.querySelector('section.card'); // first card = form
+      if(formCard) formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      // focus back into input
+      if(urlInput) urlInput.focus();
+    });
+  })();
+</script>
+
+<script type="module" src="ui.js?v=fix_signout_ghost_1"></script>
+
 </body>
 </html>
