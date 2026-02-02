@@ -132,7 +132,7 @@ function normalizeHttpUrl(input) {
 function setLoading(state) {
   if (!generateBtn) return;
   generateBtn.disabled = state;
-  generateBtn.textContent = state ? "Generating..." : "Generate QR";
+  generateBtn.textContent = state ? "Creating..." : "Create Private Link";
 }
 
 function formatCountdown(ms) {
