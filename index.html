@@ -196,6 +196,33 @@
     @media (max-width: 640px){
       .uc-grid{ grid-template-columns: 1fr; }
     }
+    /* Mobile: label in its own row + CTA button on its own full-width row */
+@media (max-width: 640px){
+  .usecases-bar{
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .usecases-label{
+    margin-right: 0;
+  }
+
+  /* keep chips centered and with a bit more breathing room */
+  .usecase-chips{
+    justify-content: center;
+    gap: 8px;
+  }
+
+  /* force "When to use TempQR" into a new row and make it easy to tap */
+  .usecases-more{
+    flex: 0 0 100%;
+    width: 100%;
+    max-width: 320px;
+    margin: 6px auto 0;
+    text-align: center;
+  }
+}
+
     .uc-item{
       display: flex;
       gap: 10px;
