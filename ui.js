@@ -614,7 +614,7 @@ function bindUI() {
 
   try {
     // =========================
-    // MODE: URL (FREE) - existing behavior
+    // MODE: URL (FREE)
     // =========================
     if (currentMode === "url") {
       const raw = String(urlInput.value || "").trim();
@@ -625,7 +625,6 @@ function bindUI() {
         return;
       }
 
-      // Write normalized value back so user sees what will be used
       urlInput.value = url;
 
       const created = await createLink(url, minutes);
@@ -646,22 +645,18 @@ function bindUI() {
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${created.minutes} min • Until ${endLocal.toLocaleString()}`;
 
-      // Persist last result so coming back from Messages doesn't wipe it.
       saveLastState({ redirectUrl, expiresAt: created.expires_at, minutes: created.minutes });
 
       const endMs = new Date(created.expires_at).getTime();
       const remainingMs = endMs - Date.now();
 
-      expiryTimer = setTimeout(() => {
-        expireUINow();
-      }, Math.max(0, remainingMs));
-
+      expiryTimer = setTimeout(() => expireUINow(), Math.max(0, remainingMs));
       startCountdown(created.expires_at);
       return;
     }
 
     // =========================
-    // MODE: FILE upload (PAID - temporary token)
+    // MODE: FILE upload (DEV bypass optional)
     // =========================
     if (currentMode === "file") {
       const f = fileInput?.files?.[0];
@@ -678,12 +673,14 @@ function bindUI() {
       }
 
       const token = String(proTokenInput?.value || "").trim();
-      if (!token) {
+      const devBypass = document.documentElement.getAttribute("data-upload-bypass") === "1";
+
+      if (!token && !devBypass) {
         alert("Upload requires access token (temporary) until checkout is added.");
         return;
       }
 
-      // 1) get presigned upload URL
+      // 1) presigned upload URL
       showUploadProgress(true, 0, "Preparing upload…");
       const up = await getR2UploadUrl({
         filename: f.name,
@@ -705,7 +702,7 @@ function bindUI() {
         filename: f.name,
         contentType: f.type || "application/octet-stream",
         minutes,
-        token
+        token: token || null
       });
 
       showUploadProgress(false);
