@@ -31,9 +31,7 @@ const fileInput = document.getElementById("fileInput");
 const uploadProgress = document.getElementById("uploadProgress");
 const uploadProgressText = document.getElementById("uploadProgressText");
 
-const proTokenInput = document.getElementById("proTokenInput");
 const textInput = document.getElementById("textInput");
-const proTokenInputText = document.getElementById("proTokenInputText");
 
 let currentMode = "url"; // "url" | "file" | "text"
 let expiryTimer = null;
@@ -672,13 +670,13 @@ function bindUI() {
         return;
       }
 
-      const token = String(proTokenInput?.value || "").trim();
       const devBypass = document.documentElement.getAttribute("data-upload-bypass") === "1";
-
-      if (!token && !devBypass) {
-        alert("Upload requires access token (temporary) until checkout is added.");
+      if (!devBypass) {
+        alert("Upload is not enabled yet.");
         return;
       }
+
+      
 
       // 1) presigned upload URL
       showUploadProgress(true, 0, "Preparing upload…");
@@ -702,7 +700,7 @@ function bindUI() {
         filename: f.name,
         contentType: f.type || "application/octet-stream",
         minutes,
-        token: token || null
+        token: null
       });
 
       showUploadProgress(false);
