@@ -23,7 +23,19 @@ const copyBtn          = document.getElementById("copyBtn");
 const downloadBtn      = document.getElementById("downloadBtn");       // PNG
 const shareBtn         = document.getElementById("shareBtn");          // Web Share API
 const downloadSvgBtn   = document.getElementById("downloadSvgBtn");    // SVG (currently hidden in HTML)
+// --- NEW: mode + file/text inputs ---
+const modeButtons = Array.from(document.querySelectorAll(".mode-btn"));
+const modePanels  = Array.from(document.querySelectorAll(".mode-panel"));
 
+const fileInput = document.getElementById("fileInput");
+const uploadProgress = document.getElementById("uploadProgress");
+const uploadProgressText = document.getElementById("uploadProgressText");
+
+const proTokenInput = document.getElementById("proTokenInput");
+const textInput = document.getElementById("textInput");
+const proTokenInputText = document.getElementById("proTokenInputText");
+
+let currentMode = "url"; // "url" | "file" | "text"
 let expiryTimer = null;
 let countdownTimer = null;
 let lastRedirectUrl = "";
@@ -203,6 +215,79 @@ async function fetchJSON(url, opts = {}, timeoutMs = 15000) {
   } finally {
     clearTimeout(t);
   }
+}
+
+function setMode(mode) {
+  currentMode = mode;
+
+  // buttons
+  modeButtons.forEach(btn => {
+    const m = btn.getAttribute("data-mode");
+    const active = (m === mode);
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-selected", active ? "true" : "false");
+  });
+
+  // panels
+  modePanels.forEach(p => {
+    const key = p.getAttribute("data-panel");
+    p.classList.toggle("hidden", key !== mode);
+  });
+}
+
+function showUploadProgress(show, pct = 0, text = "Uploading…") {
+  if (!uploadProgress || !uploadProgressText) return;
+  uploadProgress.classList.toggle("hidden", !show);
+  uploadProgressText.classList.toggle("hidden", !show);
+  if (show) {
+    uploadProgress.value = pct;
+    uploadProgressText.textContent = text;
+  }
+}
+
+async function getR2UploadUrl({ filename, contentType, size, folder }) {
+  return fetchJSON("/api/r2-upload-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename, contentType, size, folder })
+  }, 15000);
+}
+
+// PUT with progress (so user sees it moving)
+function putWithProgress(url, file, contentType, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url, true);
+    if (contentType) xhr.setRequestHeader("Content-Type", contentType);
+
+    xhr.upload.onprogress = (evt) => {
+      if (!evt.lengthComputable) return;
+      const pct = Math.round((evt.loaded / evt.total) * 100);
+      onProgress?.(pct, evt.loaded, evt.total);
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error(`Upload failed (${xhr.status})`));
+    };
+    xhr.onerror = () => reject(new Error("Upload failed (network)"));
+    xhr.send(file);
+  });
+}
+
+async function createFileLink({ key, filename, contentType, minutes, token }) {
+  const url = `file:${key}|${encodeURIComponent(filename || "file.bin")}|${encodeURIComponent(contentType || "")}`;
+
+  return fetchJSON("/api/create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      kind: "file",
+      url,
+      minutes,
+      token: token || null
+    })
+  }, 15000);
 }
 
 async function createLink(url, minutes) {
@@ -449,6 +534,17 @@ function bindUI() {
     console.error("[ui] Missing required DOM elements. Check index.html IDs.");
     return;
   }
+
+  // NEW: mode switch (runs only if DOM is OK)
+  modeButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const m = btn.getAttribute("data-mode") || "url";
+      setMode(m);
+    });
+  });
+
+  // default mode
+  setMode("url");
 
   // (Optional UX) Normalize on blur so user sees https:// added (but don't force while typing)
   urlInput.addEventListener("blur", () => {
