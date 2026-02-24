@@ -598,32 +598,36 @@ function bindUI() {
   customMinutes?.addEventListener("input", onCustomChange);
 
   generateBtn.addEventListener("click", async () => {
-    const raw = String(urlInput.value || "").trim();
-    const url = normalizeHttpUrl(raw);
+  let minutes;
+  try {
+    minutes = getSelectedMinutesOrThrow();
+  } catch (e) {
+    alert(e?.message || "Invalid expiration time.");
+    return;
+  }
 
-    if (!url) {
-      alert("Please enter a valid URL (e.g. google.com or https://example.com).");
-      return;
-    }
+  clearTimeout(expiryTimer);
+  clearInterval(countdownTimer);
+  setLoading(true);
 
-    // Write normalized value back so user sees what will be used
-    urlInput.value = url;
+  const safety = setTimeout(() => setLoading(false), 9000);
 
-    let minutes;
-    try {
-      minutes = getSelectedMinutesOrThrow();
-    } catch (e) {
-      alert(e?.message || "Invalid expiration time.");
-      return;
-    }
+  try {
+    // =========================
+    // MODE: URL (FREE) - existing behavior
+    // =========================
+    if (currentMode === "url") {
+      const raw = String(urlInput.value || "").trim();
+      const url = normalizeHttpUrl(raw);
 
-    clearTimeout(expiryTimer);
-    clearInterval(countdownTimer);
-    setLoading(true);
+      if (!url) {
+        alert("Please enter a valid URL (e.g. google.com or https://example.com).");
+        return;
+      }
 
-    const safety = setTimeout(() => setLoading(false), 9000);
+      // Write normalized value back so user sees what will be used
+      urlInput.value = url;
 
-    try {
       const created = await createLink(url, minutes);
 
       const redirectUrl = `${window.location.origin}/go/${created.id}`;
@@ -653,14 +657,99 @@ function bindUI() {
       }, Math.max(0, remainingMs));
 
       startCountdown(created.expires_at);
-    } catch (err) {
-      console.error("[ui] Create error:", err);
-      alert(err?.message || "Could not create link.");
-    } finally {
-      clearTimeout(safety);
-      setLoading(false);
+      return;
     }
-  });
+
+    // =========================
+    // MODE: FILE upload (PAID - temporary token)
+    // =========================
+    if (currentMode === "file") {
+      const f = fileInput?.files?.[0];
+      if (!f) {
+        alert("Please choose a file.");
+        return;
+      }
+
+      // UI-enforce 500MB
+      const MAX = 500 * 1024 * 1024;
+      if (f.size > MAX) {
+        alert("File too large. Max 500MB.");
+        return;
+      }
+
+      const token = String(proTokenInput?.value || "").trim();
+      if (!token) {
+        alert("Upload requires access token (temporary) until checkout is added.");
+        return;
+      }
+
+      // 1) get presigned upload URL
+      showUploadProgress(true, 0, "Preparing upload…");
+      const up = await getR2UploadUrl({
+        filename: f.name,
+        contentType: f.type || "application/octet-stream",
+        size: f.size,
+        folder: "files"
+      });
+
+      // 2) upload direct to R2
+      showUploadProgress(true, 0, "Uploading…");
+      await putWithProgress(up.uploadUrl, f, f.type || "application/octet-stream", (pct) => {
+        showUploadProgress(true, pct, `Uploading… ${pct}%`);
+      });
+
+      // 3) create TempQR link using file reference
+      showUploadProgress(true, 100, "Creating link…");
+      const created = await createFileLink({
+        key: up.key,
+        filename: f.name,
+        contentType: f.type || "application/octet-stream",
+        minutes,
+        token
+      });
+
+      showUploadProgress(false);
+
+      const redirectUrl = `${window.location.origin}/go/${created.id}`;
+      lastRedirectUrl = redirectUrl;
+
+      linkExpired = false;
+      setDownloadButtonsEnabled(true);
+
+      generatedLink.textContent = makeDisplayLink(redirectUrl);
+      generatedLink.href = redirectUrl;
+      generatedLink.title = redirectUrl;
+
+      resultCard.classList.remove("hidden");
+      await renderQr(redirectUrl);
+
+      const endLocal = new Date(created.expires_at);
+      expiryHint.textContent = `Expires in ${created.minutes} min • Until ${endLocal.toLocaleString()}`;
+
+      saveLastState({ redirectUrl, expiresAt: created.expires_at, minutes: created.minutes });
+
+      const endMs = new Date(created.expires_at).getTime();
+      const remainingMs = endMs - Date.now();
+
+      expiryTimer = setTimeout(() => expireUINow(), Math.max(0, remainingMs));
+      startCountdown(created.expires_at);
+
+      return;
+    }
+
+    // =========================
+    // MODE: TEXT (next step)
+    // =========================
+    alert("Text mode is next. First we finish file upload.");
+  } catch (err) {
+    console.error("[ui] Create error:", err);
+    showUploadProgress(false);
+    alert(err?.message || "Could not create link.");
+  } finally {
+    clearTimeout(safety);
+    setLoading(false);
+  }
+});
 
   window.addEventListener("resize", () => {
     if (!lastRedirectUrl || linkExpired) return;
