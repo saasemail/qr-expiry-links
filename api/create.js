@@ -284,8 +284,15 @@ if (isFile) {
 if (!Number.isFinite(minutes) || minutes < 1) return res.status(400).send("Bad minutes");
 
 // FILE/TEXT mora biti plaćeno (za sada token ili Bearer JWT)
-if ((isFile || isText) && !proToken && !String(req.headers["authorization"] || "").match(/^Bearer\s+/i)) {
-  return res.status(402).send("Payment required");
+const devBypass = String(process.env.UPLOAD_DEV_BYPASS || "").trim() === "1";
+
+if ((isFile || isText) && !devBypass) {
+  const hasToken = !!proToken;
+  const hasBearer = !!String(req.headers["authorization"] || "").match(/^Bearer\s+/i);
+
+  if (!hasToken && !hasBearer) {
+    return res.status(402).send("Payment required");
+  }
 }
 
     const SIGNING_SECRET = process.env.SIGNING_SECRET || "dev-secret";
