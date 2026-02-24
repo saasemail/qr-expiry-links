@@ -193,6 +193,8 @@ export default async function handler(req) {
   const payload = p2 || p1;
 
   if (!payload?.u || !payload?.eMs) return new Response("Bad payload", { status: 400 });
+  const dest = payload.u; // original destination or our file/text reference
+  const origin = url.origin;
 
   // expired
   if (Date.now() > payload.eMs) {
@@ -233,8 +235,36 @@ export default async function handler(req) {
     });
   }
 
+  // === R2 private file/text handling (no harmful check, no OG meta redirect to non-http) ===
+if (typeof dest === "string" && dest.startsWith("file:")) {
+  // format: file:files/<key>|<encName>|<encContentType>
+  const rest = dest.slice("file:".length);
+  const parts = rest.split("|");
+  const key = parts[0]; // e.g. files/...
+  const name = parts[1] ? decodeURIComponent(parts[1]) : "file.bin";
+  const ct = parts[2] ? decodeURIComponent(parts[2]) : "";
+
+  const to = new URL(
+    `/api/r2-get?key=${encodeURIComponent(key)}&name=${encodeURIComponent(name)}${ct ? `&ct=${encodeURIComponent(ct)}` : ""}`,
+    origin
+  );
+  return Response.redirect(to.toString(), 302);
+}
+
+if (typeof dest === "string" && dest.startsWith("text:")) {
+  // format: text:texts/<key>
+  const key = dest.slice("text:".length);
+
+  const to = new URL(
+    `/api/r2-get?key=${encodeURIComponent(key)}&name=${encodeURIComponent("message.txt")}&ct=${encodeURIComponent("text/plain")}&inline=1`,
+    origin
+  );
+  return Response.redirect(to.toString(), 302);
+}
+// === end R2 handling ===
+
   // Harmful re-check BEFORE any redirect
-  if (isHarmfulUrl(payload.u)) {
+  if (isHarmfulUrl(dest)) {
     const html = `<!doctype html>
 <html lang="en">
 <head>
@@ -291,11 +321,11 @@ export default async function handler(req) {
   <meta name="twitter:image" content="${escapeHtml(qrUrl)}">
   <meta name="twitter:url" content="${escapeHtml(pageUrl)}">
 
-  <meta http-equiv="refresh" content="0;url=${escapeHtml(payload.u)}">
+  <meta http-equiv="refresh" content="0;url=${escapeHtml(dest)}">
 
   <script>
     // Fallback JS redirect for clients that ignore meta refresh
-    try { window.location.replace(${JSON.stringify(payload.u)}); } catch (e) {}
+    try { window.location.replace(${JSON.stringify(dest)}); } catch (e) {}
   </script>
 
   <style>
@@ -307,12 +337,12 @@ export default async function handler(req) {
 </head>
 <body>
   <div class="wrap">
-    <p><a href="${escapeHtml(payload.u)}">${escapeHtml(pageUrl)}</a></p>
+    <p><a href="${escapeHtml(dest)}">${escapeHtml(pageUrl)}</a></p>
     <div class="qr">
       <img src="${escapeHtml(qrUrl)}" alt="QR code" width="256" height="256">
     </div>
     <noscript>
-      <p><a href="${escapeHtml(payload.u)}">Open destination</a></p>
+      <p><a href="${escapeHtml(dest)}">Open destination</a></p>
     </noscript>
   </div>
 </body>

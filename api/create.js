@@ -251,18 +251,42 @@ export default async function handler(req, res) {
     try { body = await readJSONBody(req); }
     catch (e) { return res.status(400).send("Invalid JSON"); }
 
-    const rawUrl = String(body?.url || "").trim();
-    const url = normalizeHttpUrl(rawUrl);
-    const minutes = Number(body?.minutes);
-    const proToken = body?.token ? String(body.token).trim() : null;
+    const kind = String(body?.kind || "url").trim().toLowerCase(); // "url" | "file" | "text"
+const rawUrl = String(body?.url || "").trim();
+const minutes = Number(body?.minutes);
+const proToken = body?.token ? String(body.token).trim() : null;
 
-    if (!url) return res.status(400).send("Bad url");
-    if (!Number.isFinite(minutes) || minutes < 1) return res.status(400).send("Bad minutes");
+const isFile = kind === "file" || rawUrl.startsWith("file:");
+const isText = kind === "text" || rawUrl.startsWith("text:");
 
-    // Harmful filter (no captcha)
-    if (isHarmfulUrl(url)) {
-      return res.status(403).send(HARMFUL_MSG);
-    }
+let url = "";
+
+// 1) FILE/TEXT: ne normalizujemo http(s) URL, već proverimo "reference" format
+if (isFile) {
+  // očekujemo: file:files/<key>|<encName>|<encContentType>
+  if (!rawUrl.startsWith("file:files/")) return res.status(400).send("Bad file reference");
+  url = rawUrl;
+} else if (isText) {
+  // očekujemo: text:texts/<key>
+  if (!rawUrl.startsWith("text:texts/")) return res.status(400).send("Bad text reference");
+  url = rawUrl;
+} else {
+  // 2) URL: postojeći behavior
+  url = normalizeHttpUrl(rawUrl);
+  if (!url) return res.status(400).send("Bad url");
+
+  // Harmful filter (no captcha) – samo za URL
+  if (isHarmfulUrl(url)) {
+    return res.status(403).send(HARMFUL_MSG);
+  }
+}
+
+if (!Number.isFinite(minutes) || minutes < 1) return res.status(400).send("Bad minutes");
+
+// FILE/TEXT mora biti plaćeno (za sada token ili Bearer JWT)
+if ((isFile || isText) && !proToken && !String(req.headers["authorization"] || "").match(/^Bearer\s+/i)) {
+  return res.status(402).send("Payment required");
+}
 
     const SIGNING_SECRET = process.env.SIGNING_SECRET || "dev-secret";
 
