@@ -64,7 +64,6 @@ export default async function handler(req, res) {
       Bucket: R2_BUCKET,
       Key: key,
       ContentType: ct,
-      ContentLength: fileSize,
       // Private bucket, so no ACL needed (R2 ignores some ACLs anyway)
     });
 
