@@ -196,7 +196,7 @@ select {
   text-align: left;
 }
 
-.hidden { display: none; }
+.hidden { display: none !important; }
 
 .button-group {
   display: flex;
