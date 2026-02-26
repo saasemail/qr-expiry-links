@@ -237,15 +237,41 @@ export default async function handler(req) {
 
   // === R2 private file/text handling (no harmful check, no OG meta redirect to non-http) ===
 if (typeof dest === "string" && dest.startsWith("file:")) {
-  // format: file:files/<key>|<encName>|<encContentType>
+  // supports BOTH:
+  // - short: file:files/<key>
+  // - legacy: file:files/<key>|<encName>|<encContentType>
   const rest = dest.slice("file:".length);
   const parts = rest.split("|");
-  const key = parts[0]; // e.g. files/...
-  const name = parts[1] ? decodeURIComponent(parts[1]) : "file.bin";
-  const ct = parts[2] ? decodeURIComponent(parts[2]) : "";
+
+  const key = parts[0]; // e.g. files/abc123.jpg
+  let name = parts[1] ? decodeURIComponent(parts[1]) : "";
+  let ct = parts[2] ? decodeURIComponent(parts[2]) : "";
+
+  // If short format (no name/ct), derive from key
+  if (!name) {
+    const base = String(key).split("/").pop() || "file";
+    name = base; // e.g. "abc123.jpg"
+  }
+  if (!ct) {
+    const ext = (name.split(".").pop() || "").toLowerCase();
+    const mime =
+      ext === "jpg" || ext === "jpeg" ? "image/jpeg" :
+      ext === "png" ? "image/png" :
+      ext === "gif" ? "image/gif" :
+      ext === "webp" ? "image/webp" :
+      ext === "svg" ? "image/svg+xml" :
+      ext === "pdf" ? "application/pdf" :
+      ext === "txt" ? "text/plain" :
+      ext === "mp4" ? "video/mp4" :
+      ext === "mov" ? "video/quicktime" :
+      ext === "mp3" ? "audio/mpeg" :
+      ext === "wav" ? "audio/wav" :
+      "application/octet-stream";
+    ct = mime;
+  }
 
   const to = new URL(
-    `/api/r2-get?key=${encodeURIComponent(key)}&name=${encodeURIComponent(name)}${ct ? `&ct=${encodeURIComponent(ct)}` : ""}`,
+    `/api/r2-get?key=${encodeURIComponent(key)}&name=${encodeURIComponent(name)}&ct=${encodeURIComponent(ct)}`,
     origin
   );
   return Response.redirect(to.toString(), 302);
