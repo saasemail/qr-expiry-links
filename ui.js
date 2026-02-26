@@ -23,6 +23,7 @@ const copyBtn          = document.getElementById("copyBtn");
 const downloadBtn      = document.getElementById("downloadBtn");       // PNG
 const shareBtn         = document.getElementById("shareBtn");          // Web Share API
 const downloadSvgBtn   = document.getElementById("downloadSvgBtn");    // SVG (currently hidden in HTML)
+const createAnotherBtn = document.getElementById("createAnotherBtn");
 // --- NEW: mode + file/text inputs ---
 const modeButtons = Array.from(document.querySelectorAll(".mode-btn"));
 const modePanels  = Array.from(document.querySelectorAll(".mode-panel"));
@@ -160,6 +161,13 @@ function setDownloadButtonsEnabled(enabled) {
     if (copyBtn) copyBtn.disabled = !enabled;
     if (shareBtn) shareBtn.disabled = !enabled;
   } catch {}
+}
+
+function setCreateAnotherEnabled(enabled) {
+  if (!createAnotherBtn) return;
+  createAnotherBtn.disabled = !enabled;
+  createAnotherBtn.style.opacity = enabled ? "1" : "0.45";
+  createAnotherBtn.style.cursor = enabled ? "pointer" : "not-allowed";
 }
 
 function expireUINow() {
@@ -558,13 +566,14 @@ function bindUI() {
     return;
   }
 // --- Create Another Link: reset UI to initial state ---
-const createAnotherBtn = document.getElementById("createAnotherBtn");
 function setCreateAnotherEnabled(enabled) {
   if (!createAnotherBtn) return;
   createAnotherBtn.disabled = !enabled;
   createAnotherBtn.style.opacity = enabled ? "1" : "0.45";
   createAnotherBtn.style.cursor = enabled ? "pointer" : "not-allowed";
 }
+
+setCreateAnotherEnabled(false);
 
 function resetToInitialState() {
   // stop timers
@@ -616,6 +625,7 @@ function resetToInitialState() {
 
   // disable action buttons until new link created
   setDownloadButtonsEnabled(false);
+  setCreateAnotherEnabled(false);
 
   // go back to URL mode (nice default)
   setMode("url");
@@ -626,13 +636,13 @@ function resetToInitialState() {
   setCreateAnotherEnabled(false);
 }
 
-createAnotherBtn?.addEventListener("click", () => {
-  if (!linkExpired) return; // radi samo kad je expired
-  resetToInitialState();
+ createAnotherBtn?.addEventListener("click", () => {
+  if (!linkExpired) return;   // ✅ radi samo kad je expired
+    resetToInitialState();
 
   const formCard = document.querySelector("section.card");
   formCard?.scrollIntoView?.({ behavior: "smooth", block: "start" });
-});
+  });
 
   // NEW: mode switch (runs only if DOM is OK)
   modeButtons.forEach(btn => {
