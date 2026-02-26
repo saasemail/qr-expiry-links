@@ -182,6 +182,7 @@ function expireUINow() {
 
   linkExpired = true;
   setDownloadButtonsEnabled(false);
+  setCreateAnotherEnabled(true);
 
   // Once expired, clear persisted state so it won't restore a dead link.
   clearLastState();
@@ -524,6 +525,8 @@ async function restoreLastResultIfAny() {
   lastRedirectUrl = st.redirectUrl;
   linkExpired = false;
   setDownloadButtonsEnabled(true);
+  setCreateAnotherEnabled(false);
+
 
   generatedLink.textContent = makeDisplayLink(st.redirectUrl);
   generatedLink.href = st.redirectUrl;
@@ -556,6 +559,12 @@ function bindUI() {
   }
 // --- Create Another Link: reset UI to initial state ---
 const createAnotherBtn = document.getElementById("createAnotherBtn");
+function setCreateAnotherEnabled(enabled) {
+  if (!createAnotherBtn) return;
+  createAnotherBtn.disabled = !enabled;
+  createAnotherBtn.style.opacity = enabled ? "1" : "0.45";
+  createAnotherBtn.style.cursor = enabled ? "pointer" : "not-allowed";
+}
 
 function resetToInitialState() {
   // stop timers
@@ -613,14 +622,18 @@ function resetToInitialState() {
 
   // focus URL input
   setTimeout(() => urlInput?.focus?.(), 0);
+
+  setCreateAnotherEnabled(false);
 }
 
 createAnotherBtn?.addEventListener("click", () => {
+  if (!linkExpired) return; // radi samo kad je expired
   resetToInitialState();
-  // scroll to top of form card
+
   const formCard = document.querySelector("section.card");
   formCard?.scrollIntoView?.({ behavior: "smooth", block: "start" });
 });
+
   // NEW: mode switch (runs only if DOM is OK)
   modeButtons.forEach(btn => {
     btn.addEventListener("click", () => {
@@ -631,6 +644,8 @@ createAnotherBtn?.addEventListener("click", () => {
 
   // default mode
   setMode("url");
+  setCreateAnotherEnabled(false);
+
 
   // (Optional UX) Normalize on blur so user sees https:// added (but don't force while typing)
   urlInput.addEventListener("blur", () => {
@@ -720,6 +735,7 @@ createAnotherBtn?.addEventListener("click", () => {
 
       linkExpired = false;
       setDownloadButtonsEnabled(true);
+      setCreateAnotherEnabled(false);
 
       generatedLink.textContent = makeDisplayLink(redirectUrl);
       generatedLink.href = redirectUrl;
@@ -798,6 +814,7 @@ createAnotherBtn?.addEventListener("click", () => {
 
       linkExpired = false;
       setDownloadButtonsEnabled(true);
+      setCreateAnotherEnabled(false);
 
       generatedLink.textContent = makeDisplayLink(redirectUrl);
       generatedLink.href = redirectUrl;
@@ -881,6 +898,8 @@ if (currentMode === "text") {
 
   linkExpired = false;
   setDownloadButtonsEnabled(true);
+  setCreateAnotherEnabled(false);
+
 
   generatedLink.textContent = makeDisplayLink(redirectUrl);
   generatedLink.href = redirectUrl;
