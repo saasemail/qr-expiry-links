@@ -657,43 +657,6 @@
 
   </script>
 
-<!-- NEW: "Create Another Link" (UI-only reset; does NOT remove current QR/link) -->
-<script>
-  (function(){
-    var btn = document.getElementById('createAnotherBtn');
-    if(!btn) return;
-
-    btn.addEventListener('click', function(){
-      // clear URL
-      var urlInput = document.getElementById('urlInput');
-      if(urlInput) urlInput.value = '';
-
-      // reset expiry to default (your current default is 10 minutes)
-      var expirySelect = document.getElementById('expirySelect');
-      if(expirySelect) expirySelect.value = '10';
-
-      // hide custom duration UI (if it was open)
-      var customWrap = document.getElementById('customExpiryWrap');
-      if(customWrap) customWrap.classList.add('hidden');
-
-      // reset custom fields
-      var d = document.getElementById('customDays');
-      var h = document.getElementById('customHours');
-      var m = document.getElementById('customMinutes');
-      if(d) d.value = 0;
-      if(h) h.value = 0;
-      if(m) m.value = 10;
-
-      // scroll to the form card
-      var formCard = document.querySelector('section.card'); // first card = form
-      if(formCard) formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-      // focus back into input
-      if(urlInput) urlInput.focus();
-    });
-  })();
-</script>
-
 <script type="module" src="ui.js?v=fix_signout_ghost_1"></script>
 
 </body>

@@ -554,7 +554,73 @@ function bindUI() {
     console.error("[ui] Missing required DOM elements. Check index.html IDs.");
     return;
   }
+// --- Create Another Link: reset UI to initial state ---
+const createAnotherBtn = document.getElementById("createAnotherBtn");
 
+function resetToInitialState() {
+  // stop timers
+  clearTimeout(expiryTimer);
+  clearInterval(countdownTimer);
+
+  // clear state
+  lastRedirectUrl = "";
+  linkExpired = false;
+  clearLastState();
+
+  // reset form fields
+  if (urlInput) urlInput.value = "";
+  if (fileInput) fileInput.value = "";
+  if (textInput) textInput.value = "";
+
+  // reset expiry to default 10 minutes
+  if (expirySelect) expirySelect.value = "10";
+  lastPresetMinutes = 10;
+  customTouched = false;
+  setCustomFromMinutes(lastPresetMinutes);
+  updateCustomHint();
+  toggleCustomUI();
+
+  // hide upload progress
+  showUploadProgress(false);
+
+  // hide result card completely (this removes the “expired” block too)
+  resultCard.classList.add("hidden");
+
+  // also hide QR + link if needed (safety)
+  qrcodeCanvas.classList.add("hidden");
+  generatedLink.classList.add("hidden");
+
+  // clear QR canvas
+  try {
+    const ctx = qrcodeCanvas.getContext("2d");
+    ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
+  } catch {}
+
+  // clear link text/href
+  generatedLink.textContent = "";
+  generatedLink.href = "#";
+  generatedLink.title = "";
+
+  // reset texts
+  countdownEl.textContent = "";
+  expiryHint.textContent = "";
+
+  // disable action buttons until new link created
+  setDownloadButtonsEnabled(false);
+
+  // go back to URL mode (nice default)
+  setMode("url");
+
+  // focus URL input
+  setTimeout(() => urlInput?.focus?.(), 0);
+}
+
+createAnotherBtn?.addEventListener("click", () => {
+  resetToInitialState();
+  // scroll to top of form card
+  const formCard = document.querySelector("section.card");
+  formCard?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+});
   // NEW: mode switch (runs only if DOM is OK)
   modeButtons.forEach(btn => {
     btn.addEventListener("click", () => {
