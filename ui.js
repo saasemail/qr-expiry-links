@@ -171,6 +171,10 @@ function expireUINow() {
     ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
   } catch {}
 
+    // ✅ NEW: collapse the big empty area
+  qrcodeCanvas.classList.add("hidden");
+  generatedLink.classList.add("hidden");
+
   generatedLink.textContent = "";
   generatedLink.href = "#";
   generatedLink.title = "";
@@ -526,6 +530,8 @@ async function restoreLastResultIfAny() {
   generatedLink.title = st.redirectUrl;
 
   resultCard.classList.remove("hidden");
+  qrcodeCanvas.classList.remove("hidden");
+  generatedLink.classList.remove("hidden");
   await renderQr(st.redirectUrl);
 
   const endLocal = new Date(st.expiresAt);
@@ -654,6 +660,8 @@ function bindUI() {
       generatedLink.title = redirectUrl;
 
       resultCard.classList.remove("hidden");
+      qrcodeCanvas.classList.remove("hidden");
+      generatedLink.classList.remove("hidden");
       await renderQr(redirectUrl);
 
       const endLocal = new Date(created.expires_at);
@@ -730,6 +738,8 @@ function bindUI() {
       generatedLink.title = redirectUrl;
 
       resultCard.classList.remove("hidden");
+      qrcodeCanvas.classList.remove("hidden");
+      generatedLink.classList.remove("hidden");
       await renderQr(redirectUrl);
 
       const endLocal = new Date(created.expires_at);
@@ -811,6 +821,8 @@ if (currentMode === "text") {
   generatedLink.title = redirectUrl;
 
   resultCard.classList.remove("hidden");
+  qrcodeCanvas.classList.remove("hidden");
+  generatedLink.classList.remove("hidden");
   await renderQr(redirectUrl);
 
   const endLocal = new Date(created.expires_at);
