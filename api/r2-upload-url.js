@@ -56,7 +56,17 @@ export default async function handler(req, res) {
     const baseFolder = String(folder || "files").toLowerCase();
     const safeFolder = (baseFolder === "files" || baseFolder === "texts") ? baseFolder : "files";
 
-    const key = `${safeFolder}/${Date.now()}_${crypto.randomBytes(16).toString("hex")}.${(ext || "bin").slice(0, 10)}`;
+  function b64url(buf) {
+    return Buffer.from(buf)
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/g, "");
+    }
+
+    const shortId = b64url(crypto.randomBytes(9)); // 12 chars base64url
+    const safeExt = (ext || "bin").slice(0, 10);
+    const key = `${safeFolder}/${shortId}.${safeExt}`;
 
     const ct = String(contentType || "application/octet-stream").slice(0, 120);
 

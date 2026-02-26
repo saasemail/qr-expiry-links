@@ -263,7 +263,7 @@ let url = "";
 
 // 1) FILE/TEXT: ne normalizujemo http(s) URL, već proverimo "reference" format
 if (isFile) {
-  // očekujemo: file:files/<key>|<encName>|<encContentType>
+  // expected: file:files/<key>  (short reference)
   if (!rawUrl.startsWith("file:files/")) return res.status(400).send("Bad file reference");
   url = rawUrl;
 } else if (isText) {
