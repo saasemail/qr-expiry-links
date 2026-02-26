@@ -288,6 +288,21 @@ async function createFileLink({ key, filename, contentType, minutes, token }) {
   }, 15000);
 }
 
+async function createTextLink({ key, minutes, token }) {
+  const url = `text:${key}`; // key like "texts/<something>.txt"
+
+  return fetchJSON("/api/create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      kind: "text",
+      url,
+      minutes,
+      token: token || null
+    })
+  }, 15000);
+}
+
 async function createLink(url, minutes) {
   return fetchJSON(
     "/api/create",
@@ -735,7 +750,86 @@ function bindUI() {
     // =========================
     // MODE: TEXT (next step)
     // =========================
-    alert("Text mode is next. First we finish file upload.");
+    // =========================
+// MODE: TEXT message (DEV bypass optional)
+// =========================
+if (currentMode === "text") {
+  const devBypass = document.documentElement.getAttribute("data-upload-bypass") === "1";
+  if (!devBypass) {
+    alert("Text message is not enabled yet.");
+    return;
+  }
+
+  const msg = String(textInput?.value || "").trim();
+  if (!msg) {
+    alert("Please type a message.");
+    return;
+  }
+
+  // 500KB soft limit for text (to avoid abuse)
+  if (msg.length > 500000) {
+    alert("Message is too long (max ~500k characters).");
+    return;
+  }
+
+  // Make a .txt file in memory
+  const filename = `message-${Date.now()}.txt`;
+  const blob = new Blob([msg], { type: "text/plain;charset=utf-8" });
+
+  // 1) presigned upload URL (to texts/)
+  showUploadProgress(true, 0, "Preparing upload…");
+  const up = await getR2UploadUrl({
+    filename,
+    contentType: "text/plain",
+    size: blob.size,
+    folder: "texts"
+  });
+
+  // 2) upload (PUT)
+  showUploadProgress(true, 0, "Uploading…");
+  await putWithProgress(up.uploadUrl, blob, "text/plain", (pct) => {
+    showUploadProgress(true, pct, `Uploading… ${pct}%`);
+  });
+
+  // 3) create TempQR link using text reference
+  showUploadProgress(true, 100, "Creating link…");
+  const created = await createTextLink({
+    key: up.key,
+    minutes,
+    token: null
+  });
+
+  showUploadProgress(false);
+
+  const redirectUrl = `${window.location.origin}/go/${created.id}`;
+  lastRedirectUrl = redirectUrl;
+
+  linkExpired = false;
+  setDownloadButtonsEnabled(true);
+
+  generatedLink.textContent = makeDisplayLink(redirectUrl);
+  generatedLink.href = redirectUrl;
+  generatedLink.title = redirectUrl;
+
+  resultCard.classList.remove("hidden");
+  await renderQr(redirectUrl);
+
+  const endLocal = new Date(created.expires_at);
+  expiryHint.textContent = `Expires in ${created.minutes} min • Until ${endLocal.toLocaleString()}`;
+
+  saveLastState({ redirectUrl, expiresAt: created.expires_at, minutes: created.minutes });
+
+  const endMs = new Date(created.expires_at).getTime();
+  const remainingMs = endMs - Date.now();
+
+  expiryTimer = setTimeout(() => expireUINow(), Math.max(0, remainingMs));
+  startCountdown(created.expires_at);
+
+  return;
+}
+
+alert("Unknown mode.");
+
   } catch (err) {
     console.error("[ui] Create error:", err);
     showUploadProgress(false);
