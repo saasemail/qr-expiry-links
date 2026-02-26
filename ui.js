@@ -273,8 +273,9 @@ function putWithProgress(url, file, contentType, onProgress) {
   });
 }
 
-async function createFileLink({ key, filename, contentType, minutes, token }) {
-  const url = `file:${key}|${encodeURIComponent(filename || "file.bin")}|${encodeURIComponent(contentType || "")}`;
+async function createFileLink({ key, minutes, token }) {
+  // IMPORTANT: keep this SHORT so /go/<id> stays short and QR stays scannable & consistent
+  const url = `file:${key}`;
 
   return fetchJSON("/api/create", {
     method: "POST",
@@ -712,8 +713,6 @@ function bindUI() {
       showUploadProgress(true, 100, "Creating link…");
       const created = await createFileLink({
         key: up.key,
-        filename: f.name,
-        contentType: f.type || "application/octet-stream",
         minutes,
         token: null
       });
