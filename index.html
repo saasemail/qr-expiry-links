@@ -32,13 +32,6 @@
       display: none !important;
       content: none !important;
     }
-    /* Micro top bar */
-    .navbar{
-      background: transparent !important;
-      border: none !important;
-      box-shadow: none !important;
-      padding: 6px 14px !important;
-    }
 
 .nav-left{
   background: rgba(255,255,255,0.04);
@@ -54,6 +47,29 @@
       width: 40px !important;
       height: 40px !important;
     }
+    /* Compact navbar, keep/bump logo */
+.navbar{
+  padding: 6px 14px !important;   /* tanje */
+  min-height: 0 !important;
+}
+
+.nav-left{
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.brand-name{
+  margin: 0 !important;
+  line-height: 1 !important;      /* ovo često pravi “visinu” */
+  padding: 0 !important;
+}
+
+/* Logo size (bump it) */
+.navbar .brand-icon img{
+  width: 40px !important;
+  height: 40px !important;
+  display: block !important;
+}
 
     /* Hide top ad on small screens */
     @media (max-width: 560px) {
@@ -369,7 +385,7 @@
   <nav class="navbar">
     <div class="nav-left">
       <span class="brand-icon" aria-hidden="true">
-        <img src="TempQRlogo.svg" alt="" width="34" height="34" style="display:block; width:34px; height:34px; border-radius:8px;" />
+        <img src="TempQRlogo.svg" alt="" width="34" height="34" style="display:block; border-radius:8px;" />
       </span>
       <h1 class="brand-name">TempQR</h1>
     </div>
