@@ -612,3 +612,47 @@ textarea:focus{
   outline: 2px solid rgba(125, 94, 255, 0.55);
   outline-offset: 2px;
 }
+/* --- Pro lock (custom duration) --- */
+.custom-expiry { position: relative; }
+
+.pro-lock-overlay{
+  position: absolute;
+  inset: 0;
+  display: none;              /* JS ga pali/gasi */
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(6px);
+  z-index: 5;
+}
+
+.pro-lock-card{
+  width: min(520px, 100%);
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(18, 22, 34, 0.92);
+  padding: 14px;
+  box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+  text-align: center;
+}
+
+.pro-lock-title{
+  font-weight: 700;
+  color: rgba(255,255,255,0.92);
+  margin-bottom: 6px;
+}
+
+.pro-lock-sub{
+  font-size: 13px;
+  color: rgba(255,255,255,0.70);
+  margin-bottom: 12px;
+}
+
+.pro-lock-actions{
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}

@@ -59,6 +59,24 @@ const QR_MARGIN = 4;  // quiet zone (modules)
  */
 const LAST_STATE_KEY = "tempqr_last_state_v1";
 
+const PRO_TOKEN_KEY = "tempqr_pro_token_v1";
+const DEV_PRO_TOKEN = "TEMPQR_DEV_PRO"; // privremeno (dok nema checkout)
+
+const proLockOverlay = document.getElementById("proLockOverlay");
+const unlockCustomBtn = document.getElementById("unlockCustomBtn");
+const closeUnlockBtn = document.getElementById("closeUnlockBtn");
+
+function getProToken(){
+  try { return localStorage.getItem(PRO_TOKEN_KEY) || ""; } catch { return ""; }
+}
+function isPro(){
+  return getProToken() === DEV_PRO_TOKEN;
+}
+function showProLock(show){
+  if (!proLockOverlay) return;
+  proLockOverlay.style.display = show ? "flex" : "none";
+}
+
 function safeJSONParse(str) {
   try { return JSON.parse(str); } catch { return null; }
 }
@@ -474,6 +492,8 @@ function updateCustomHint() {
 
 function toggleCustomUI() {
   if (!expirySelect || !customExpiryWrap) return;
+  // Keep custom locked for Free
+showProLock(String(expirySelect.value) === "custom" && !isPro());
 
   const isCustom = String(expirySelect.value) === "custom";
   customExpiryWrap.classList.toggle("hidden", !isCustom);
@@ -673,8 +693,19 @@ function resetToInitialState() {
   // Preset/custom UI behavior
   expirySelect.addEventListener("change", () => {
     const v = String(expirySelect.value);
+    
+      // If Free user tries Custom -> revert to 1 hour and open unlock UI
+  if (v === "custom" && !isPro()) {
+    expirySelect.value = "60";
+    toggleCustomUI();
+    showProLock(false);
+    // otvori “checkout” (za sad overlay)
+    customExpiryWrap.classList.remove("hidden");
+    showProLock(true);
+    return;
+  }
 
-    if (v !== "custom") {
+     if (v !== "custom") {
       const mins = parseInt(v, 10);
       if (Number.isFinite(mins) && mins >= 1) {
         lastPresetMinutes = mins;
@@ -697,6 +728,19 @@ function resetToInitialState() {
     updateCustomHint();
   };
 
+  unlockCustomBtn?.addEventListener("click", () => {
+  try { localStorage.setItem(PRO_TOKEN_KEY, DEV_PRO_TOKEN); } catch {}
+  showProLock(false);
+  expirySelect.value = "custom";
+  toggleCustomUI();
+});
+
+closeUnlockBtn?.addEventListener("click", () => {
+  showProLock(false);
+  expirySelect.value = "60";
+  toggleCustomUI();
+});
+
   customDays?.addEventListener("input", onCustomChange);
   customHours?.addEventListener("input", onCustomChange);
   customMinutes?.addEventListener("input", onCustomChange);
@@ -709,6 +753,13 @@ function resetToInitialState() {
     alert(e?.message || "Invalid expiration time.");
     return;
   }
+
+  // Server + UI guard: Free can only do 60 minutes
+if (!isPro() && minutes !== 60) {
+  customExpiryWrap.classList.remove("hidden");
+  showProLock(true);
+  return;
+}
 
   clearTimeout(expiryTimer);
   clearInterval(countdownTimer);

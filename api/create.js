@@ -283,6 +283,21 @@ if (isFile) {
 
 if (!Number.isFinite(minutes) || minutes < 1) return res.status(400).send("Bad minutes");
 
+// --- NEW: Free plan rule for URL: only 60 minutes ---
+const isUrlKind = !isFile && !isText;
+const DEV_PRO_TOKEN = String(process.env.DEV_PRO_TOKEN || "TEMPQR_DEV").trim();
+const isDevProToken = !!proToken && proToken === DEV_PRO_TOKEN;
+
+if (isUrlKind && minutes !== 60) {
+  const hasBearer = !!String(req.headers["authorization"] || "").match(/^Bearer\s+/i);
+  const hasToken = !!proToken;
+
+  // allow dev token or real bearer/token; otherwise block
+  if (!isDevProToken && !hasBearer && !hasToken) {
+    return res.status(402).send("Payment required");
+  }
+}
+
 // FILE/TEXT mora biti plaćeno (za sada token ili Bearer JWT)
 const devBypass = String(process.env.UPLOAD_DEV_BYPASS || "").trim() === "1";
 
@@ -307,28 +322,37 @@ if ((isFile || isText) && !devBypass) {
 
     // 1) Ako postoji eksplicitni token u body-ju -> koristi njega
     let usedByUserId = null;
-    if (proToken) {
-      const SUPABASE_URL = process.env.SUPABASE_URL;
-      const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      if (!SUPABASE_URL || !SERVICE_ROLE) return res.status(500).send("Server not configured");
 
-      const { createClient } = await import("@supabase/supabase-js");
-      const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+    // If dev token is used, treat as Pro without DB lookup
+  if (isDevProToken) {
+    plan = "pro";
+    tier = "dev";
+    max_minutes = MAX_MINUTES_10Y;
 
-      const { data: tok, error } = await admin
-        .from("tokens")
-        .select("token,tier,max_minutes,expires_at,user_id")
-        .eq("token", proToken)
-        .maybeSingle();
-      if (error) { console.error("[create] token select error:", error); return res.status(500).send("DB error"); }
-      if (!tok) return res.status(401).send("Invalid token");
-      if (tok.expires_at && new Date(tok.expires_at).getTime() < Date.now()) return res.status(401).send("Token expired");
+} else if (proToken) {
+  // existing Supabase token lookup...
+  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!SUPABASE_URL || !SERVICE_ROLE) return res.status(500).send("Server not configured");
 
-      plan = "pro";
-      tier = tok.tier || null;
-      max_minutes = Number(tok.max_minutes || MAX_MINUTES_10Y);
-      usedByUserId = tok.user_id || null;
-    }
+  const { createClient } = await import("@supabase/supabase-js");
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+
+  const { data: tok, error } = await admin
+    .from("tokens")
+    .select("token,tier,max_minutes,expires_at,user_id")
+    .eq("token", proToken)
+    .maybeSingle();
+
+  if (error) { console.error("[create] token select error:", error); return res.status(500).send("DB error"); }
+  if (!tok) return res.status(401).send("Invalid token");
+  if (tok.expires_at && new Date(tok.expires_at).getTime() < Date.now()) return res.status(401).send("Token expired");
+
+  plan = "pro";
+  tier = tok.tier || null;
+  max_minutes = Number(tok.max_minutes || MAX_MINUTES_10Y);
+  usedByUserId = tok.user_id || null;
+}
 
     // 2) Ako NEMA tokena, ali postoji Authorization: Bearer <JWT> -> pročitaj Pro iz naloga
     if (!proToken) {
@@ -385,12 +409,12 @@ if ((isFile || isText) && !devBypass) {
     const expiresAt = new Date(expirySeconds * 1000).toISOString();
 
     res.setHeader("Content-Type", "application/json");
-    return res.status(200).json({ id, expires_at: expiresAt, plan, tier, minutes: allowed });
-  } catch (e) {
-    console.error("[create] ERROR:", e?.message || e);
-    return res.status(500).send("Internal Server Error");
-  } finally {
-    const ms = Date.now() - t0;
-    if (ms > 9000) console.warn("[create] slow:", ms, "ms");
-  }
+return res.status(200).json({ id, expires_at: expiresAt, plan, tier, minutes: allowed });
+} catch (e) {
+  console.error("[create] ERROR:", e?.message || e);
+  return res.status(500).send("Internal Server Error");
+} finally {
+  const ms = Date.now() - t0;
+  if (ms > 9000) console.warn("[create] slow:", ms, "ms");
+}
 }
