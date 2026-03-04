@@ -644,13 +644,6 @@ function resetToInitialState() {
   formCard?.scrollIntoView?.({ behavior: "smooth", block: "start" });
   });
 
-  // NEW: mode switch (runs only if DOM is OK)
-  modeButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const m = btn.getAttribute("data-mode") || "url";
-      setMode(m);
-    });
-  });
 
   // default mode
   setMode("url");

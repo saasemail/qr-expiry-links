@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-upload-bypass="1">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -358,13 +358,13 @@
 
   <div class="container">
     <h2 class="hero-title">Make your sharing content private &amp; temporary. </h2>
-    <p class="subtitle">Turn a URL, file or message into a private link &amp; QR that expires forever after chosen time.<br>Share safely - no signup, no tracking, no saved history, no exposing your original content.</p>
+    <p class="subtitle">Turn your URL into a private link &amp; QR that expires forever after chosen time.<br>Share safely - no signup, no tracking, no saved history, no exposing your original content.</p>
 
     <!-- Use-cases chips (compact) -->
     <div class="usecases-bar" aria-label="Use cases">
       <span class="usecases-label">Often used for:</span>
       <div class="usecase-chips">
-        <span class="chip">Private documents &amp; files</span>
+        <span class="chip">Private documents</span>
         <span class="chip">Private messages</span>
         <span class="chip">Temporary client access</span>
         <span class="chip">Confidential previews</span>
@@ -377,38 +377,11 @@
     <section class="card">
       <h2 class="card-title">Create Your Private Link</h2>
 
-<!-- NEW: mode switch -->
-<div class="mode-switch" role="tablist" aria-label="Content type">
-  <button type="button" class="mode-btn active" data-mode="url" role="tab" aria-selected="true">URL</button>
-  <button type="button" class="mode-btn" data-mode="file" role="tab" aria-selected="false">Upload file</button>
-  <button type="button" class="mode-btn" data-mode="text" role="tab" aria-selected="false">Text message</button>
-</div>
-
 <!-- URL input -->
-<div class="mode-panel" data-panel="url">
+<div>
   <label>
     Enter URL
     <input type="url" id="urlInput" placeholder="example.com" />
-  </label>
-</div>
-
-<!-- FILE input -->
-<div class="mode-panel hidden" data-panel="file">
-  <label>
-    Upload file (max 500MB)
-    <input type="file" id="fileInput" />
-  </label>
-
-  <!-- optional: token for paid features (temporary until 2Checkout) -->
-
-  <progress id="uploadProgress" value="0" max="100" class="hidden" style="width:100%; height:12px;"></progress>
-  <p id="uploadProgressText" class="field-hint hidden">Uploading…</p>
-</div>
-
-<!-- TEXT input (we’ll implement next) -->
-<div class="mode-panel hidden" data-panel="text">
-  <label>
-    <textarea id="textInput" rows="5" placeholder="Type your message..."></textarea>
   </label>
 </div>
 
