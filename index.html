@@ -145,10 +145,11 @@
   align-items: center;
   gap: 10px;
 
-  padding: 6px 10px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.10);
+  padding: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .brand-badge .brand-name{
@@ -174,7 +175,12 @@
   .brand-badge .brand-icon img{
     width: 36px;
     height: 36px;
+  }  
+  
+  .container{
+    padding-top: 64px !important;
   }
+
 }
 
     /* Desktop-only: keep 5 chips on first row, force View more to its own centered row */
@@ -354,12 +360,10 @@
 }
 .seo-explainer ul{
   margin: 8px 0 10px 18px;
-.seo-explainer ul{
   padding-left: 18px;
 }
 .seo-explainer li{
   line-height: 1.5;
-}
 }
 .seo-explainer li{
   margin: 6px 0;
