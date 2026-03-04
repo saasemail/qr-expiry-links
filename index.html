@@ -39,8 +39,6 @@
   border-radius: 12px;
   padding: 6px 10px;
 }
-.brand-name{ font-size: 16px !important; }
-.brand-icon img{ width: 24px !important; height: 24px !important; }
 
     /* Bigger brand logo (desktop) */
     .brand-icon img{
@@ -164,6 +162,17 @@
 .brand-badge .brand-icon img{
   width: 44px;
   height: 44px;
+}
+
+/* Desktop-only: slightly bigger brand */
+@media (min-width: 561px){
+  .brand-badge .brand-name{
+    font-size: 20px !important;
+  }
+  .brand-badge .brand-icon img{
+    width: 50px !important;
+    height: 50px !important;
+  }
 }
 
 /* da content ne “udari” u badge na malim ekranima */
