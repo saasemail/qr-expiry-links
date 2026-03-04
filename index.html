@@ -135,6 +135,47 @@
       outline: 2px solid rgba(125, 94, 255, 0.55);
       outline-offset: 2px;
     }
+    /* Brand badge (no navbar) */
+.brand-badge{
+  position: fixed;
+  top: 10px;
+  left: 12px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+.brand-badge .brand-name{
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  margin: 0;
+  color: rgba(255,255,255,0.95);
+}
+
+/* logo može i veći */
+.brand-badge .brand-icon img{
+  width: 40px;
+  height: 40px;
+}
+
+/* da content ne “udari” u badge na malim ekranima */
+@media (max-width: 560px){
+  .brand-badge{
+    top: 8px;
+    left: 10px;
+  }
+  .brand-badge .brand-icon img{
+    width: 36px;
+    height: 36px;
+  }
+}
 
     /* Desktop-only: keep 5 chips on first row, force View more to its own centered row */
     @media (min-width: 641px){
@@ -380,19 +421,13 @@
 </head>
 <body>
 
-
-  <!-- Navbar -->
-  <nav class="navbar">
-    <div class="nav-left">
-      <span class="brand-icon" aria-hidden="true">
-        <img src="TempQRlogo.svg" alt="" width="34" height="34" style="display:block; border-radius:8px;" />
-      </span>
-      <h1 class="brand-name">TempQR</h1>
-    </div>
-
-    <div class="nav-links">
-    </div>
-  </nav>
+<!-- Brand badge (replaces navbar) -->
+<div class="brand-badge">
+  <span class="brand-icon" aria-hidden="true">
+    <img src="TempQRlogo.svg" alt="" width="34" height="34" style="display:block; border-radius:8px;" />
+  </span>
+  <span class="brand-name">TempQR</span>
+</div>
 
   <div class="container">
     <h2 class="hero-title">Make your sharing content private &amp; temporary. </h2>
