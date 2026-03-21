@@ -492,8 +492,8 @@ function updateCustomHint() {
 
 function toggleCustomUI() {
   if (!expirySelect || !customExpiryWrap) return;
-  // Keep custom locked for Free
-showProLock(String(expirySelect.value) === "custom" && !isPro());
+
+  showProLock(false);
 
   const isCustom = String(expirySelect.value) === "custom";
   customExpiryWrap.classList.toggle("hidden", !isCustom);
@@ -690,22 +690,11 @@ function resetToInitialState() {
   updateCustomHint();
   toggleCustomUI();
 
-  // Preset/custom UI behavior
+    // Preset/custom UI behavior
   expirySelect.addEventListener("change", () => {
     const v = String(expirySelect.value);
-    
-      // If Free user tries Custom -> revert to 1 hour and open unlock UI
-  if (v === "custom" && !isPro()) {
-    expirySelect.value = "60";
-    toggleCustomUI();
-    showProLock(false);
-    // otvori “checkout” (za sad overlay)
-    customExpiryWrap.classList.remove("hidden");
-    showProLock(true);
-    return;
-  }
 
-     if (v !== "custom") {
+    if (v !== "custom") {
       const mins = parseInt(v, 10);
       if (Number.isFinite(mins) && mins >= 1) {
         lastPresetMinutes = mins;
@@ -728,18 +717,16 @@ function resetToInitialState() {
     updateCustomHint();
   };
 
-  unlockCustomBtn?.addEventListener("click", () => {
-  try { localStorage.setItem(PRO_TOKEN_KEY, DEV_PRO_TOKEN); } catch {}
-  showProLock(false);
-  expirySelect.value = "custom";
-  toggleCustomUI();
-});
+    unlockCustomBtn?.addEventListener("click", () => {
+    showProLock(false);
+    expirySelect.value = "custom";
+    toggleCustomUI();
+  });
 
-closeUnlockBtn?.addEventListener("click", () => {
-  showProLock(false);
-  expirySelect.value = "60";
-  toggleCustomUI();
-});
+  closeUnlockBtn?.addEventListener("click", () => {
+    showProLock(false);
+    toggleCustomUI();
+  });
 
   customDays?.addEventListener("input", onCustomChange);
   customHours?.addEventListener("input", onCustomChange);
@@ -753,13 +740,6 @@ closeUnlockBtn?.addEventListener("click", () => {
     alert(e?.message || "Invalid expiration time.");
     return;
   }
-
-  // Server + UI guard: Free can only do 60 minutes
-if (!isPro() && minutes !== 60) {
-  customExpiryWrap.classList.remove("hidden");
-  showProLock(true);
-  return;
-}
 
   clearTimeout(expiryTimer);
   clearInterval(countdownTimer);

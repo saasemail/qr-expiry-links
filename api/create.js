@@ -283,20 +283,10 @@ if (isFile) {
 
 if (!Number.isFinite(minutes) || minutes < 1) return res.status(400).send("Bad minutes");
 
-// --- NEW: Free plan rule for URL: only 60 minutes ---
+// URL custom duration is allowed for all users
 const isUrlKind = !isFile && !isText;
 const DEV_PRO_TOKEN = String(process.env.DEV_PRO_TOKEN || "TEMPQR_DEV").trim();
 const isDevProToken = !!proToken && proToken === DEV_PRO_TOKEN;
-
-if (isUrlKind && minutes !== 60) {
-  const hasBearer = !!String(req.headers["authorization"] || "").match(/^Bearer\s+/i);
-  const hasToken = !!proToken;
-
-  // allow dev token or real bearer/token; otherwise block
-  if (!isDevProToken && !hasBearer && !hasToken) {
-    return res.status(402).send("Payment required");
-  }
-}
 
 // FILE/TEXT mora biti plaćeno (za sada token ili Bearer JWT)
 const devBypass = String(process.env.UPLOAD_DEV_BYPASS || "").trim() === "1";

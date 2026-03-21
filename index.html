@@ -475,23 +475,13 @@
         Expiration Time
         <select id="expirySelect" aria-label="Expiration Time">
           <option value="60">1 hour</option>
-          <option value="custom">Custom duration 🔒</option>
+          <option value="custom">Custom duration</option>
         </select>
       </label>
       <p class="field-hint">This QR &amp; link will expire after the selected time.</p>
 
       <div id="customExpiryWrap" class="custom-expiry hidden">
           <!-- PRO lock overlay (shown when not Pro) -->
-  <div class="pro-lock-overlay" id="proLockOverlay">
-    <div class="pro-lock-card">
-      <div class="pro-lock-title">Custom duration is locked <span class="pro-lock-ico">🔒</span></div>
-      <div class="pro-lock-sub">Upgrade to set minutes/hours/days (for now: test token).</div>
-      <div class="pro-lock-actions">
-        <button type="button" class="btn btn-primary" id="unlockCustomBtn">Unlock Custom Duration</button>
-        <button type="button" class="btn btn-ghost" id="closeUnlockBtn">Not now</button>
-      </div>
-    </div>
-  </div>
         <div class="custom-grid" role="group" aria-label="Custom duration">
           <div class="custom-field">
             <span class="custom-field-label">Days</span>
