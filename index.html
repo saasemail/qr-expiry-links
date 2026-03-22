@@ -430,6 +430,51 @@
 .token-row input{
   font-family: inherit;
 }
+
+.social-proof{
+  max-width: 860px;
+  margin: 12px auto 8px;
+  padding: 0 12px;
+  text-align: center;
+}
+
+.social-proof-badge{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.94);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.social-proof-text{
+  margin-top: 8px;
+  color: rgba(255,255,255,0.68);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px){
+  .social-proof{
+    margin: 10px auto 8px;
+  }
+
+  .social-proof-badge{
+    font-size: 12.5px;
+    padding: 8px 12px;
+  }
+
+  .social-proof-text{
+    font-size: 12px;
+    max-width: 320px;
+    margin: 8px auto 0;
+  }
+}
   </style>
 </head>
 <body>
@@ -443,8 +488,12 @@
 </div>
 
   <div class="container">
-    <h2 class="hero-title">Make your sharing content private &amp; temporary. </h2>
+    <h2 class="hero-title">Share anything — and take it back when you're done. </h2>
     <p class="subtitle">Turn your URL into a private link &amp; QR that expires forever after chosen time.<br>Share safely - no signup, no tracking, no saved history, no exposing your original content.</p>
+
+    <div class="social-proof" aria-label="Usage proof">
+      <div class="social-proof-badge">12,000+ private links created</div>
+    </div>
 
     <!-- Use-cases chips (compact) -->
     <div class="usecases-bar" aria-label="Use cases">
