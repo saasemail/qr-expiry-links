@@ -2,6 +2,29 @@
 
 import { createHmac } from "node:crypto";
 
+async function trackAnalyticsEvent(payload) {
+  try {
+    const ANALYTICS_SUPABASE_URL = process.env.ANALYTICS_SUPABASE_URL;
+    const ANALYTICS_SUPABASE_SERVICE_ROLE_KEY = process.env.ANALYTICS_SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!ANALYTICS_SUPABASE_URL || !ANALYTICS_SUPABASE_SERVICE_ROLE_KEY) return;
+
+    const { createClient } = await import("@supabase/supabase-js");
+    const analytics = createClient(
+      ANALYTICS_SUPABASE_URL,
+      ANALYTICS_SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { persistSession: false, autoRefreshToken: false } }
+    );
+
+    const { error } = await analytics.from("analytics_events").insert([payload]);
+    if (error) {
+      console.error("[create] analytics insert error:", error.message || error);
+    }
+  } catch (err) {
+    console.error("[create] analytics track failed:", err?.message || err);
+  }
+}
+
 // Robustan reader: koristi req.body ako ga Vercel već parsira; u suprotnom čita raw stream.
 async function readJSONBody(req) {
   if (req.body != null) {
@@ -398,7 +421,17 @@ if ((isFile || isText) && !devBypass) {
 
     const expiresAt = new Date(expirySeconds * 1000).toISOString();
 
-    res.setHeader("Content-Type", "application/json");
+await trackAnalyticsEvent({
+  event_type: "link_created",
+  page: "/api/create",
+  link_id: id,
+  content_kind: isFile ? "file" : isText ? "text" : "url",
+  referrer: req.headers.referer || "",
+  user_agent: req.headers["user-agent"] || "",
+  ip
+});
+
+res.setHeader("Content-Type", "application/json");
 return res.status(200).json({ id, expires_at: expiresAt, plan, tier, minutes: allowed });
 } catch (e) {
   console.error("[create] ERROR:", e?.message || e);
