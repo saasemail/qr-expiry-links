@@ -475,6 +475,38 @@
     margin: 8px auto 0;
   }
 }
+
+.hero-bridge{
+  margin: 24px 0 10px;
+  text-align: center;
+  font-size: 17px;
+  line-height: 1.4;
+  font-weight: 700;
+  color: rgba(255,255,255,0.96);
+}
+
+.hero-support{
+  margin: 0 0 18px;
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.82);
+}
+
+@media (max-width: 640px){
+  .hero-bridge{
+    margin: 20px 0 8px;
+    font-size: 16px;
+  }
+
+  .hero-support{
+    margin: 0 0 16px;
+    font-size: 14px;
+    max-width: 92%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
   </style>
 </head>
 <body>
@@ -488,14 +520,22 @@
 </div>
 
   <div class="container">
-    <h2 class="hero-title">Send client work that expires automatically when the project ends. </h2>
-    <p class="subtitle">You send client files. Project ends. The link lives on forever.<br>They share it. You can't stop it. Most tools weren't built to fix that.</p>
-    <br>TempQR fixes this.</p>
-    <br>Share files and links that expire automatically when the project ends.</p>
+    <h2 class="hero-title">Send client work that expires automatically when the project ends.</h2>
 
-    <div class="social-proof" aria-label="Usage proof">
-      <div class="social-proof-badge">12,000+ links created</div>
-    </div>
+<p class="subtitle">
+  You send client files. Project ends. The link lives on forever.<br>
+  They share it. You can't stop it. Most tools weren't built to fix that.
+</p>
+
+<p class="hero-bridge">TempQR fixes that.</p>
+
+<p class="hero-support">
+  Send client links, files, and previews that expire when the job is done.
+</p>
+
+<div class="social-proof" aria-label="Usage proof">
+  <div class="social-proof-badge">12,000+ links created</div>
+</div>
 
     <!-- Use-cases chips (compact) -->
     <div class="usecases-bar" aria-label="Use cases">
