@@ -5,6 +5,18 @@ export const config = { runtime: "edge" };
 
 const HARMFUL_MSG = "Harmful URLs are not allowed.";
 
+async function trackOpenedEvent(origin, payload) {
+  try {
+    await fetch(`${origin}/api/track`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+  } catch (_) {
+    // analytics must never break redirect flow
+  }
+}
+
 function b64urlToBytes(b64u) {
   const s = b64u.replace(/-/g, "+").replace(/_/g, "/");
   const pad = s.length % 4 ? "=".repeat(4 - (s.length % 4)) : "";
@@ -308,6 +320,15 @@ if (typeof dest === "string" && dest.startsWith("text:")) {
       }
     });
   }
+
+    await trackOpenedEvent(url.origin, {
+    event_type: "link_opened",
+    page: url.pathname || "/go",
+    link_id: id,
+    content_kind: "url",
+    referrer: req.headers.get("referer") || "",
+    user_agent: req.headers.get("user-agent") || ""
+  });
 
   const pageUrl = `${url.origin}/go/${encodeURIComponent(id)}`;
   const qrUrl = `${url.origin}/api/qr?id=${encodeURIComponent(id)}`;
