@@ -246,6 +246,17 @@ async function fetchJSON(url, opts = {}, timeoutMs = 15000) {
   }
 }
 
+function trackEvent(payload) {
+  try {
+    fetch("/api/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      keepalive: true
+    }).catch(() => {});
+  } catch {}
+}
+
 function setMode(mode) {
   currentMode = mode;
 
@@ -1092,6 +1103,14 @@ alert("Unknown mode.");
 
 (async function start() {
   console.info("[ui] init @", location.origin);
+
+  trackEvent({
+    event_type: "page_view",
+    page: window.location.pathname || "/",
+    content_kind: "url",
+    referrer: document.referrer || ""
+  });
+
   bindUI();
 
   // Restore last generated result (if any) so share doesn't "wipe the session" on mobile.
