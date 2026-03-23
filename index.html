@@ -663,73 +663,6 @@
 
 </div>
 
-
-  <!-- Use-cases Modal -->
-  <div class="uc-modal-overlay" id="usecasesModalOverlay" role="dialog" aria-modal="true" aria-labelledby="usecasesModalTitle">
-    <div class="uc-modal" role="document">
-      <div class="uc-modal-header">
-        <div class="uc-modal-title" id="usecasesModalTitle">When privacy matters: </div>
-        <button type="button" class="uc-modal-close" id="usecasesCloseBtn" aria-label="Close">×</button>
-      </div>
-      <div class="uc-modal-body">
-        <div class="uc-grid" aria-label="Use-case list">
-
-  <div class="uc-item">
-    <span class="uc-check">✓</span>
-    <span>
-      <strong>Private docs sharing</strong><br>
-      Google Drive, Dropbox, PDFs or downloads that shouldn’t stay public forever.
-    </span>
-  </div>
-
-  <div class="uc-item">
-    <span class="uc-check">✓</span>
-    <span>
-      <strong>Design & page previews</strong><br>
-      Share Figma, Notion or preview pages without exposing permanent URLs.
-    </span>
-  </div>
-
-  <div class="uc-item">
-    <span class="uc-check">✓</span>
-    <span>
-      <strong>Client handoff & portfolios</strong><br>
-      Send private links to clients that automatically expire after delivery.
-    </span>
-  </div>
-
-  <div class="uc-item">
-    <span class="uc-check">✓</span>
-    <span>
-      <strong>Events, posters & offline sharing</strong><br>
-      QR codes for posters, flyers, tickets and event info — online or offline.
-    </span>
-  </div>
-
-  <div class="uc-item">
-    <span class="uc-check">✓</span>
-    <span>
-      <strong>Sensitive or personal content</strong><br>
-      Temporary access to private files with no tracking and no saved history.
-    </span>
-  </div>
-
-  <div class="uc-item">
-    <span class="uc-check">✓</span>
-    <span>
-      <strong>Short-term campaigns</strong><br>
-      Temporary links for promos or campaigns that must stop working on time.
-    </span>
-  </div>
-
-</div>
-
-
-        <div class="uc-footer-note">And much more…</div>
-      </div>
-    </div>
-  </div>
-
   <footer class="footer">
     <div class="footer-left">© TempQR</div>
     <div class="footer-links">
@@ -740,43 +673,6 @@
     </div>
   </footer>
 
-
-  <!-- Minimal modal JS (does not touch ui.js) -->
-  <script>
-    (function(){
-      var openBtn = document.getElementById('usecasesOpenBtn');
-      var overlay = document.getElementById('usecasesModalOverlay');
-      var closeBtn = document.getElementById('usecasesCloseBtn');
-
-      if(!openBtn || !overlay || !closeBtn) return;
-
-      function openModal(){
-        overlay.classList.add('open');
-        document.documentElement.style.overflow = 'hidden';
-        document.body.style.overflow = 'hidden';
-        closeBtn.focus();
-      }
-
-      function closeModal(){
-        overlay.classList.remove('open');
-        document.documentElement.style.overflow = '';
-        document.body.style.overflow = '';
-        openBtn.focus();
-      }
-
-      openBtn.addEventListener('click', openModal);
-      closeBtn.addEventListener('click', closeModal);
-
-      overlay.addEventListener('click', function(e){
-        if(e.target === overlay) closeModal();
-      });
-
-      document.addEventListener('keydown', function(e){
-        if(e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
-      });
-    })();
-
-  </script>
 
 <script type="module" src="ui.js?v=fix_signout_ghost_1"></script>
 
