@@ -507,6 +507,55 @@
     margin-right: auto;
   }
 }
+
+.trust-line{
+  margin: 4px 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.trust-line-icon{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.92);
+  font-size: 10px;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.trust-line-text{
+  color: rgba(255,255,255,0.74);
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+}
+
+@media (max-width: 640px){
+  .trust-line{
+    margin: 2px 0 10px;
+    gap: 7px;
+  }
+
+  .trust-line-icon{
+    width: 16px;
+    height: 16px;
+    font-size: 9px;
+  }
+
+  .trust-line-text{
+    font-size: 12.5px;
+  }
+}
   </style>
 </head>
 <body>
@@ -532,6 +581,11 @@
 <p class="hero-support">
   Send client links, files, and previews that expire when the job is done.
 </p>
+
+<div class="trust-line" aria-label="Trust signal">
+  <span class="trust-line-icon">✦</span>
+  <span class="trust-line-text">Trusted by 12,000+ freelancers</span>
+</div>
 
     <!-- Use-cases chips (compact) -->
     <div class="usecases-bar" aria-label="Use cases">
