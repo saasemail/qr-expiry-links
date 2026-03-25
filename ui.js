@@ -161,7 +161,7 @@ function normalizeHttpUrl(input) {
 function setLoading(state) {
   if (!generateBtn) return;
   generateBtn.disabled = state;
-  generateBtn.textContent = state ? "Creating..." : "Create Private Link";
+  generateBtn.textContent = state ? "Creating..." : "Create Expiring Link";
 }
 
 function formatCountdown(ms) {

@@ -508,6 +508,66 @@
   }
 }
 
+.problem-block{
+  margin: 18px 0 16px;
+  text-align: center;
+}
+
+.problem-block p{
+  margin: 0 0 6px;
+  font-size: 16px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.88);
+}
+
+.problem-block p:last-child{
+  margin-bottom: 0;
+  color: rgba(255,255,255,0.98);
+  font-weight: 700;
+}
+
+@media (max-width: 640px){
+  .problem-block{
+    margin: 16px 0 14px;
+    padding: 0 10px;
+  }
+
+  .problem-block p{
+    font-size: 15px;
+    line-height: 1.5;
+  }
+}
+
+.solution-block{
+  margin: 0 0 18px;
+  text-align: center;
+}
+
+.solution-block p{
+  margin: 0 0 6px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.84);
+}
+
+.solution-block p:last-child{
+  margin-bottom: 0;
+  color: rgba(255,255,255,0.96);
+  font-weight: 600;
+}
+
+@media (max-width: 640px){
+  .solution-block{
+    margin: 0 0 16px;
+    padding: 0 10px;
+  }
+
+  .solution-block p{
+    font-size: 14px;
+    line-height: 1.55;
+  }
+}
+
 .trust-line{
   margin: 4px 0 12px;
   display: flex;
@@ -556,6 +616,66 @@
     font-size: 12.5px;
   }
 }
+
+.result-lead{
+  margin: -2px 0 14px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.72);
+}
+
+.result-link-row{
+  margin: 0 0 12px;
+  text-align: center;
+}
+
+.result-link-row a{
+  color: rgba(255,255,255,0.96);
+  font-weight: 600;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.result-link-row a:hover{
+  text-decoration: underline;
+}
+
+#resultCard canvas{
+  display: block;
+  margin: 14px auto 0;
+}
+
+@media (max-width: 640px){
+  .result-lead{
+    margin: 0 0 12px;
+    font-size: 13px;
+  }
+
+  .result-link-row{
+    margin: 0 0 10px;
+  }
+
+  #resultCard canvas{
+    margin-top: 12px;
+  }
+}
+
+.card-intro{
+  margin: -4px 0 14px;
+  text-align: center;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.72);
+}
+
+@media (max-width: 640px){
+  .card-intro{
+    margin: -2px 0 12px;
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+}
   </style>
 </head>
 <body>
@@ -573,15 +693,20 @@
 
 <p class="subtitle">TempQR gives freelancers control over every link they share — so old clients don’t keep access forever.</p>
 
-<p class="hero-bridge">TempQR fixes that.</p>
+<div class="problem-block">
+  <p>You send final files. The client pays.</p>
+  <p>Months later, they still have access.</p>
+  <p>You can’t stop it.</p>
+</div>
 
-<p class="hero-support">
-  Send client links, files, and previews that expire when the job is done.
-</p>
+<div class="solution-block">
+  <p>TempQR lets you set any link to expire automatically.</p>
+  <p>Share with confidence. Move on cleanly.</p>
+</div>
 
 <div class="trust-line" aria-label="Trust signal">
   <span class="trust-line-icon">✦</span>
-  <span class="trust-line-text">Trusted by 12,000+ freelancers</span>
+  <span class="trust-line-text">12,000+ links created for client sharing</span>
 </div>
 
     <!-- Use-cases chips (compact) -->
@@ -598,7 +723,8 @@
     </div>
 
     <section class="card">
-      <h2 class="card-title">Create Your Link</h2>
+      <h2 class="card-title">Create Your Expiring Link</h2>
+      <p class="card-intro">Works for portfolio links, proposals, client files, and previews.</p>
 
 <!-- URL input -->
 <div>
@@ -615,7 +741,7 @@
           <option value="custom">Custom duration</option>
         </select>
       </label>
-      <p class="field-hint">This QR &amp; link will expire after the selected time.</p>
+      <p class="field-hint">This link &amp; QR will expire after the selected time.</p>
 
       <div id="customExpiryWrap" class="custom-expiry hidden">
           <!-- PRO lock overlay (shown when not Pro) -->
@@ -637,13 +763,17 @@
       </div>
 
       <div class="button-group">
-        <button id="generateBtn" class="btn btn-primary" type="button">Create Link</button>
+        <button id="generateBtn" class="btn btn-primary" type="button">Create Expiring Link</button>
       </div>
     </section>
 
-    <section class="card hidden" id="resultCard">
-  <h2>Your QR &amp; Link</h2>
-  <canvas id="qrcode"></canvas>
+  <section class="card hidden" id="resultCard">
+  <h2>Your Expiring Link Is Ready</h2>
+  <p class="result-lead">Share as a link or QR code.</p>
+
+  <p class="result-link-row">
+    <a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a>
+  </p>
 
   <div class="button-group gap">
     <button class="btn btn-ghost" id="copyBtn" type="button">Copy link</button>
@@ -652,7 +782,8 @@
     <button class="btn btn-ghost" id="downloadSvgBtn" type="button" style="display:none;">Download SVG</button>
   </div>
 
-  <p><a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a></p>
+  <canvas id="qrcode"></canvas>
+
   <p class="countdown" id="countdown"></p>
   <p class="hint" id="expiryHint"></p>
   <p class="hint"><em>No history is stored—save the link and download the PNG before leaving if you need multiple usage.</em></p>
@@ -660,9 +791,7 @@
   <!-- NEW: Create another link (Variant A: does NOT remove current QR/link) -->
   <div class="result-actions-secondary">
     <button type="button" id="createAnotherBtn" class="btn btn-ghost secondary-cta">Create Another Link</button>
-    <div class="secondary-note">
-</div>
-
+    <div class="secondary-note"></div>
   </div>
 </section>
 
