@@ -498,6 +498,12 @@ function getCustomMinutes() {
 function updateCustomHint() {
   if (!customDurationHint) return;
   const mins = getCustomMinutes();
+
+  if (mins <= 0) {
+    customDurationHint.textContent = "";
+    return;
+  }
+
   customDurationHint.textContent = `Expires in ${formatDurationText(mins)}.`;
 }
 
@@ -622,10 +628,10 @@ function resetToInitialState() {
   if (textInput) textInput.value = "";
 
   // reset expiry to default 10 minutes
-  if (expirySelect) expirySelect.value = "10";
-  lastPresetMinutes = 10;
+  if (expirySelect) expirySelect.value = "60";
+  lastPresetMinutes = 60;
   customTouched = false;
-  setCustomFromMinutes(lastPresetMinutes);
+  setCustomFromMinutes(0);
   updateCustomHint();
   toggleCustomUI();
 
@@ -694,10 +700,10 @@ function resetToInitialState() {
     shareBtn.disabled = true;
   }
 
-  // Initialize custom duration from default preset (10 minutes)
-  lastPresetMinutes = parseInt(String(expirySelect.value || "10"), 10);
-  if (!Number.isFinite(lastPresetMinutes) || lastPresetMinutes < 1) lastPresetMinutes = 10;
-  setCustomFromMinutes(lastPresetMinutes);
+  // Initialize custom duration from default preset (1 hour)
+  lastPresetMinutes = parseInt(String(expirySelect.value || "60"), 10);
+  if (!Number.isFinite(lastPresetMinutes) || lastPresetMinutes < 1) lastPresetMinutes = 60;
+  setCustomFromMinutes(0);
   updateCustomHint();
   toggleCustomUI();
 
