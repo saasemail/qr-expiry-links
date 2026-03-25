@@ -510,9 +510,9 @@ function toggleCustomUI() {
   customExpiryWrap.classList.toggle("hidden", !isCustom);
 
   if (isCustom) {
-    // If user never touched custom, prefill from last preset
+    // Always open custom duration with all fields at 0
     if (!customTouched) {
-      setCustomFromMinutes(lastPresetMinutes || 10);
+      setCustomFromMinutes(0);
     }
     updateCustomHint();
   }
