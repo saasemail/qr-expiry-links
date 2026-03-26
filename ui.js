@@ -659,6 +659,55 @@ function initUsecaseSlideshows() {
   });
 }
 
+function initUsecaseCtas() {
+  const examples = {
+    portfolio: {
+      url: "https://www.behance.net/gallery/188765421/Portfolio-Preview",
+      expiry: "1440"
+    },
+    proposal: {
+      url: "https://docs.google.com/presentation/d/1demoProposalExample/edit",
+      expiry: "10080"
+    },
+    delivery: {
+      url: "https://drive.google.com/file/d/1demoFinalDeliveryExample/view",
+      expiry: "4320"
+    }
+  };
+
+  const ctaButtons = Array.from(document.querySelectorAll(".usecase-card .usecase-cta"));
+  if (!ctaButtons.length) return;
+
+  ctaButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const card = button.closest(".usecase-card");
+      if (!card) return;
+
+      const key = card.getAttribute("data-usecase");
+      const example = examples[key];
+      if (!example || !urlInput || !expirySelect) return;
+
+      setMode("url");
+
+      urlInput.value = example.url;
+      expirySelect.value = example.expiry;
+
+      customTouched = false;
+      setCustomFromMinutes(0);
+      updateCustomHint();
+      toggleCustomUI();
+
+      const formCard = document.querySelector("section.card");
+      formCard?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+
+      setTimeout(() => {
+        urlInput.focus();
+        urlInput.select?.();
+      }, 250);
+    });
+  });
+}
+
 function bindUI() {
   if (!generateBtn || !urlInput || !expirySelect || !resultCard || !qrcodeCanvas) {
     console.error("[ui] Missing required DOM elements. Check index.html IDs.");
@@ -1181,6 +1230,7 @@ alert("Unknown mode.");
 
   bindUI();
   initUsecaseSlideshows();
+  initUsecaseCtas();
 
   // Restore last generated result (if any) so share doesn't "wipe the session" on mobile.
   await restoreLastResultIfAny();
