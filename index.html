@@ -700,7 +700,6 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 100%;
   padding: 18px;
   border-radius: 22px;
   background:
@@ -719,8 +718,7 @@
   inset: 0 auto auto 0;
   width: 100%;
   height: 1px;
-  background: linear-gradient(90deg, rgba(125,95,255,0.0), rgba(125,95,255,0.45), rgba(125,95,255,0.0));
-  opacity: 0.8;
+  background: linear-gradient(90deg, rgba(125,95,255,0), rgba(125,95,255,0.45), rgba(125,95,255,0));
 }
 
 .usecase-card-head{
@@ -731,7 +729,6 @@
 .usecase-kicker{
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   min-height: 28px;
   padding: 0 10px;
   border-radius: 999px;
@@ -745,96 +742,93 @@
 }
 
 .usecase-title{
-  margin: 12px 0 10px;
+  margin: 12px 0 0;
   color: rgba(255,255,255,0.98);
   font-size: 18px;
   line-height: 1.2;
   letter-spacing: -0.02em;
   text-align: left;
+  min-height: 86px;
 }
 
-.usecase-body{
-  margin: 0;
-  color: rgba(255,255,255,0.72);
-  font-size: 14px;
-  line-height: 1.55;
-  text-align: left;
-}
-
-.usecase-slides{
-  display: grid;
-  gap: 10px;
-  margin-top: 4px;
-}
-
-.usecase-slide{
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-  align-items: start;
-  padding: 10px;
-  border-radius: 16px;
+.usecase-stage{
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 18px;
   background: rgba(255,255,255,0.03);
   border: 1px solid rgba(255,255,255,0.06);
 }
 
-.usecase-slide.active{
-  background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.03));
-  border-color: rgba(125,95,255,0.32);
-  box-shadow: 0 0 0 1px rgba(125,95,255,0.10) inset;
-}
-
 .usecase-shot{
   position: relative;
-  height: 92px;
+  height: 132px;
   width: 100%;
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: hidden;
   background:
     linear-gradient(135deg, rgba(100,210,255,0.22), rgba(125,95,255,0.24)),
     rgba(6,10,22,0.92);
   border: 1px solid rgba(255,255,255,0.08);
   color: rgba(255,255,255,0.92);
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.02em;
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
-  padding: 10px;
+  padding: 14px;
   box-sizing: border-box;
 }
 
 .usecase-shot::before{
   content: "";
   position: absolute;
-  inset: 10px 10px auto 10px;
-  height: 8px;
+  inset: 14px 14px auto 14px;
+  height: 10px;
   border-radius: 999px;
   background: rgba(255,255,255,0.09);
   box-shadow:
-    0 14px 0 rgba(255,255,255,0.06),
-    0 28px 0 rgba(255,255,255,0.045);
+    0 18px 0 rgba(255,255,255,0.06),
+    0 36px 0 rgba(255,255,255,0.045);
 }
 
 .usecase-shot::after{
   content: "";
   position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
   background: rgba(255,255,255,0.10);
   border: 1px solid rgba(255,255,255,0.08);
 }
 
 .usecase-caption{
-  margin: 0;
-  color: rgba(255,255,255,0.84);
-  font-size: 13.5px;
+  margin: 12px 0 0;
+  color: rgba(255,255,255,0.86);
+  font-size: 14px;
   line-height: 1.45;
   text-align: left;
+  min-height: 58px;
+}
+
+.usecase-dots{
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 14px 0 0;
+}
+
+.usecase-dots span{
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.20);
+}
+
+.usecase-dots span.is-active{
+  width: 24px;
+  background: rgba(125,95,255,0.85);
 }
 
 .usecase-cta{
@@ -864,7 +858,71 @@
   transform: translateY(0);
 }
 
+@media (max-width: 1180px){
+  .usecase-showcases{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 
+@media (max-width: 760px){
+  .usecase-showcases{
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .usecase-card{
+    padding: 16px;
+  }
+
+  .usecase-title{
+    min-height: auto;
+    font-size: 19px;
+  }
+
+  .usecase-caption{
+    min-height: auto;
+  }
+}
+
+@media (max-width: 640px){
+  .usecase-showcases{
+    margin: 16px 0 22px;
+    gap: 12px;
+  }
+
+  .usecase-card{
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .usecase-title{
+    font-size: 17px;
+    line-height: 1.22;
+  }
+
+  .usecase-stage{
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .usecase-shot{
+    height: 116px;
+    border-radius: 14px;
+    font-size: 13px;
+    padding: 12px;
+  }
+
+  .usecase-caption{
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .usecase-cta{
+    min-height: 42px;
+    font-size: 13.5px;
+    border-radius: 13px;
+  }
+}
   </style>
 </head>
 <body>
