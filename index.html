@@ -725,6 +725,7 @@
 
 .usecase-card-head{
   margin-bottom: 14px;
+  text-align: left;
 }
 
 .usecase-kicker{
@@ -746,29 +747,31 @@
 .usecase-title{
   margin: 12px 0 10px;
   color: rgba(255,255,255,0.98);
-  font-size: 22px;
-  line-height: 1.14;
-  letter-spacing: -0.03em;
+  font-size: 18px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  text-align: left;
 }
 
 .usecase-body{
   margin: 0;
   color: rgba(255,255,255,0.72);
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.55;
+  text-align: left;
 }
 
 .usecase-slides{
   display: grid;
   gap: 10px;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .usecase-slide{
   display: grid;
-  grid-template-columns: 108px minmax(0, 1fr);
-  gap: 12px;
-  align-items: center;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  align-items: start;
   padding: 10px;
   border-radius: 16px;
   background: rgba(255,255,255,0.03);
@@ -783,7 +786,8 @@
 
 .usecase-shot{
   position: relative;
-  height: 78px;
+  height: 92px;
+  width: 100%;
   border-radius: 14px;
   overflow: hidden;
   background:
@@ -798,6 +802,7 @@
   align-items: flex-end;
   justify-content: flex-start;
   padding: 10px;
+  box-sizing: border-box;
 }
 
 .usecase-shot::before{
@@ -829,6 +834,7 @@
   color: rgba(255,255,255,0.84);
   font-size: 13.5px;
   line-height: 1.45;
+  text-align: left;
 }
 
 .usecase-cta{
@@ -858,7 +864,13 @@
   transform: translateY(0);
 }
 
-@media (max-width: 1100px){
+@media (max-width: 1280px){
+  .usecase-showcases{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px){
   .usecase-showcases{
     grid-template-columns: 1fr;
     gap: 14px;
@@ -869,7 +881,7 @@
   }
 
   .usecase-title{
-    font-size: 21px;
+    font-size: 20px;
   }
 }
 
@@ -878,6 +890,51 @@
     margin: 16px 0 22px;
     gap: 12px;
   }
+
+  .usecase-card{
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .usecase-kicker{
+    min-height: 26px;
+    font-size: 10.5px;
+    padding: 0 9px;
+  }
+
+  .usecase-title{
+    margin: 10px 0 8px;
+    font-size: 18px;
+    line-height: 1.22;
+  }
+
+  .usecase-body{
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+
+  .usecase-slide{
+    gap: 10px;
+    padding: 9px;
+    border-radius: 14px;
+  }
+
+  .usecase-shot{
+    height: 84px;
+    border-radius: 12px;
+  }
+
+  .usecase-caption{
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .usecase-cta{
+    min-height: 42px;
+    font-size: 13.5px;
+    border-radius: 13px;
+  }
+
 
   .usecase-card{
     padding: 14px;
