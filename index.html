@@ -689,36 +689,23 @@
 }
 
 .usecase-showcases{
-  margin: 18px 0 26px;
+  margin: 20px 0 28px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  gap: 18px;
   align-items: stretch;
 }
 
 .usecase-card{
-  position: relative;
   display: flex;
   flex-direction: column;
   padding: 18px;
   border-radius: 22px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.018)),
-    rgba(9,13,28,0.78);
+    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015)),
+    rgba(9,13,28,0.82);
   border: 1px solid rgba(255,255,255,0.08);
-  box-shadow:
-    0 12px 34px rgba(0,0,0,0.22),
-    inset 0 1px 0 rgba(255,255,255,0.04);
-  overflow: hidden;
-}
-
-.usecase-card::before{
-  content: "";
-  position: absolute;
-  inset: 0 auto auto 0;
-  width: 100%;
-  height: 1px;
-  background: linear-gradient(90deg, rgba(125,95,255,0), rgba(125,95,255,0.45), rgba(125,95,255,0));
+  box-shadow: 0 12px 32px rgba(0,0,0,0.22);
 }
 
 .usecase-card-head{
@@ -729,12 +716,12 @@
 .usecase-kicker{
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
-  padding: 0 10px;
+  min-height: 30px;
+  padding: 0 12px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.78);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.82);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -745,60 +732,68 @@
   margin: 12px 0 0;
   color: rgba(255,255,255,0.98);
   font-size: 18px;
-  line-height: 1.2;
+  line-height: 1.18;
   letter-spacing: -0.02em;
   text-align: left;
-  min-height: 86px;
+  min-height: 78px;
 }
 
-.usecase-stage{
-  margin-top: 12px;
-  padding: 12px;
-  border-radius: 18px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
+.usecase-slideshow{
+  position: relative;
+  margin-top: 2px;
+  flex: 1;
+}
+
+.usecase-slide{
+  display: none;
+}
+
+.usecase-slide.is-active{
+  display: block;
 }
 
 .usecase-shot{
   position: relative;
-  height: 132px;
   width: 100%;
-  border-radius: 16px;
+  aspect-ratio: 4 / 3;
+  border-radius: 18px;
   overflow: hidden;
   background:
-    linear-gradient(135deg, rgba(100,210,255,0.22), rgba(125,95,255,0.24)),
-    rgba(6,10,22,0.92);
+    linear-gradient(135deg, rgba(91,140,255,0.22), rgba(125,95,255,0.22)),
+    rgba(10,14,28,0.96);
   border: 1px solid rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.92);
-  font-size: 14px;
-  font-weight: 700;
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
   padding: 14px;
-  box-sizing: border-box;
+  color: rgba(255,255,255,0.94);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
 .usecase-shot::before{
   content: "";
   position: absolute;
-  inset: 14px 14px auto 14px;
-  height: 10px;
+  top: 16px;
+  left: 16px;
+  width: 54%;
+  height: 12px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.09);
+  background: rgba(255,255,255,0.10);
   box-shadow:
-    0 18px 0 rgba(255,255,255,0.06),
-    0 36px 0 rgba(255,255,255,0.045);
+    0 22px 0 rgba(255,255,255,0.07),
+    0 44px 0 rgba(255,255,255,0.05);
 }
 
 .usecase-shot::after{
   content: "";
   position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+  top: 16px;
+  right: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   background: rgba(255,255,255,0.10);
   border: 1px solid rgba(255,255,255,0.08);
 }
@@ -807,9 +802,9 @@
   margin: 12px 0 0;
   color: rgba(255,255,255,0.86);
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 1.48;
   text-align: left;
-  min-height: 58px;
+  min-height: 64px;
 }
 
 .usecase-dots{
@@ -828,22 +823,22 @@
 
 .usecase-dots span.is-active{
   width: 24px;
-  background: rgba(125,95,255,0.85);
+  background: rgba(125,95,255,0.88);
 }
 
 .usecase-cta{
   margin-top: 14px;
   width: 100%;
-  min-height: 44px;
+  min-height: 46px;
   padding: 0 16px;
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 15px;
   background: rgba(255,255,255,0.045);
   color: rgba(255,255,255,0.96);
   font: inherit;
   font-size: 14px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  line-height: 1.15;
   cursor: pointer;
   transition: transform .18s ease, border-color .18s ease, background .18s ease;
 }
@@ -900,16 +895,16 @@
     line-height: 1.22;
   }
 
-  .usecase-stage{
-    padding: 10px;
-    border-radius: 16px;
+  .usecase-shot{
+    border-radius: 15px;
+    font-size: 14px;
+    padding: 12px;
   }
 
-  .usecase-shot{
-    height: 116px;
-    border-radius: 14px;
-    font-size: 13px;
-    padding: 12px;
+  .usecase-shot::after{
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
   }
 
   .usecase-caption{
@@ -923,6 +918,7 @@
     border-radius: 13px;
   }
 }
+  
   </style>
 </head>
 <body>
@@ -963,9 +959,26 @@
       <h3 class="usecase-title">Your portfolio. Their access. Expires when you say.</h3>
     </div>
 
-    <div class="usecase-stage">
-      <div class="usecase-shot">Portfolio PDF</div>
-      <p class="usecase-caption">Send a portfolio link for review.</p>
+    <div class="usecase-slideshow">
+      <div class="usecase-slide is-active">
+        <div class="usecase-shot">Portfolio link</div>
+        <p class="usecase-caption">Send your portfolio to a client for review.</p>
+      </div>
+
+      <div class="usecase-slide">
+        <div class="usecase-shot">Still open later</div>
+        <p class="usecase-caption">Months later, they still have access to it.</p>
+      </div>
+
+      <div class="usecase-slide">
+        <div class="usecase-shot">Set expiry</div>
+        <p class="usecase-caption">TempQR lets you decide when that access ends.</p>
+      </div>
+
+      <div class="usecase-slide">
+        <div class="usecase-shot">Access ends</div>
+        <p class="usecase-caption">The link expires automatically. You stay in control.</p>
+      </div>
     </div>
 
     <div class="usecase-dots" aria-hidden="true">
@@ -981,9 +994,26 @@
       <h3 class="usecase-title">Proposals that close — not linger.</h3>
     </div>
 
-    <div class="usecase-stage">
-      <div class="usecase-shot">Proposal Deck</div>
-      <p class="usecase-caption">Share a proposal without permanent access.</p>
+    <div class="usecase-slideshow">
+      <div class="usecase-slide is-active">
+        <div class="usecase-shot">Proposal deck</div>
+        <p class="usecase-caption">Send a proposal without giving permanent access.</p>
+      </div>
+
+      <div class="usecase-slide">
+        <div class="usecase-shot">Waiting on reply</div>
+        <p class="usecase-caption">The client takes time, but your pricing still sits there.</p>
+      </div>
+
+      <div class="usecase-slide">
+        <div class="usecase-shot">Set a deadline</div>
+        <p class="usecase-caption">With TempQR, the proposal link has a clear end point.</p>
+      </div>
+
+      <div class="usecase-slide">
+        <div class="usecase-shot">Link expires</div>
+        <p class="usecase-caption">Decision made? The link expires and does not linger.</p>
+      </div>
     </div>
 
     <div class="usecase-dots" aria-hidden="true">
@@ -999,9 +1029,26 @@
       <h3 class="usecase-title">Deliver. Get paid. Move on.</h3>
     </div>
 
-    <div class="usecase-stage">
-      <div class="usecase-shot">Final Files</div>
-      <p class="usecase-caption">Deliver final assets with a private link.</p>
+    <div class="usecase-slideshow">
+      <div class="usecase-slide is-active">
+        <div class="usecase-shot">Final files</div>
+        <p class="usecase-caption">Send final assets with a private delivery link.</p>
+      </div>
+
+      <div class="usecase-slide">
+        <div class="usecase-shot">Project done</div>
+        <p class="usecase-caption">The project ends, but the files stay accessible.</p>
+      </div>
+
+      <div class="usecase-slide">
+        <div class="usecase-shot">Automatic expiry</div>
+        <p class="usecase-caption">TempQR makes final delivery links expire on time.</p>
+      </div>
+
+      <div class="usecase-slide">
+        <div class="usecase-shot">Move on cleanly</div>
+        <p class="usecase-caption">Access ends automatically, so you can move on cleanly.</p>
+      </div>
     </div>
 
     <div class="usecase-dots" aria-hidden="true">
