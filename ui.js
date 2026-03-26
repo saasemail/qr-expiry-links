@@ -597,6 +597,68 @@ async function restoreLastResultIfAny() {
   startCountdown(st.expiresAt);
 }
 
+function initUsecaseSlideshows() {
+  const cards = Array.from(document.querySelectorAll(".usecase-card"));
+  if (!cards.length) return;
+
+  cards.forEach((card) => {
+    const slides = Array.from(card.querySelectorAll(".usecase-slide"));
+    const dots = Array.from(card.querySelectorAll(".usecase-dots span"));
+
+    if (!slides.length) return;
+
+    let current = 0;
+    let timer = null;
+
+    const showSlide = (index) => {
+      slides.forEach((slide, i) => {
+        slide.classList.toggle("is-active", i === index);
+      });
+
+      dots.forEach((dot, i) => {
+        dot.classList.toggle("is-active", i === index);
+      });
+
+      current = index;
+    };
+
+    const nextSlide = () => {
+      const next = (current + 1) % slides.length;
+      showSlide(next);
+    };
+
+    const start = () => {
+      stop();
+      if (slides.length <= 1) return;
+      timer = setInterval(nextSlide, 2800);
+    };
+
+    const stop = () => {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    };
+
+    dots.forEach((dot, index) => {
+      dot.style.cursor = "pointer";
+
+      dot.addEventListener("click", () => {
+        showSlide(index);
+        start();
+      });
+    });
+
+    card.addEventListener("mouseenter", stop);
+    card.addEventListener("mouseleave", start);
+    card.addEventListener("focusin", stop);
+    card.addEventListener("focusout", start);
+
+    showSlide(0);
+    start();
+  });
+}
+
 function bindUI() {
   if (!generateBtn || !urlInput || !expirySelect || !resultCard || !qrcodeCanvas) {
     console.error("[ui] Missing required DOM elements. Check index.html IDs.");
@@ -1118,6 +1180,7 @@ alert("Unknown mode.");
   });
 
   bindUI();
+  initUsecaseSlideshows();
 
   // Restore last generated result (if any) so share doesn't "wipe the session" on mobile.
   await restoreLastResultIfAny();
