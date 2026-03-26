@@ -864,123 +864,7 @@
   transform: translateY(0);
 }
 
-@media (max-width: 1280px){
-  .usecase-showcases{
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
 
-@media (max-width: 860px){
-  .usecase-showcases{
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-
-  .usecase-card{
-    padding: 16px;
-  }
-
-  .usecase-title{
-    font-size: 20px;
-  }
-}
-
-@media (max-width: 640px){
-  .usecase-showcases{
-    margin: 16px 0 22px;
-    gap: 12px;
-  }
-
-  .usecase-card{
-    padding: 14px;
-    border-radius: 18px;
-  }
-
-  .usecase-kicker{
-    min-height: 26px;
-    font-size: 10.5px;
-    padding: 0 9px;
-  }
-
-  .usecase-title{
-    margin: 10px 0 8px;
-    font-size: 18px;
-    line-height: 1.22;
-  }
-
-  .usecase-body{
-    font-size: 13.5px;
-    line-height: 1.55;
-  }
-
-  .usecase-slide{
-    gap: 10px;
-    padding: 9px;
-    border-radius: 14px;
-  }
-
-  .usecase-shot{
-    height: 84px;
-    border-radius: 12px;
-  }
-
-  .usecase-caption{
-    font-size: 13px;
-    line-height: 1.45;
-  }
-
-  .usecase-cta{
-    min-height: 42px;
-    font-size: 13.5px;
-    border-radius: 13px;
-  }
-
-
-  .usecase-card{
-    padding: 14px;
-    border-radius: 18px;
-  }
-
-  .usecase-kicker{
-    min-height: 26px;
-    font-size: 10.5px;
-    padding: 0 9px;
-  }
-
-  .usecase-title{
-    margin: 10px 0 8px;
-    font-size: 19px;
-    line-height: 1.18;
-  }
-
-  .usecase-body{
-    font-size: 13.5px;
-    line-height: 1.55;
-  }
-
-  .usecase-slide{
-    grid-template-columns: 1fr;
-    gap: 10px;
-    padding: 9px;
-    border-radius: 14px;
-  }
-
-  .usecase-shot{
-    height: 84px;
-    border-radius: 12px;
-  }
-
-  .usecase-caption{
-    font-size: 13px;
-    line-height: 1.45;
-  }
-
-  .usecase-cta{
-    min-height: 42px;
-    font-size: 13.5px;
-    border-radius: 13px;
-  }
-}
   </style>
 </head>
 <body>
@@ -1014,103 +898,61 @@
   <span class="trust-line-text">12,000+ links created for client sharing</span>
 </div>
 
-    <section class="usecase-showcases" aria-label="Use cases">
-      <article class="usecase-card" data-usecase="portfolio">
-        <div class="usecase-card-head">
-          <span class="usecase-kicker">Portfolio</span>
-          <h3 class="usecase-title">Your portfolio. Their access. Expires when you say.</h3>
-          <p class="usecase-body">
-            You share your best work with a client. Project ends. Months later, they still have access.
-            TempQR lets your portfolio links expire on your terms.
-          </p>
-        </div>
+<section class="usecase-showcases" aria-label="Use cases">
+  <article class="usecase-card" data-usecase="portfolio">
+    <div class="usecase-card-head">
+      <span class="usecase-kicker">Portfolio</span>
+      <h3 class="usecase-title">Your portfolio. Their access. Expires when you say.</h3>
+    </div>
 
-        <div class="usecase-slides">
-          <div class="usecase-slide active">
-            <div class="usecase-shot">Portfolio PDF</div>
-            <p class="usecase-caption">Send a portfolio link for review.</p>
-          </div>
-          <div class="usecase-slide">
-            <div class="usecase-shot">Case Study</div>
-            <p class="usecase-caption">Old access stays open unless you stop it.</p>
-          </div>
-          <div class="usecase-slide">
-            <div class="usecase-shot">Private Link</div>
-            <p class="usecase-caption">Set it to expire when the project ends.</p>
-          </div>
-          <div class="usecase-slide">
-            <div class="usecase-shot">Client Review</div>
-            <p class="usecase-caption">Try it for portfolio sharing.</p>
-          </div>
-        </div>
+    <div class="usecase-stage">
+      <div class="usecase-shot">Portfolio PDF</div>
+      <p class="usecase-caption">Send a portfolio link for review.</p>
+    </div>
 
-        <button class="usecase-cta" type="button">Try it for portfolio</button>
-      </article>
+    <div class="usecase-dots" aria-hidden="true">
+      <span class="is-active"></span><span></span><span></span><span></span>
+    </div>
 
-      <article class="usecase-card" data-usecase="proposal">
-        <div class="usecase-card-head">
-          <span class="usecase-kicker">Proposal Link</span>
-          <h3 class="usecase-title">Proposals that close — not linger.</h3>
-          <p class="usecase-body">
-            You send a proposal. The client takes weeks to decide. Meanwhile, your pricing and terms stay exposed.
-            TempQR lets proposal links expire once the decision is made.
-          </p>
-        </div>
+    <button class="usecase-cta" type="button">Try it for portfolio</button>
+  </article>
 
-        <div class="usecase-slides">
-          <div class="usecase-slide active">
-            <div class="usecase-shot">Proposal Deck</div>
-            <p class="usecase-caption">Share a proposal without permanent access.</p>
-          </div>
-          <div class="usecase-slide">
-            <div class="usecase-shot">Pricing Page</div>
-            <p class="usecase-caption">Terms can sit in inboxes for too long.</p>
-          </div>
-          <div class="usecase-slide">
-            <div class="usecase-shot">Decision Stage</div>
-            <p class="usecase-caption">Set a deadline and close the loop cleanly.</p>
-          </div>
-          <div class="usecase-slide">
-            <div class="usecase-shot">Secure Share</div>
-            <p class="usecase-caption">Try it for proposals.</p>
-          </div>
-        </div>
+  <article class="usecase-card" data-usecase="proposal">
+    <div class="usecase-card-head">
+      <span class="usecase-kicker">Proposal Link</span>
+      <h3 class="usecase-title">Proposals that close — not linger.</h3>
+    </div>
 
-        <button class="usecase-cta" type="button">Try it for proposals</button>
-      </article>
+    <div class="usecase-stage">
+      <div class="usecase-shot">Proposal Deck</div>
+      <p class="usecase-caption">Share a proposal without permanent access.</p>
+    </div>
 
-      <article class="usecase-card" data-usecase="delivery">
-        <div class="usecase-card-head">
-          <span class="usecase-kicker">Final Client Delivery</span>
-          <h3 class="usecase-title">Deliver. Get paid. Move on.</h3>
-          <p class="usecase-body">
-            Project done. Files delivered. Client pays. Months later, they still have access to everything.
-            TempQR makes final delivery links expire automatically.
-          </p>
-        </div>
+    <div class="usecase-dots" aria-hidden="true">
+      <span class="is-active"></span><span></span><span></span><span></span>
+    </div>
 
-        <div class="usecase-slides">
-          <div class="usecase-slide active">
-            <div class="usecase-shot">Final Files</div>
-            <p class="usecase-caption">Deliver final assets with a private link.</p>
-          </div>
-          <div class="usecase-slide">
-            <div class="usecase-shot">Handoff Notes</div>
-            <p class="usecase-caption">Delivery links should not stay open forever.</p>
-          </div>
-          <div class="usecase-slide">
-            <div class="usecase-shot">Access Ends</div>
-            <p class="usecase-caption">The link stops working when the job is done.</p>
-          </div>
-          <div class="usecase-slide">
-            <div class="usecase-shot">Clean Exit</div>
-            <p class="usecase-caption">Try it for final delivery.</p>
-          </div>
-        </div>
+    <button class="usecase-cta" type="button">Try it for proposals</button>
+  </article>
 
-        <button class="usecase-cta" type="button">Try it for final delivery</button>
-      </article>
-    </section>
+  <article class="usecase-card" data-usecase="delivery">
+    <div class="usecase-card-head">
+      <span class="usecase-kicker">Final Client Delivery</span>
+      <h3 class="usecase-title">Deliver. Get paid. Move on.</h3>
+    </div>
+
+    <div class="usecase-stage">
+      <div class="usecase-shot">Final Files</div>
+      <p class="usecase-caption">Deliver final assets with a private link.</p>
+    </div>
+
+    <div class="usecase-dots" aria-hidden="true">
+      <span class="is-active"></span><span></span><span></span><span></span>
+    </div>
+
+    <button class="usecase-cta" type="button">Try it for final delivery</button>
+  </article>
+</section>
 
     <section class="card">
       <h2 class="card-title">Create Your Expiring Link</h2>
