@@ -1319,14 +1319,14 @@
     </section>
 
   <section class="card hidden" id="resultCard">
-  <h2>Your Expiring Link Is Ready</h2>
-  <p class="result-lead">Share as a link or QR code.</p>
+  <h2 id="resultTitle">Your Expiring Link Is Ready</h2>
+  <p class="result-lead" id="resultLead">Share as a link or QR code.</p>
 
-  <p class="result-link-row">
+  <p class="result-link-row" id="resultLinkRow">
     <a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a>
   </p>
 
-  <div class="button-group gap">
+  <div class="button-group gap" id="resultActions">
     <button class="btn btn-ghost" id="copyBtn" type="button">Copy link</button>
     <button class="btn btn-ghost" id="downloadBtn" type="button">Download PNG</button>
     <button class="btn btn-ghost" id="shareBtn" type="button" style="display:none;">Share</button>
@@ -1337,16 +1337,15 @@
 
   <p class="countdown" id="countdown"></p>
   <p class="hint" id="expiryHint"></p>
-  <p class="hint"><em>No history is stored—save the link and download the PNG before leaving if you need multiple usage.</em></p>
+  <p class="hint" id="resultHint">
+    <em>No history is stored—save the link and download the PNG before leaving if you need multiple usage.</em>
+  </p>
 
-  <!-- NEW: Create another link (Variant A: does NOT remove current QR/link) -->
   <div class="result-actions-secondary">
     <button type="button" id="createAnotherBtn" class="btn btn-ghost secondary-cta">Create Another Link</button>
     <div class="secondary-note"></div>
   </div>
 </section>
-
-  
 
     <section class="benefits" aria-label="Benefits">
       <div class="benefit">

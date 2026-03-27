@@ -14,6 +14,12 @@ const customDurationHint = document.getElementById("customDurationHint");
 const generateBtn      = document.getElementById("generateBtn");
 
 const resultCard       = document.getElementById("resultCard");
+const resultTitle      = document.getElementById("resultTitle");
+const resultLead       = document.getElementById("resultLead");
+const resultLinkRow    = document.getElementById("resultLinkRow");
+const resultActions    = document.getElementById("resultActions");
+const resultHint       = document.getElementById("resultHint");
+
 const qrcodeCanvas     = document.getElementById("qrcode");
 const generatedLink    = document.getElementById("generatedLink");
 const expiryHint       = document.getElementById("expiryHint");
@@ -190,27 +196,52 @@ function setCreateAnotherEnabled(enabled) {
 
 function expireUINow() {
   clearInterval(countdownTimer);
-  countdownEl.textContent = "Expired";
 
   try {
     const ctx = qrcodeCanvas.getContext("2d");
     ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
   } catch {}
 
-    // ✅ NEW: collapse the big empty area
-  qrcodeCanvas.classList.add("hidden");
-  generatedLink.classList.add("hidden");
+  // Switch card into a clean expired state
+  if (resultTitle) resultTitle.textContent = "Expired";
+  if (resultLead) resultLead.textContent = "This link has expired.";
 
+  countdownEl.textContent = "";
+  expiryHint.textContent = "";
+  if (resultTitle) resultTitle.textContent = "Your Expiring Link Is Ready";
+if (resultLead) resultLead.textContent = "Share as a link or QR code.";
+if (resultLinkRow) resultLinkRow.classList.remove("hidden");
+if (resultActions) resultActions.classList.remove("hidden");
+if (resultHint) {
+  resultHint.innerHTML = "<em>No history is stored—save the link and download the PNG before leaving if you need multiple usage.</em>";
+  resultHint.style.textAlign = "";
+  resultHint.style.maxWidth = "";
+  resultHint.style.margin = "";
+  resultHint.style.opacity = "";
+}
+
+  qrcodeCanvas.classList.add("hidden");
+
+  if (resultLinkRow) resultLinkRow.classList.add("hidden");
+  if (resultActions) resultActions.classList.add("hidden");
+
+  generatedLink.classList.add("hidden");
   generatedLink.textContent = "";
   generatedLink.href = "#";
   generatedLink.title = "";
-  expiryHint.textContent = "This link has expired.";
+
+  if (resultHint) {
+    resultHint.innerHTML = "<em>No history is stored—save the link and download the PNG before leaving if you need multiple usage.</em>";
+    resultHint.style.textAlign = "center";
+    resultHint.style.maxWidth = "560px";
+    resultHint.style.margin = "10px auto 0";
+    resultHint.style.opacity = "0.9";
+  }
 
   linkExpired = true;
   setDownloadButtonsEnabled(false);
   setCreateAnotherEnabled(true);
 
-  // Once expired, clear persisted state so it won't restore a dead link.
   clearLastState();
 }
 
@@ -577,6 +608,17 @@ async function restoreLastResultIfAny() {
   generatedLink.href = st.redirectUrl;
   generatedLink.title = st.redirectUrl;
 
+  if (resultTitle) resultTitle.textContent = "Your Expiring Link Is Ready";
+  if (resultLead) resultLead.textContent = "Share as a link or QR code.";
+  if (resultLinkRow) resultLinkRow.classList.remove("hidden");
+  if (resultActions) resultActions.classList.remove("hidden");
+  if (resultHint) {
+  resultHint.innerHTML = "<em>No history is stored—save the link and download the PNG before leaving if you need multiple usage.</em>";
+  resultHint.style.textAlign = "";
+  resultHint.style.maxWidth = "";
+  resultHint.style.margin = "";
+  resultHint.style.opacity = "";
+}
   resultCard.classList.remove("hidden");
   qrcodeCanvas.classList.remove("hidden");
   generatedLink.classList.remove("hidden");
@@ -770,6 +812,17 @@ function resetToInitialState() {
   // reset texts
   countdownEl.textContent = "";
   expiryHint.textContent = "";
+  if (resultTitle) resultTitle.textContent = "Your Expiring Link Is Ready";
+if (resultLead) resultLead.textContent = "Share as a link or QR code.";
+if (resultLinkRow) resultLinkRow.classList.remove("hidden");
+if (resultActions) resultActions.classList.remove("hidden");
+if (resultHint) {
+  resultHint.innerHTML = "<em>No history is stored—save the link and download the PNG before leaving if you need multiple usage.</em>";
+  resultHint.style.textAlign = "";
+  resultHint.style.maxWidth = "";
+  resultHint.style.margin = "";
+  resultHint.style.opacity = "";
+}
 
   // disable action buttons until new link created
   setDownloadButtonsEnabled(false);
@@ -903,6 +956,14 @@ function resetToInitialState() {
       generatedLink.href = redirectUrl;
       generatedLink.title = redirectUrl;
 
+      if (resultTitle) resultTitle.textContent = "Your Expiring Link Is Ready";
+      if (resultLead) resultLead.textContent = "Share as a link or QR code.";
+      if (resultLinkRow) resultLinkRow.classList.remove("hidden");
+      if (resultActions) resultActions.classList.remove("hidden");
+      if (resultHint) {                      
+
+      }
+
       resultCard.classList.remove("hidden");
       qrcodeCanvas.classList.remove("hidden");
       generatedLink.classList.remove("hidden");
@@ -981,6 +1042,18 @@ function resetToInitialState() {
       generatedLink.textContent = makeDisplayLink(redirectUrl);
       generatedLink.href = redirectUrl;
       generatedLink.title = redirectUrl;
+      
+      if (resultTitle) resultTitle.textContent = "Your Expiring Link Is Ready";
+if (resultLead) resultLead.textContent = "Share as a link or QR code.";
+if (resultLinkRow) resultLinkRow.classList.remove("hidden");
+if (resultActions) resultActions.classList.remove("hidden");
+if (resultHint) {
+  resultHint.innerHTML = "<em>No history is stored—save the link and download the PNG before leaving if you need multiple usage.</em>";
+  resultHint.style.textAlign = "";
+  resultHint.style.maxWidth = "";
+  resultHint.style.margin = "";
+  resultHint.style.opacity = "";
+}
 
       resultCard.classList.remove("hidden");
       qrcodeCanvas.classList.remove("hidden");
@@ -1066,6 +1139,18 @@ if (currentMode === "text") {
   generatedLink.textContent = makeDisplayLink(redirectUrl);
   generatedLink.href = redirectUrl;
   generatedLink.title = redirectUrl;
+
+  if (resultTitle) resultTitle.textContent = "Your Expiring Link Is Ready";
+if (resultLead) resultLead.textContent = "Share as a link or QR code.";
+if (resultLinkRow) resultLinkRow.classList.remove("hidden");
+if (resultActions) resultActions.classList.remove("hidden");
+if (resultHint) {
+  resultHint.innerHTML = "<em>No history is stored—save the link and download the PNG before leaving if you need multiple usage.</em>";
+  resultHint.style.textAlign = "";
+  resultHint.style.maxWidth = "";
+  resultHint.style.margin = "";
+  resultHint.style.opacity = "";
+}
 
   resultCard.classList.remove("hidden");
   qrcodeCanvas.classList.remove("hidden");
