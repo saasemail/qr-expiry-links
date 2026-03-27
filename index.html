@@ -1005,6 +1005,14 @@
   border: 1px solid rgba(255,255,255,0.08);
 }
 
+.usecase-shot img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 14px;
+}
+
 .usecase-caption{
   margin: 12px 0 0;
   color: rgba(255,255,255,0.86);
@@ -1168,24 +1176,8 @@
 
     <div class="usecase-slideshow">
       <div class="usecase-slide is-active">
-        <div class="usecase-shot portfolio-shot portfolio-shot-share">
-          <div class="shot-window-bar">
-            <span></span><span></span><span></span>
-          </div>
-          <div class="shot-window">
-            <div class="portfolio-topline">behance.net / portfolio</div>
-            <div class="portfolio-hero">
-              <div class="portfolio-avatar"></div>
-              <div class="portfolio-meta">
-                <strong>Freelance Designer Portfolio</strong>
-                <span>Branding, web design, product visuals</span>
-              </div>
-            </div>
-            <div class="portfolio-grid">
-              <span></span><span></span><span></span><span></span>
-            </div>
-            <div class="portfolio-badge">Shared with client</div>
-          </div>
+        <div class="usecase-shot">
+          <img src="portfolio-1.png" alt="Portfolio preview" />
         </div>
         <p class="usecase-caption">You share your portfolio with a client.</p>
       </div>
