@@ -202,23 +202,11 @@ function expireUINow() {
     ctx.clearRect(0, 0, qrcodeCanvas.width, qrcodeCanvas.height);
   } catch {}
 
-  // Switch card into a clean expired state
   if (resultTitle) resultTitle.textContent = "Expired";
   if (resultLead) resultLead.textContent = "This link has expired.";
 
   countdownEl.textContent = "";
   expiryHint.textContent = "";
-  if (resultTitle) resultTitle.textContent = "Your Expiring Link Is Ready";
-if (resultLead) resultLead.textContent = "Share as a link or QR code.";
-if (resultLinkRow) resultLinkRow.classList.remove("hidden");
-if (resultActions) resultActions.classList.remove("hidden");
-if (resultHint) {
-  resultHint.innerHTML = "<em>No history is stored—save the link and download the PNG before leaving if you need multiple usage.</em>";
-  resultHint.style.textAlign = "";
-  resultHint.style.maxWidth = "";
-  resultHint.style.margin = "";
-  resultHint.style.opacity = "";
-}
 
   qrcodeCanvas.classList.add("hidden");
 
@@ -812,17 +800,6 @@ function resetToInitialState() {
   // reset texts
   countdownEl.textContent = "";
   expiryHint.textContent = "";
-  if (resultTitle) resultTitle.textContent = "Your Expiring Link Is Ready";
-if (resultLead) resultLead.textContent = "Share as a link or QR code.";
-if (resultLinkRow) resultLinkRow.classList.remove("hidden");
-if (resultActions) resultActions.classList.remove("hidden");
-if (resultHint) {
-  resultHint.innerHTML = "<em>No history is stored—save the link and download the PNG before leaving if you need multiple usage.</em>";
-  resultHint.style.textAlign = "";
-  resultHint.style.maxWidth = "";
-  resultHint.style.margin = "";
-  resultHint.style.opacity = "";
-}
 
   // disable action buttons until new link created
   setDownloadButtonsEnabled(false);
@@ -960,9 +937,18 @@ if (resultHint) {
       if (resultLead) resultLead.textContent = "Share as a link or QR code.";
       if (resultLinkRow) resultLinkRow.classList.remove("hidden");
       if (resultActions) resultActions.classList.remove("hidden");
-      if (resultHint) {                      
-
+      if (resultHint) {
+        resultHint.innerHTML = "<em>No history is stored—save the link and download the PNG before leaving if you need multiple usage.</em>";
+        resultHint.style.textAlign = "";
+        resultHint.style.maxWidth = "";
+        resultHint.style.margin = "";
+        resultHint.style.opacity = "";
       }
+
+      resultCard.classList.remove("hidden");
+      qrcodeCanvas.classList.remove("hidden");
+      generatedLink.classList.remove("hidden");
+      await renderQr(redirectUrl);
 
       resultCard.classList.remove("hidden");
       qrcodeCanvas.classList.remove("hidden");
