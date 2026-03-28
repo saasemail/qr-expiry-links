@@ -569,12 +569,36 @@
 }
 
 .trust-line{
-  margin: 4px 0 12px;
+  margin: 4px 0 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   text-align: center;
+}
+
+.usecase-label-row{
+  margin: 0 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.usecase-label-text{
+  color: rgba(255,255,255,0.66);
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+}
+
+.usecase-label-arrow{
+  color: rgba(255,255,255,0.44);
+  font-size: 13px;
+  line-height: 1;
+  transform: translateY(1px);
 }
 
 .trust-line-icon{
@@ -602,7 +626,7 @@
 
 @media (max-width: 640px){
   .trust-line{
-    margin: 2px 0 10px;
+    margin: 2px 0 8px;
     gap: 7px;
   }
 
@@ -614,6 +638,19 @@
 
   .trust-line-text{
     font-size: 12.5px;
+  }
+
+  .usecase-label-row{
+    margin: 0 0 12px;
+    gap: 7px;
+  }
+
+  .usecase-label-text{
+    font-size: 12.5px;
+  }
+
+  .usecase-label-arrow{
+    font-size: 12px;
   }
 }
 
@@ -1168,6 +1205,11 @@
 <div class="trust-line" aria-label="Trust signal">
   <span class="trust-line-icon">✦</span>
   <span class="trust-line-text">12,000+ links created for client sharing</span>
+</div>
+
+<div class="usecase-label-row" aria-hidden="true">
+  <span class="usecase-label-text">Often used for</span>
+  <span class="usecase-label-arrow">↓</span>
 </div>
 
 <section class="usecase-showcases" aria-label="Use cases">
