@@ -1211,6 +1211,80 @@
   <span class="trust-line-text">12,000+ links created so far</span>
 </div>
 
+    <section class="card">
+      <h2 class="card-title">Create Your Expiring Link</h2>
+      <p class="card-intro">Works for portfolio links, proposals, client files, and previews.</p>
+
+<!-- URL input -->
+<div>
+  <label>
+    Enter URL
+    <input type="url" id="urlInput" placeholder="https://yourportfolio.com/project" />
+  </label>
+</div>
+
+      <label>
+        Expiration Time
+        <select id="expirySelect" aria-label="Expiration Time">
+          <option value="60">1 hour</option>
+          <option value="custom">Custom duration</option>
+        </select>
+      </label>
+      <p class="field-hint">This link &amp; QR will expire after the selected time.</p>
+
+      <div id="customExpiryWrap" class="custom-expiry hidden">
+          <!-- PRO lock overlay (shown when not Pro) -->
+        <div class="custom-grid" role="group" aria-label="Custom duration">
+          <div class="custom-field">
+            <span class="custom-field-label">Days</span>
+            <input type="number" id="customDays" min="0" max="3650" step="1" value="0" inputmode="numeric" />
+          </div>
+          <div class="custom-field">
+            <span class="custom-field-label">Hours</span>
+            <input type="number" id="customHours" min="0" max="23" step="1" value="0" inputmode="numeric" />
+          </div>
+          <div class="custom-field">
+            <span class="custom-field-label">Minutes</span>
+            <input type="number" id="customMinutes" min="0" max="59" step="1" value="10" inputmode="numeric" />
+          </div>
+        </div>
+        <p class="custom-duration-hint" id="customDurationHint"></p>
+      </div>
+
+      <div class="button-group">
+        <button id="generateBtn" class="btn btn-primary" type="button">Create Expiring Link</button>
+      </div>
+    </section>
+
+  <section class="card hidden" id="resultCard">
+  <h2 id="resultTitle">Your Expiring Link Is Ready</h2>
+  <p class="result-lead" id="resultLead">Share as a link or QR code.</p>
+
+  <p class="result-link-row" id="resultLinkRow">
+    <a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a>
+  </p>
+
+  <div class="button-group gap" id="resultActions">
+    <button class="btn btn-ghost" id="copyBtn" type="button">Copy link</button>
+    <button class="btn btn-ghost" id="downloadBtn" type="button">Download PNG</button>
+    <button class="btn btn-ghost" id="shareBtn" type="button" style="display:none;">Share</button>
+    <button class="btn btn-ghost" id="downloadSvgBtn" type="button" style="display:none;">Download SVG</button>
+  </div>
+
+  <canvas id="qrcode"></canvas>
+
+  <p class="countdown" id="countdown"></p>
+  <p class="hint" id="expiryHint"></p>
+  <p class="hint" id="resultHint">
+    <em>No history is stored—save the link and download the PNG before leaving if you need multiple usage.</em>
+  </p>
+
+  <div class="result-actions-secondary">
+    <button type="button" id="createAnotherBtn" class="btn btn-ghost secondary-cta">Create Another Link</button>
+    <div class="secondary-note"></div>
+  </div>
+</section>
+
 <div class="usecase-label-row" aria-hidden="true">
   <span class="usecase-label-text">Often used for</span>
   <span class="usecase-label-arrow">↓</span>
@@ -1348,80 +1422,6 @@
 
     <button class="usecase-cta" type="button">Try it for final delivery</button>
   </article>
-</section>
-
-    <section class="card">
-      <h2 class="card-title">Create Your Expiring Link</h2>
-      <p class="card-intro">Works for portfolio links, proposals, client files, and previews.</p>
-
-<!-- URL input -->
-<div>
-  <label>
-    Enter URL
-    <input type="url" id="urlInput" placeholder="https://yourportfolio.com/project" />
-  </label>
-</div>
-
-      <label>
-        Expiration Time
-        <select id="expirySelect" aria-label="Expiration Time">
-          <option value="60">1 hour</option>
-          <option value="custom">Custom duration</option>
-        </select>
-      </label>
-      <p class="field-hint">This link &amp; QR will expire after the selected time.</p>
-
-      <div id="customExpiryWrap" class="custom-expiry hidden">
-          <!-- PRO lock overlay (shown when not Pro) -->
-        <div class="custom-grid" role="group" aria-label="Custom duration">
-          <div class="custom-field">
-            <span class="custom-field-label">Days</span>
-            <input type="number" id="customDays" min="0" max="3650" step="1" value="0" inputmode="numeric" />
-          </div>
-          <div class="custom-field">
-            <span class="custom-field-label">Hours</span>
-            <input type="number" id="customHours" min="0" max="23" step="1" value="0" inputmode="numeric" />
-          </div>
-          <div class="custom-field">
-            <span class="custom-field-label">Minutes</span>
-            <input type="number" id="customMinutes" min="0" max="59" step="1" value="10" inputmode="numeric" />
-          </div>
-        </div>
-        <p class="custom-duration-hint" id="customDurationHint"></p>
-      </div>
-
-      <div class="button-group">
-        <button id="generateBtn" class="btn btn-primary" type="button">Create Expiring Link</button>
-      </div>
-    </section>
-
-  <section class="card hidden" id="resultCard">
-  <h2 id="resultTitle">Your Expiring Link Is Ready</h2>
-  <p class="result-lead" id="resultLead">Share as a link or QR code.</p>
-
-  <p class="result-link-row" id="resultLinkRow">
-    <a id="generatedLink" href="#" target="_blank" rel="noopener noreferrer"></a>
-  </p>
-
-  <div class="button-group gap" id="resultActions">
-    <button class="btn btn-ghost" id="copyBtn" type="button">Copy link</button>
-    <button class="btn btn-ghost" id="downloadBtn" type="button">Download PNG</button>
-    <button class="btn btn-ghost" id="shareBtn" type="button" style="display:none;">Share</button>
-    <button class="btn btn-ghost" id="downloadSvgBtn" type="button" style="display:none;">Download SVG</button>
-  </div>
-
-  <canvas id="qrcode"></canvas>
-
-  <p class="countdown" id="countdown"></p>
-  <p class="hint" id="expiryHint"></p>
-  <p class="hint" id="resultHint">
-    <em>No history is stored—save the link and download the PNG before leaving if you need multiple usage.</em>
-  </p>
-
-  <div class="result-actions-secondary">
-    <button type="button" id="createAnotherBtn" class="btn btn-ghost secondary-cta">Create Another Link</button>
-    <div class="secondary-note"></div>
-  </div>
 </section>
 
     <section class="benefits" aria-label="Benefits">
