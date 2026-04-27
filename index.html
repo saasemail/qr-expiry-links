@@ -1172,6 +1172,89 @@
     font-size: 13.5px;
     border-radius: 13px;
   }
+
+  /* Simple use-case grid */
+.simple-usecases{
+  margin: 26px 0 28px;
+  text-align: center;
+}
+
+.simple-usecases-title{
+  margin: 0 0 16px;
+  color: rgba(255,255,255,0.96);
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.simple-usecases-grid{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.simple-usecase-card{
+  display: block;
+  min-height: 112px;
+  padding: 16px;
+  border-radius: 18px;
+  text-align: left;
+  text-decoration: none;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015)),
+    rgba(9,13,28,0.72);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 10px 26px rgba(0,0,0,0.18);
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.simple-usecase-card:hover{
+  transform: translateY(-2px);
+  text-decoration: none;
+  border-color: rgba(125,95,255,0.34);
+  box-shadow:
+    0 14px 34px rgba(0,0,0,0.26),
+    0 0 0 1px rgba(125,95,255,0.10);
+  background:
+    linear-gradient(180deg, rgba(125,95,255,0.08), rgba(255,255,255,0.018)),
+    rgba(9,13,28,0.78);
+}
+
+.simple-usecase-card h3{
+  margin: 0 0 7px;
+  color: rgba(255,255,255,0.96);
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.simple-usecase-card p{
+  margin: 0;
+  color: rgba(255,255,255,0.68);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px){
+  .simple-usecases{
+    margin: 22px 0 24px;
+  }
+
+  .simple-usecases-title{
+    font-size: 19px;
+    margin-bottom: 13px;
+  }
+
+  .simple-usecases-grid{
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .simple-usecase-card{
+    min-height: auto;
+    padding: 14px;
+    border-radius: 16px;
+  }
+}
 }
   
   </style>
@@ -1285,143 +1368,40 @@
   </div>
 </section>
 
-<div class="usecase-label-row" aria-hidden="true">
-  <span class="usecase-label-text">Often used for</span>
-  <span class="usecase-label-arrow">↓</span>
-</div>
+<section class="simple-usecases" aria-label="Popular ways to use TempQR">
+  <h2 class="simple-usecases-title">Popular ways to use TempQR</h2>
 
-<section class="usecase-showcases" aria-label="Use cases">
-  <article class="usecase-card" data-usecase="portfolio">
-    <div class="usecase-card-head">
-      <span class="usecase-kicker">Portfolio</span>
-      <h3 class="usecase-title">Your portfolio. Their access. On your terms.</h3>
-      <p class="usecase-body">Share your work without leaving old client access open forever.</p>
-    </div>
+  <div class="simple-usecases-grid">
+    <a class="simple-usecase-card" href="#">
+      <h3>Client Work</h3>
+      <p>End access after handoff.</p>
+    </a>
 
-    <div class="usecase-slideshow">
-  <div class="usecase-slide is-active">
-    <div class="usecase-shot">
-      <img src="portfolio-1.png" alt="Portfolio preview" />
-    </div>
-    <p class="usecase-caption">You share your work with a client.</p>
+    <a class="simple-usecase-card" href="#">
+      <h3>Forms &amp; Applications</h3>
+      <p>Set clear deadlines for submissions.</p>
+    </a>
+
+    <a class="simple-usecase-card" href="#">
+      <h3>Private Sharing</h3>
+      <p>Links that don’t stay open forever.</p>
+    </a>
+
+    <a class="simple-usecase-card" href="#">
+      <h3>Documents</h3>
+      <p>Temporary access to important files.</p>
+    </a>
+
+    <a class="simple-usecase-card" href="#">
+      <h3>Events &amp; QR Codes</h3>
+      <p>QR that stops working after the event.</p>
+    </a>
+
+    <a class="simple-usecase-card" href="#">
+      <h3>Promotions</h3>
+      <p>Offers that expire automatically.</p>
+    </a>
   </div>
-
-  <div class="usecase-slide">
-    <div class="usecase-shot">
-      <img src="portfolio-setup.png" alt="TempQR setup with portfolio link and expiry selected" />
-    </div>
-    <p class="usecase-caption">Months later, the link is still active.</p>
-  </div>
-
-  <div class="usecase-slide">
-    <div class="usecase-shot">
-      <img src="portfolio-active.png" alt="Active TempQR portfolio link with QR code" />
-    </div>
-    <p class="usecase-caption">Set exactly when access should end.</p>
-  </div>
-
-  <div class="usecase-slide">
-    <div class="usecase-shot">
-      <img src="portfolio-expired.png" alt="Expired TempQR portfolio link" />
-    </div>
-    <p class="usecase-caption">Now your portfolio link expires on your terms.</p>
-  </div>
-</div>
-
-<div class="usecase-dots" aria-hidden="true">
-  <span class="is-active"></span><span></span><span></span><span></span>
-</div>
-
-    <button class="usecase-cta" type="button">Try it for portfolio</button>
-  </article>
-
-  <article class="usecase-card" data-usecase="proposal">
-  <div class="usecase-card-head">
-    <span class="usecase-kicker">Proposal Link</span>
-    <h3 class="usecase-title">Proposals that close — not linger.</h3>
-    <p class="usecase-body">Set a deadline, so your pricing and terms don’t sit in inboxes for weeks.</p>
-  </div>
-
-  <div class="usecase-slideshow">
-    <div class="usecase-slide is-active">
-      <div class="usecase-shot">
-        <img src="proposal-1.png" alt="Proposal preview" />
-      </div>
-      <p class="usecase-caption">You send a proposal to a client.</p>
-    </div>
-
-    <div class="usecase-slide">
-      <div class="usecase-shot">
-        <img src="proposal-setup.png" alt="TempQR setup with proposal link and expiry selected" />
-      </div>
-      <p class="usecase-caption">Without a deadline, it can sit in inboxes for weeks.</p>
-    </div>
-
-    <div class="usecase-slide">
-      <div class="usecase-shot">
-        <img src="proposal-active.png" alt="Active TempQR proposal link with QR code" />
-      </div>
-      <p class="usecase-caption">Keep it accessible while they decide.</p>
-    </div>
-
-    <div class="usecase-slide">
-      <div class="usecase-shot">
-        <img src="proposal-expired.png" alt="Expired TempQR proposal link" />
-      </div>
-      <p class="usecase-caption">Once the deadline passes, the link expires.</p>
-    </div>
-  </div>
-
-  <div class="usecase-dots" aria-hidden="true">
-    <span class="is-active"></span><span></span><span></span><span></span>
-  </div>
-
-  <button class="usecase-cta" type="button">Try it for proposals</button>
-</article>
-
-  <article class="usecase-card" data-usecase="delivery">
-    <div class="usecase-card-head">
-      <span class="usecase-kicker">Final Client Delivery</span>
-      <h3 class="usecase-title">Deliver. Get paid. Move on.</h3>
-      <p class="usecase-body">Send final files with an expiry, so access ends when the handoff is done.</p>
-    </div>
-
-    <div class="usecase-slideshow">
-      <div class="usecase-slide is-active">
-        <div class="usecase-shot">
-          <img src="delivery-1.png" alt="Final client delivery preview" />
-        </div>
-        <p class="usecase-caption">You deliver the final files to your client.</p>
-      </div>
-
-      <div class="usecase-slide">
-        <div class="usecase-shot">
-          <img src="delivery-setup.png" alt="TempQR setup with final delivery link and expiry selected" />
-        </div>
-        <p class="usecase-caption">Set how long access should stay open.</p>
-      </div>
-
-      <div class="usecase-slide">
-        <div class="usecase-shot">
-          <img src="delivery-active.png" alt="Active TempQR final delivery link with QR code" />
-        </div>
-        <p class="usecase-caption">The files stay available while the client needs them.</p>
-      </div>
-
-      <div class="usecase-slide">
-        <div class="usecase-shot">
-          <img src="delivery-expired.png" alt="Expired TempQR final delivery link" />
-        </div>
-        <p class="usecase-caption">When the handoff is done, access ends automatically.</p>
-      </div>
-    </div>
-
-    <div class="usecase-dots" aria-hidden="true">
-      <span class="is-active"></span><span></span><span></span><span></span>
-    </div>
-
-    <button class="usecase-cta" type="button">Try it for final delivery</button>
-  </article>
 </section>
 
     <section class="benefits" aria-label="Benefits">
