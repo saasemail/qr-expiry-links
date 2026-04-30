@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>How to Share Family Photos With Links That Expire | TempQR</title>
+  <meta name="description" content="Learn how to share family photos with expiring links so personal albums stay private, temporary, and controlled." />
+  <link rel="canonical" href="https://tempqr.com/family-photos.html" />
+
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    html,
+    body{
+      margin: 0;
+      padding: 0;
+      background: #0b0e13;
+      color: #e8edf5;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body::before,
+    html::before{
+      display: none !important;
+      content: none !important;
+    }
+
+    .blog-brand{
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 10000;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: rgba(255,255,255,0.96);
+    }
+
+    .blog-brand img{
+      width: 50px;
+      height: 50px;
+      display: block;
+      border-radius: 8px;
+    }
+
+    .blog-brand span{
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+
+    .blog-page{
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 96px 18px 56px;
+    }
+
+    .blog-hero{
+      text-align: center;
+      margin: 0 0 28px;
+    }
+
+    .blog-kicker{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 0 14px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      color: rgba(110,231,249,0.95);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .blog-hero h1{
+      max-width: 760px;
+      margin: 0 auto 16px;
+      color: rgba(255,255,255,0.98);
+      font-size: clamp(2rem, 5vw, 3.45rem);
+      line-height: 1.05;
+      letter-spacing: -0.055em;
+    }
+
+    .blog-intro{
+      max-width: 680px;
+      margin: 0 auto;
+      color: rgba(232,237,245,0.78);
+      font-size: 17px;
+      line-height: 1.7;
+    }
+
+    .blog-card{
+      margin: 18px 0;
+      padding: 24px;
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015)),
+        rgba(18,23,35,0.86);
+      border: 1px solid rgba(255,255,255,0.09);
+      box-shadow: 0 16px 42px rgba(0,0,0,0.24);
+    }
+
+    .blog-card h2{
+      margin: 0 0 14px;
+      color: rgba(255,255,255,0.96);
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+    }
+
+    .blog-card p{
+      margin: 0 0 13px;
+      color: rgba(232,237,245,0.76);
+      font-size: 16px;
+      line-height: 1.75;
+    }
+
+    .blog-card p:last-child{
+      margin-bottom: 0;
+    }
+
+    .blog-list{
+      margin: 14px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 10px;
+    }
+
+    .blog-list li{
+      position: relative;
+      padding-left: 28px;
+      color: rgba(232,237,245,0.78);
+      font-size: 15.5px;
+      line-height: 1.55;
+    }
+
+    .blog-list li::before{
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.56em;
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #6ee7f9, #8b5cf6);
+      box-shadow: 0 0 18px rgba(110,231,249,0.24);
+    }
+
+    .blog-steps{
+      margin: 16px 0 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: step;
+      display: grid;
+      gap: 12px;
+    }
+
+    .blog-steps li{
+      counter-increment: step;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(232,237,245,0.82);
+      font-size: 15.5px;
+      line-height: 1.55;
+    }
+
+    .blog-steps li::before{
+      content: counter(step);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      flex: 0 0 28px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #6ee7f9, #8b5cf6);
+      color: #0b0e13;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .blog-highlight{
+      margin-top: 16px;
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(110,231,249,0.16);
+      background:
+        radial-gradient(circle at top left, rgba(110,231,249,0.10), transparent 42%),
+        rgba(255,255,255,0.025);
+    }
+
+    .blog-highlight strong{
+      color: rgba(255,255,255,0.96);
+    }
+
+    .blog-compare{
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .compare-box{
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.09);
+      background: rgba(255,255,255,0.03);
+    }
+
+    .compare-box h3{
+      margin: 0 0 10px;
+      color: rgba(255,255,255,0.94);
+      font-size: 16px;
+      line-height: 1.25;
+    }
+
+    .compare-box p{
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .blog-cta{
+      margin: 28px 0 0;
+      padding: 28px;
+      border-radius: 26px;
+      text-align: center;
+      background:
+        radial-gradient(circle at top left, rgba(110,231,249,0.16), transparent 38%),
+        radial-gradient(circle at bottom right, rgba(139,92,246,0.18), transparent 38%),
+        rgba(18,23,35,0.92);
+      border: 1px solid rgba(255,255,255,0.10);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.30);
+    }
+
+    .blog-cta h2{
+      margin: 0 0 10px;
+      color: rgba(255,255,255,0.98);
+      font-size: 26px;
+      line-height: 1.2;
+      letter-spacing: -0.035em;
+    }
+
+    .blog-cta p{
+      max-width: 520px;
+      margin: 0 auto 18px;
+      color: rgba(232,237,245,0.76);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .blog-cta .btn{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0 22px;
+      border-radius: 999px;
+      text-decoration: none;
+    }
+
+    .blog-footer{
+      margin: 32px 0 0;
+      text-align: center;
+      color: rgba(232,237,245,0.52);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .blog-footer a{
+      color: rgba(110,231,249,0.9);
+      text-decoration: none;
+    }
+
+    .blog-footer a:hover{
+      text-decoration: underline;
+    }
+
+    @media (max-width: 720px){
+      .blog-brand{
+        top: 10px;
+        left: 12px;
+      }
+
+      .blog-brand img{
+        width: 40px;
+        height: 40px;
+      }
+
+      .blog-brand span{
+        font-size: 18px;
+      }
+
+      .blog-page{
+        padding: 78px 16px 42px;
+      }
+
+      .blog-hero{
+        text-align: left;
+        margin-bottom: 20px;
+      }
+
+      .blog-kicker{
+        margin-bottom: 12px;
+      }
+
+      .blog-hero h1{
+        font-size: 34px;
+        line-height: 1.08;
+        margin-bottom: 14px;
+      }
+
+      .blog-intro{
+        font-size: 15.5px;
+        line-height: 1.65;
+      }
+
+      .blog-card{
+        padding: 18px;
+        border-radius: 20px;
+      }
+
+      .blog-card h2{
+        font-size: 21px;
+      }
+
+      .blog-card p{
+        font-size: 15px;
+        line-height: 1.68;
+      }
+
+      .blog-compare{
+        grid-template-columns: 1fr;
+      }
+
+      .blog-cta{
+        padding: 22px 18px;
+        border-radius: 22px;
+      }
+
+      .blog-cta h2{
+        font-size: 22px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <a class="blog-brand" href="index.html" aria-label="Back to TempQR homepage">
+    <img src="TempQRlogo.svg" alt="" width="50" height="50" />
+    <span>TempQR</span>
+  </a>
+
+  <main class="blog-page">
+    <header class="blog-hero">
+      <div class="blog-kicker">Family Photos</div>
+      <h1>How to share family photos with links that expire and stay private</h1>
+      <div class="blog-intro">
+        <p>
+          When you share family photos online, those links often stay active longer than you expect.
+        </p>
+        <p>
+          Even after everyone has seen them, the link can still be opened, saved, or shared.
+        </p>
+      </div>
+    </header>
+
+    <section class="blog-card">
+      <h2>The problem</h2>
+      <p>Once you share a photo link:</p>
+
+      <ul class="blog-list">
+        <li>It stays active indefinitely.</li>
+        <li>Anyone with the link can keep accessing it.</li>
+        <li>It can be forwarded without your control.</li>
+        <li>You have no way to limit access over time.</li>
+      </ul>
+
+      <div class="blog-highlight">
+        <p><strong>What was meant to be shared privately…</strong></p>
+        <p>Can remain accessible for much longer than intended.</p>
+        <p><strong>You lose control over who can see your personal content.</strong></p>
+      </div>
+    </section>
+
+    <section class="blog-card">
+      <h2>The solution</h2>
+      <p>
+        TempQR lets you create expiring links and QR codes for sharing family photos.
+      </p>
+      <p>
+        You choose how long the link should be available — and once the time is up, it automatically expires.
+      </p>
+
+      <ul class="blog-list">
+        <li>No need to delete anything manually.</li>
+        <li>No need to worry about links staying active.</li>
+        <li>No risk of photos being accessible longer than you want.</li>
+      </ul>
+    </section>
+
+    <section class="blog-card">
+      <h2>How it works</h2>
+      <p>Sharing photos with an expiring link takes just a few seconds:</p>
+
+      <ol class="blog-steps">
+        <li>Paste the photo or album link you want to share.</li>
+        <li>Set the expiration time.</li>
+        <li>Click “Create Expiring Link”.</li>
+      </ol>
+
+      <div class="blog-highlight">
+        <p>
+          That’s it. Your link will only work for the time you choose.
+        </p>
+      </div>
+    </section>
+
+    <section class="blog-card">
+      <h2>Who is this for?</h2>
+      <p>This is especially useful for:</p>
+
+      <ul class="blog-list">
+        <li>Families sharing photos with relatives.</li>
+        <li>Parents sending pictures to friends or groups.</li>
+        <li>Private photo sharing after events or gatherings.</li>
+        <li>Anyone who wants to keep personal content temporary.</li>
+        <li>Anyone who values privacy when sharing photos.</li>
+      </ul>
+    </section>
+
+    <section class="blog-card">
+      <h2>Real-life example</h2>
+      <p>
+        You share a photo album from a family event.
+      </p>
+      <p>
+        Relatives can view and download the photos.
+      </p>
+      <p>
+        After a certain time, the link automatically expires.
+      </p>
+      <p>
+        Even if someone saved the link, it no longer works.
+      </p>
+
+      <div class="blog-highlight">
+        <p>
+          <strong>Your photos were shared — but not left online forever.</strong>
+        </p>
+      </div>
+    </section>
+
+    <section class="blog-card">
+      <h2>Why it matters</h2>
+      <p>Without expiration, photo links can:</p>
+
+      <div class="blog-compare">
+        <div class="compare-box">
+          <h3>Without expiration</h3>
+          <p>Photo links can stay accessible longer than intended, be shared beyond your circle, and expose personal moments over time.</p>
+        </div>
+
+        <div class="compare-box">
+          <h3>With TempQR</h3>
+          <p>Access is temporary, sharing stays private, and you stay in control of your content.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="blog-cta">
+      <h2>Create your expiring link now</h2>
+      <p>
+        Share your photos. Keep them private. Let the link expire.
+      </p>
+      <a class="btn btn-primary" href="https://tempqr.com/">Create Expiring Link</a>
+    </section>
+
+    <footer class="blog-footer">
+      <p>
+        © TempQR · <a href="index.html">Home</a> · <a href="faq.html">FAQ</a> · <a href="privacy.html">Privacy</a>
+      </p>
+    </footer>
+  </main>
+</body>
+</html>
