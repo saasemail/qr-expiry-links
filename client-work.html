@@ -235,6 +235,50 @@
       line-height: 1.6;
     }
 
+        .related-usecases{
+      margin: 22px 0 0;
+      padding: 22px;
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015)),
+        rgba(18,23,35,0.72);
+      border: 1px solid rgba(255,255,255,0.09);
+      box-shadow: 0 14px 36px rgba(0,0,0,0.20);
+    }
+
+    .related-usecases h2{
+      margin: 0 0 14px;
+      color: rgba(255,255,255,0.96);
+      font-size: 22px;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+    }
+
+    .related-links{
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .related-links a{
+      display: block;
+      padding: 13px 14px;
+      border-radius: 15px;
+      color: rgba(232,237,245,0.86);
+      text-decoration: none;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 14px;
+      line-height: 1.35;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease;
+    }
+
+    .related-links a:hover{
+      transform: translateY(-1px);
+      border-color: rgba(125,95,255,0.34);
+      background: rgba(255,255,255,0.06);
+    }
+
     .blog-cta{
       margin: 28px 0 0;
       padding: 28px;
@@ -353,8 +397,21 @@
         border-radius: 22px;
       }
 
-      .blog-cta h2{
+            .blog-cta h2{
         font-size: 22px;
+      }
+
+      .related-usecases{
+        padding: 18px;
+        border-radius: 20px;
+      }
+
+      .related-usecases h2{
+        font-size: 20px;
+      }
+
+      .related-links{
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -406,6 +463,9 @@
       </p>
       <p>
         You choose how long the link should work — and after that, it automatically expires.
+      </p>
+      <p>
+        The same idea also works for <a href="documents.html">temporary document sharing</a> and <a href="private-sharing.html">private sharing with expiring links</a>.
       </p>
 
       <ul class="blog-list">
@@ -481,6 +541,17 @@
           <h3>With TempQR</h3>
           <p>Access is temporary, you stay in control, and everything ends cleanly.</p>
         </div>
+      </div>
+    </section>
+
+        <section class="related-usecases" aria-label="Related use cases">
+      <h2>Related use cases</h2>
+
+      <div class="related-links">
+        <a href="job-applications.html">Expiring links for job applications</a>
+        <a href="documents.html">Temporary document sharing</a>
+        <a href="private-sharing.html">Private sharing with expiring links</a>
+        <a href="promotions.html">Time-limited links for promotions</a>
       </div>
     </section>
 
