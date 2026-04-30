@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Use Cases for Expiring Links and QR Codes | TempQR</title>
+  <meta name="description" content="Explore real use cases for expiring links and QR codes, including client work, private sharing, documents, events, promotions, and more." />
+  <link rel="canonical" href="https://tempqr.com/use-cases.html" />
+
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    html,
+    body{
+      margin: 0;
+      padding: 0;
+      background: #0b0e13;
+      color: #e8edf5;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body::before,
+    html::before{
+      display: none !important;
+      content: none !important;
+    }
+
+    .hub-brand{
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 10000;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: rgba(255,255,255,0.96);
+    }
+
+    .hub-brand img{
+      width: 50px;
+      height: 50px;
+      display: block;
+      border-radius: 8px;
+    }
+
+    .hub-brand span{
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+
+    .hub-page{
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 104px 18px 56px;
+    }
+
+    .hub-hero{
+      max-width: 760px;
+      margin: 0 auto 34px;
+      text-align: center;
+    }
+
+    .hub-kicker{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 0 14px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      color: rgba(110,231,249,0.95);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .hub-hero h1{
+      margin: 0 0 14px;
+      color: rgba(255,255,255,0.98);
+      font-size: clamp(2.3rem, 5vw, 4rem);
+      line-height: 1.04;
+      letter-spacing: -0.055em;
+    }
+
+    .hub-hero p{
+      max-width: 660px;
+      margin: 0 auto;
+      color: rgba(232,237,245,0.76);
+      font-size: 17px;
+      line-height: 1.7;
+    }
+
+    .usecase-grid{
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin: 0 0 24px;
+    }
+
+    .usecase-link-card{
+      display: block;
+      min-height: 132px;
+      padding: 18px;
+      border-radius: 22px;
+      text-decoration: none;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015)),
+        rgba(18,23,35,0.82);
+      border: 1px solid rgba(255,255,255,0.09);
+      box-shadow: 0 14px 36px rgba(0,0,0,0.20);
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+
+    .usecase-link-card:hover{
+      transform: translateY(-2px);
+      border-color: rgba(125,95,255,0.34);
+      box-shadow:
+        0 18px 46px rgba(0,0,0,0.28),
+        0 0 0 1px rgba(125,95,255,0.10);
+      background:
+        linear-gradient(180deg, rgba(125,95,255,0.08), rgba(255,255,255,0.018)),
+        rgba(18,23,35,0.90);
+    }
+
+    .usecase-link-card h2{
+      margin: 0 0 8px;
+      color: rgba(255,255,255,0.96);
+      font-size: 18px;
+      line-height: 1.25;
+      letter-spacing: -0.025em;
+    }
+
+    .usecase-link-card p{
+      margin: 0;
+      color: rgba(232,237,245,0.68);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .usecase-link-card .card-arrow{
+      display: inline-flex;
+      margin-top: 14px;
+      color: rgba(110,231,249,0.94);
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .hub-explainer{
+      max-width: 780px;
+      margin: 26px auto 0;
+      padding: 22px;
+      border-radius: 22px;
+      text-align: center;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015)),
+        rgba(18,23,35,0.72);
+      border: 1px solid rgba(255,255,255,0.09);
+    }
+
+    .hub-explainer p{
+      margin: 0;
+      color: rgba(232,237,245,0.74);
+      font-size: 15.5px;
+      line-height: 1.7;
+    }
+
+    .hub-cta{
+      margin: 24px auto 0;
+      padding: 28px;
+      max-width: 780px;
+      border-radius: 26px;
+      text-align: center;
+      background:
+        radial-gradient(circle at top left, rgba(110,231,249,0.16), transparent 38%),
+        radial-gradient(circle at bottom right, rgba(139,92,246,0.18), transparent 38%),
+        rgba(18,23,35,0.92);
+      border: 1px solid rgba(255,255,255,0.10);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.30);
+    }
+
+    .hub-cta h2{
+      margin: 0 0 10px;
+      color: rgba(255,255,255,0.98);
+      font-size: 26px;
+      line-height: 1.2;
+      letter-spacing: -0.035em;
+    }
+
+    .hub-cta p{
+      max-width: 520px;
+      margin: 0 auto 18px;
+      color: rgba(232,237,245,0.76);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .hub-cta .btn{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0 22px;
+      border-radius: 999px;
+      text-decoration: none;
+    }
+
+    .hub-footer{
+      margin: 32px 0 0;
+      text-align: center;
+      color: rgba(232,237,245,0.52);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .hub-footer a{
+      color: rgba(110,231,249,0.9);
+      text-decoration: none;
+    }
+
+    .hub-footer a:hover{
+      text-decoration: underline;
+    }
+
+    @media (max-width: 900px){
+      .usecase-grid{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px){
+      .hub-brand{
+        top: 10px;
+        left: 12px;
+      }
+
+      .hub-brand img{
+        width: 40px;
+        height: 40px;
+      }
+
+      .hub-brand span{
+        font-size: 18px;
+      }
+
+      .hub-page{
+        padding: 82px 16px 42px;
+      }
+
+      .hub-hero{
+        text-align: left;
+        margin-bottom: 24px;
+      }
+
+      .hub-hero h1{
+        font-size: 38px;
+        line-height: 1.06;
+      }
+
+      .hub-hero p{
+        font-size: 15.5px;
+        line-height: 1.65;
+      }
+
+      .usecase-grid{
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .usecase-link-card{
+        min-height: auto;
+        padding: 16px;
+        border-radius: 20px;
+      }
+
+      .usecase-link-card h2{
+        font-size: 17px;
+      }
+
+      .hub-explainer{
+        padding: 18px;
+        text-align: left;
+      }
+
+      .hub-cta{
+        padding: 22px 18px;
+        border-radius: 22px;
+      }
+
+      .hub-cta h2{
+        font-size: 22px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <a class="hub-brand" href="index.html" aria-label="Back to TempQR homepage">
+    <img src="TempQRlogo.svg" alt="" width="50" height="50" />
+    <span>TempQR</span>
+  </a>
+
+  <main class="hub-page">
+    <header class="hub-hero">
+      <div class="hub-kicker">Use Cases</div>
+      <h1>Ways to use TempQR</h1>
+      <p>
+        Explore real use cases for expiring links and QR codes — from client work to private sharing.
+      </p>
+    </header>
+
+    <section class="usecase-grid" aria-label="TempQR use cases">
+      <a class="usecase-link-card" href="client-work.html">
+        <h2>Client Work</h2>
+        <p>Send work that expires after delivery.</p>
+        <span class="card-arrow">Read guide →</span>
+      </a>
+
+      <a class="usecase-link-card" href="forms-applications.html">
+        <h2>Forms &amp; Applications</h2>
+        <p>Set deadlines with expiring links.</p>
+        <span class="card-arrow">Read guide →</span>
+      </a>
+
+      <a class="usecase-link-card" href="private-sharing.html">
+        <h2>Private Sharing</h2>
+        <p>Keep personal links temporary.</p>
+        <span class="card-arrow">Read guide →</span>
+      </a>
+
+      <a class="usecase-link-card" href="documents.html">
+        <h2>Documents</h2>
+        <p>Control access to shared files.</p>
+        <span class="card-arrow">Read guide →</span>
+      </a>
+
+      <a class="usecase-link-card" href="events-qr-codes.html">
+        <h2>Events &amp; QR Codes</h2>
+        <p>QR that stops after the event.</p>
+        <span class="card-arrow">Read guide →</span>
+      </a>
+
+      <a class="usecase-link-card" href="promotions.html">
+        <h2>Promotions</h2>
+        <p>Time-limited links for offers.</p>
+        <span class="card-arrow">Read guide →</span>
+      </a>
+
+      <a class="usecase-link-card" href="job-applications.html">
+        <h2>Job Applications</h2>
+        <p>Share CVs with expiring access.</p>
+        <span class="card-arrow">Read guide →</span>
+      </a>
+
+      <a class="usecase-link-card" href="family-photos.html">
+        <h2>Family Photos</h2>
+        <p>Private sharing that doesn’t last forever.</p>
+        <span class="card-arrow">Read guide →</span>
+      </a>
+
+      <a class="usecase-link-card" href="real-estate.html">
+        <h2>Real Estate</h2>
+        <p>Keep listings up to date.</p>
+        <span class="card-arrow">Read guide →</span>
+      </a>
+    </section>
+
+    <section class="hub-explainer" aria-label="About TempQR use cases">
+      <p>
+        TempQR lets you create links and QR codes that expire automatically.
+        These use cases show how people use it in real situations.
+      </p>
+    </section>
+
+    <section class="hub-cta">
+      <h2>Create your expiring link</h2>
+      <p>
+        Paste any link, set an expiration time, and get a temporary link plus QR code.
+      </p>
+      <a class="btn btn-primary" href="https://tempqr.com/">Create Expiring Link</a>
+    </section>
+
+    <footer class="hub-footer">
+      <p>
+        © TempQR · <a href="index.html">Home</a> · <a href="faq.html">FAQ</a> · <a href="privacy.html">Privacy</a>
+      </p>
+    </footer>
+  </main>
+</body>
+</html>
