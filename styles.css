@@ -30,10 +30,8 @@ a:hover { text-decoration: underline; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: calc(1rem + 10px) 2rem 1rem;
-  background:
-    linear-gradient(90deg, var(--accent1), var(--accent2)) top/100% 10px no-repeat,
-    var(--card);
+  padding: 1rem 2rem;
+  background: var(--card);
   border-bottom: 1px solid var(--border);
 }
 
@@ -344,7 +342,7 @@ section.card:not(#resultCard) .button-group .btn {
   .button-group { flex-wrap: wrap; }
 
   .navbar {
-    padding: calc(0.9rem + 10px) 1rem 0.9rem;
+    padding: 0.9rem 1rem;
   }
 
   .nav-links {
