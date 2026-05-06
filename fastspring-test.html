@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FastSpring TempQR Test</title>
+
+  <script
+    id="fsc-api"
+    src="https://sbl.onfastspring.com/sbl/1.0.7/fastspring-builder.min.js"
+    type="text/javascript"
+    data-storefront="cleansharelink.test.onfastspring.com/popup-tempqr">
+  </script>
+
+  <style>
+    body{
+      background:#0b0e13;
+      color:white;
+      font-family:Arial, sans-serif;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      gap:20px;
+    }
+
+    button{
+      padding:16px 28px;
+      border:0;
+      border-radius:999px;
+      background:#6ee7f9;
+      color:#071018;
+      font-size:18px;
+      font-weight:700;
+      cursor:pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>FastSpring TempQR Test</h1>
+  <p>This should open TempQR Pro Unlock only.</p>
+
+  <button
+    data-fsc-item-path-value="TEMPQR-PRO"
+    data-fsc-action="Add,Checkout">
+    Buy TempQR Pro Unlock
+  </button>
+</body>
+</html>
