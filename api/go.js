@@ -215,18 +215,223 @@ export default async function handler(req) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Link expired</title>
+  <title>This TempQR link has expired</title>
   <meta name="robots" content="noindex,nofollow">
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:40px;background:#0b0b0f;color:#e6e6f0}
-    a{color:#7aa7ff}
-    .ad{margin-top:28px;display:flex;justify-content:center}
+    :root{
+      --bg:#080b12;
+      --card:#111827;
+      --card2:#0f172a;
+      --text:#eef4ff;
+      --muted:#aab6cc;
+      --soft:#7aa7ff;
+      --line:rgba(255,255,255,.10);
+      --glow:rgba(122,167,255,.26);
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(79,70,229,.22), transparent 32%),
+        radial-gradient(circle at 84% 14%, rgba(14,165,233,.16), transparent 30%),
+        linear-gradient(180deg,#080b12 0%,#0b1020 100%);
+      color:var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px 18px;
+    }
+
+    .wrap{
+      width:100%;
+      max-width:720px;
+      text-align:center;
+    }
+
+    .brand{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:22px;
+      color:var(--text);
+      text-decoration:none;
+      font-weight:800;
+      letter-spacing:-.03em;
+      font-size:22px;
+    }
+
+    .brand-mark{
+      width:34px;
+      height:34px;
+      border-radius:10px;
+      display:grid;
+      place-items:center;
+      background:linear-gradient(135deg,#60a5fa,#7c3aed);
+      box-shadow:0 12px 34px rgba(96,165,250,.25);
+      font-size:18px;
+    }
+
+    .card{
+      position:relative;
+      overflow:hidden;
+      border:1px solid var(--line);
+      background:
+        linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.025)),
+        linear-gradient(135deg,var(--card),var(--card2));
+      border-radius:28px;
+      padding:42px 30px;
+      box-shadow:
+        0 24px 80px rgba(0,0,0,.38),
+        0 0 0 1px rgba(255,255,255,.03) inset;
+    }
+
+    .card:before{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(122,167,255,.22), transparent 42%);
+      pointer-events:none;
+    }
+
+    .content{
+      position:relative;
+      z-index:1;
+    }
+
+    .status{
+      width:74px;
+      height:74px;
+      border-radius:24px;
+      margin:0 auto 22px;
+      display:grid;
+      place-items:center;
+      background:rgba(248,113,113,.10);
+      border:1px solid rgba(248,113,113,.22);
+      color:#fecaca;
+      box-shadow:0 18px 48px rgba(248,113,113,.08);
+      font-size:34px;
+      line-height:1;
+    }
+
+    h1{
+      margin:0 0 12px;
+      font-size:clamp(34px,7vw,58px);
+      line-height:.98;
+      letter-spacing:-.06em;
+      font-weight:900;
+    }
+
+    .lead{
+      margin:0 auto;
+      max-width:560px;
+      color:var(--muted);
+      font-size:clamp(17px,3.5vw,20px);
+      line-height:1.62;
+    }
+
+    .note{
+      margin:24px auto 0;
+      max-width:540px;
+      padding:16px 18px;
+      border-radius:18px;
+      border:1px solid rgba(122,167,255,.16);
+      background:rgba(122,167,255,.07);
+      color:#d9e6ff;
+      font-size:15px;
+      line-height:1.55;
+    }
+
+    .actions{
+      display:flex;
+      justify-content:center;
+      flex-wrap:wrap;
+      gap:12px;
+      margin-top:30px;
+    }
+
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:48px;
+      padding:0 18px;
+      border-radius:999px;
+      text-decoration:none;
+      font-weight:800;
+      letter-spacing:-.01em;
+      transition:transform .15s ease, border-color .15s ease, background .15s ease;
+    }
+
+    .btn-primary{
+      color:#07111f;
+      background:linear-gradient(135deg,#93c5fd,#c4b5fd);
+      box-shadow:0 16px 45px var(--glow);
+    }
+
+    .btn-secondary{
+      color:var(--text);
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.05);
+    }
+
+    .btn:hover{
+      transform:translateY(-1px);
+    }
+
+    .foot{
+      margin-top:18px;
+      color:rgba(238,244,255,.52);
+      font-size:13px;
+      line-height:1.5;
+    }
+
+    @media (max-width:520px){
+      body{padding:22px 14px}
+      .card{border-radius:24px;padding:34px 22px}
+      .status{width:64px;height:64px;border-radius:20px;font-size:30px}
+      .actions{display:grid;grid-template-columns:1fr}
+      .btn{width:100%}
+    }
   </style>
 </head>
 <body>
-  <h1>Link expired</h1>
-  <p>This link is no longer available.</p>
+  <main class="wrap">
+    <a class="brand" href="${escapeHtml(origin)}" aria-label="TempQR home">
+      <span class="brand-mark">⌛</span>
+      <span>TempQR</span>
+    </a>
 
+    <section class="card">
+      <div class="content">
+        <div class="status" aria-hidden="true">!</div>
+
+        <h1>Expired</h1>
+
+        <p class="lead">
+          This TempQR link has expired and is no longer available.
+        </p>
+
+        <div class="note">
+          The owner set this link to stop working after a limited time.
+          This helps prevent old links from staying accessible forever.
+        </div>
+
+        <div class="actions">
+          <a class="btn btn-primary" href="${escapeHtml(origin)}">Create your own expiring link</a>
+          <a class="btn btn-secondary" href="${escapeHtml(origin)}/use-cases.html">See common use cases</a>
+        </div>
+
+        <p class="foot">
+          TempQR creates temporary links and QR codes that stop working after the time you choose.
+        </p>
+      </div>
+    </section>
+  </main>
 </body>
 </html>`;
     return new Response(html, {
@@ -236,58 +441,58 @@ export default async function handler(req) {
   }
 
   // === R2 private file/text handling (no harmful check, no OG meta redirect to non-http) ===
-if (typeof dest === "string" && dest.startsWith("file:")) {
-  // supports BOTH:
-  // - short: file:files/<key>
-  // - legacy: file:files/<key>|<encName>|<encContentType>
-  const rest = dest.slice("file:".length);
-  const parts = rest.split("|");
+  if (typeof dest === "string" && dest.startsWith("file:")) {
+    // supports BOTH:
+    // - short: file:files/<key>
+    // - legacy: file:files/<key>|<encName>|<encContentType>
+    const rest = dest.slice("file:".length);
+    const parts = rest.split("|");
 
-  const key = parts[0]; // e.g. files/abc123.jpg
-  let name = parts[1] ? decodeURIComponent(parts[1]) : "";
-  let ct = parts[2] ? decodeURIComponent(parts[2]) : "";
+    const key = parts[0]; // e.g. files/abc123.jpg
+    let name = parts[1] ? decodeURIComponent(parts[1]) : "";
+    let ct = parts[2] ? decodeURIComponent(parts[2]) : "";
 
-  // If short format (no name/ct), derive from key
-  if (!name) {
-    const base = String(key).split("/").pop() || "file";
-    name = base; // e.g. "abc123.jpg"
+    // If short format (no name/ct), derive from key
+    if (!name) {
+      const base = String(key).split("/").pop() || "file";
+      name = base; // e.g. "abc123.jpg"
+    }
+    if (!ct) {
+      const ext = (name.split(".").pop() || "").toLowerCase();
+      const mime =
+        ext === "jpg" || ext === "jpeg" ? "image/jpeg" :
+        ext === "png" ? "image/png" :
+        ext === "gif" ? "image/gif" :
+        ext === "webp" ? "image/webp" :
+        ext === "svg" ? "image/svg+xml" :
+        ext === "pdf" ? "application/pdf" :
+        ext === "txt" ? "text/plain" :
+        ext === "mp4" ? "video/mp4" :
+        ext === "mov" ? "video/quicktime" :
+        ext === "mp3" ? "audio/mpeg" :
+        ext === "wav" ? "audio/wav" :
+        "application/octet-stream";
+      ct = mime;
+    }
+
+    const to = new URL(
+      `/api/r2-get?key=${encodeURIComponent(key)}&name=${encodeURIComponent(name)}&ct=${encodeURIComponent(ct)}`,
+      origin
+    );
+    return Response.redirect(to.toString(), 302);
   }
-  if (!ct) {
-    const ext = (name.split(".").pop() || "").toLowerCase();
-    const mime =
-      ext === "jpg" || ext === "jpeg" ? "image/jpeg" :
-      ext === "png" ? "image/png" :
-      ext === "gif" ? "image/gif" :
-      ext === "webp" ? "image/webp" :
-      ext === "svg" ? "image/svg+xml" :
-      ext === "pdf" ? "application/pdf" :
-      ext === "txt" ? "text/plain" :
-      ext === "mp4" ? "video/mp4" :
-      ext === "mov" ? "video/quicktime" :
-      ext === "mp3" ? "audio/mpeg" :
-      ext === "wav" ? "audio/wav" :
-      "application/octet-stream";
-    ct = mime;
+
+  if (typeof dest === "string" && dest.startsWith("text:")) {
+    // format: text:texts/<key>
+    const key = dest.slice("text:".length);
+
+    const to = new URL(
+      `/api/r2-get?key=${encodeURIComponent(key)}&name=${encodeURIComponent("message.txt")}&ct=${encodeURIComponent("text/plain")}&inline=1`,
+      origin
+    );
+    return Response.redirect(to.toString(), 302);
   }
-
-  const to = new URL(
-    `/api/r2-get?key=${encodeURIComponent(key)}&name=${encodeURIComponent(name)}&ct=${encodeURIComponent(ct)}`,
-    origin
-  );
-  return Response.redirect(to.toString(), 302);
-}
-
-if (typeof dest === "string" && dest.startsWith("text:")) {
-  // format: text:texts/<key>
-  const key = dest.slice("text:".length);
-
-  const to = new URL(
-    `/api/r2-get?key=${encodeURIComponent(key)}&name=${encodeURIComponent("message.txt")}&ct=${encodeURIComponent("text/plain")}&inline=1`,
-    origin
-  );
-  return Response.redirect(to.toString(), 302);
-}
-// === end R2 handling ===
+  // === end R2 handling ===
 
   // Harmful re-check BEFORE any redirect
   if (isHarmfulUrl(dest)) {
@@ -321,7 +526,7 @@ if (typeof dest === "string" && dest.startsWith("text:")) {
     });
   }
 
-    await trackOpenedEvent(url.origin, {
+  await trackOpenedEvent(url.origin, {
     event_type: "link_opened",
     page: url.pathname || "/go",
     link_id: id,
