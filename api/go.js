@@ -246,33 +246,60 @@ export default async function handler(req) {
       padding:28px 18px;
     }
 
+        .expired-brand-badge{
+      position:fixed;
+      top:10px;
+      left:12px;
+      z-index:10;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      text-decoration:none;
+      color:rgba(255,255,255,.95);
+    }
+
+    .expired-brand-icon img{
+      width:44px;
+      height:44px;
+      display:block;
+      border-radius:8px;
+    }
+
+    .expired-brand-name{
+      font-size:18px;
+      font-weight:700;
+      line-height:1;
+      margin:0;
+      color:rgba(255,255,255,.95);
+    }
+
+    @media (min-width:561px){
+      .expired-brand-name{
+        font-size:20px;
+      }
+
+      .expired-brand-icon img{
+        width:50px;
+        height:50px;
+      }
+    }
+
+    @media (max-width:560px){
+      .expired-brand-badge{
+        top:8px;
+        left:10px;
+      }
+
+      .expired-brand-icon img{
+        width:40px;
+        height:40px;
+      }
+    }
+
     .wrap{
       width:100%;
       max-width:720px;
       text-align:center;
-    }
-
-    .brand{
-      display:inline-flex;
-      align-items:center;
-      gap:10px;
-      margin-bottom:22px;
-      color:var(--text);
-      text-decoration:none;
-      font-weight:800;
-      letter-spacing:-.03em;
-      font-size:22px;
-    }
-
-    .brand-mark{
-      width:34px;
-      height:34px;
-      border-radius:10px;
-      display:grid;
-      place-items:center;
-      background:linear-gradient(135deg,#60a5fa,#7c3aed);
-      box-shadow:0 12px 34px rgba(96,165,250,.25);
-      font-size:18px;
     }
 
     .card{
@@ -400,12 +427,14 @@ export default async function handler(req) {
   </style>
 </head>
 <body>
-  <main class="wrap">
-    <a class="brand" href="${escapeHtml(origin)}" aria-label="TempQR home">
-      <span class="brand-mark">⌛</span>
-      <span>TempQR</span>
-    </a>
+  <a class="expired-brand-badge" href="${escapeHtml(origin)}" aria-label="TempQR home">
+    <span class="expired-brand-icon" aria-hidden="true">
+      <img src="${escapeHtml(origin)}/TempQRlogo.svg" alt="" width="44" height="44">
+    </span>
+    <span class="expired-brand-name">TempQR</span>
+  </a>
 
+  <main class="wrap">
     <section class="card">
       <div class="content">
         <div class="status" aria-hidden="true">!</div>
