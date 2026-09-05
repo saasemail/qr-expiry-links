@@ -1,6 +1,7 @@
 // api/create.js — free, pro token ili pro preko user_id (JWT)
 
 import { createHmac } from "node:crypto";
+import { randomBytes } from "node:crypto";
 
 async function trackAnalyticsEvent(payload) {
   try {
@@ -58,6 +59,10 @@ function sign(payload, secret) {
 function signShort(payload, secret, bytes = 12) {
   const full = createHmac("sha256", secret).update(payload, "utf8").digest();
   return b64url(full.subarray(0, bytes));
+}
+
+function generateToken() {
+  return randomBytes(8).toString("base64url").slice(0, 12);
 }
 
 // v2 payload (compact, binary):
@@ -415,11 +420,25 @@ if ((isFile || isText) && !devBypass) {
     // payload = base64url([v=2][expirySeconds][url])
     // sig = base64url(HMAC(payload)) truncated to 12 bytes
     const expirySeconds = Math.floor(Date.now() / 1000) + Math.floor(allowed * 60);
-    const payloadB64 = makeV2PayloadB64(url, expirySeconds);
-    const sig = signShort(payloadB64, SIGNING_SECRET, 12);
-    const id = `${payloadB64}.${sig}`;
-
     const expiresAt = new Date(expirySeconds * 1000).toISOString();
+
+    const token = generateToken();
+
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return res.status(500).send("Server not configured");
+
+    const { createClient } = await import("@supabase/supabase-js");
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+
+    const { error: insertError } = await supabase
+      .from("links")
+      .insert([{ token, url, expires_at: expiresAt }]);
+
+    if (insertError) {
+      console.error("[create] insert error:", insertError);
+      return res.status(500).send("DB error");
+    }
 
 await trackAnalyticsEvent({
   event_type: "link_created",
@@ -432,7 +451,7 @@ await trackAnalyticsEvent({
 });
 
 res.setHeader("Content-Type", "application/json");
-return res.status(200).json({ id, expires_at: expiresAt, plan, tier, minutes: allowed });
+return res.status(200).json({ id: token, expires_at: expiresAt, plan, tier, minutes: allowed });
 } catch (e) {
   console.error("[create] ERROR:", e?.message || e);
   return res.status(500).send("Internal Server Error");

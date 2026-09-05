@@ -171,45 +171,38 @@ function isHarmfulUrl(urlStr) {
 
 export default async function handler(req) {
   const url = new URL(req.url);
-  const id = url.searchParams.get("id") || "";
-  const [payloadB64, sig] = id.split(".");
-  if (!payloadB64 || !sig) {
+  const token = url.searchParams.get("id") || "";
+
+  if (!token) {
     return new Response("Invalid link", { status: 400 });
   }
 
-  const secret = process.env.SIGNING_SECRET;
-  if (!secret) {
+  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return new Response("Server misconfigured", { status: 500 });
   }
 
-  // Accept both:
-  // - v2 short tag (12 bytes => 16 chars b64url)
-  // - legacy full tag (32 bytes => 43 chars b64url)
-  const expectedShort = await hmacB64url(payloadB64, secret, 12);
-  if (sig !== expectedShort) {
-    const expectedFull = await hmacB64url(payloadB64, secret, null);
-    if (sig !== expectedFull) return new Response("Invalid link", { status: 400 });
+  const { createClient } = await import("@supabase/supabase-js");
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+
+  const { data: link, error } = await supabase
+    .from("links")
+    .select("url, expires_at")
+    .eq("token", token)
+    .maybeSingle();
+
+  if (error || !link) {
+    return new Response("Invalid link", { status: 400 });
   }
 
-  let payloadBytes;
-  try {
-    payloadBytes = b64urlToBytes(payloadB64);
-  } catch {
-    return new Response("Bad payload", {
-      status: 400
-    });
-  }
-
-  const p2 = parseV2Payload(payloadBytes);
-  const p1 = p2 ? null : parseV1Payload(payloadBytes);
-  const payload = p2 || p1;
-
-  if (!payload?.u || !payload?.eMs) return new Response("Bad payload", { status: 400 });
-  const dest = payload.u; // original destination or our file/text reference
+  const dest = link.url;
   const origin = url.origin;
 
+  // 
+
   // expired
-  if (Date.now() > payload.eMs) {
+  if (Date.now() > new Date(link.expires_at).getTime()){
     const html = `<!doctype html>
 <html lang="en">
 <head>
