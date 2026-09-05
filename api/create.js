@@ -449,7 +449,7 @@ if ((isFile || isText) && !devBypass) {
 await trackAnalyticsEvent({
   event_type: "link_created",
   page: "/api/create",
-  link_id: id,
+  link_id: token,
   content_kind: isFile ? "file" : isText ? "text" : "url",
   referrer: req.headers.referer || "",
   user_agent: req.headers["user-agent"] || "",
