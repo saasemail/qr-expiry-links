@@ -551,14 +551,14 @@ export default async function handler(req) {
   await trackOpenedEvent(url.origin, {
     event_type: "link_opened",
     page: url.pathname || "/go",
-    link_id: id,
+    link_id: token,
     content_kind: "url",
-    referrer: req.headers.get("referer") || "",
-    user_agent: req.headers.get("user-agent") || ""
+    referrer: url.searchParams.get("referer") || "",
+    user_agent: url.searchParams.get("user-agent") || ""
   });
 
-  const pageUrl = `${url.origin}/go/${encodeURIComponent(id)}`;
-  const qrUrl = `${url.origin}/api/qr?id=${encodeURIComponent(id)}`;
+  const pageUrl = `${url.origin}/go/${encodeURIComponent(token)}`;
+  const qrUrl = `${url.origin}/api/qr?id=${encodeURIComponent(token)}`;
   const title = "TempQR — Scan before it expires";
   const desc = "Scan the QR code or open the link before it expires.";
 
