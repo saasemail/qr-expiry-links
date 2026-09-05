@@ -1,7 +1,6 @@
 // api/create.js — free, pro token ili pro preko user_id (JWT)
 
 import { createHmac } from "node:crypto";
-import { randomBytes } from "node:crypto";
 
 async function trackAnalyticsEvent(payload) {
   try {
@@ -25,6 +24,8 @@ async function trackAnalyticsEvent(payload) {
     console.error("[create] analytics track failed:", err?.message || err);
   }
 }
+export const config = { runtime: "nodejs" };
+
 
 // Robustan reader: koristi req.body ako ga Vercel već parsira; u suprotnom čita raw stream.
 async function readJSONBody(req) {
@@ -62,7 +63,12 @@ function signShort(payload, secret, bytes = 12) {
 }
 
 function generateToken() {
-  return randomBytes(8).toString("base64url").slice(0, 12);
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 12);
 }
 
 // v2 payload (compact, binary):
