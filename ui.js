@@ -172,10 +172,20 @@ function setLoading(state) {
 
 function formatCountdown(ms) {
   ms = Math.max(0, ms | 0);
-  const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${m}m ${sec}s`;
+  const totalSeconds = Math.floor(ms / 1000);
+  
+  const days = Math.floor(totalSeconds / (3600 * 24));
+  const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const parts = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0 || days > 0) parts.push(`${hours}h`);
+  if (minutes > 0 || hours > 0 || days > 0) parts.push(`${minutes}m`);
+  parts.push(`${seconds}s`);
+
+  return parts.join(" ");
 }
 
 function setDownloadButtonsEnabled(enabled) {
@@ -613,8 +623,8 @@ async function restoreLastResultIfAny() {
   await renderQr(st.redirectUrl);
 
   const endLocal = new Date(st.expiresAt);
-  if (st.minutes && Number.isFinite(st.minutes)) {
-    expiryHint.textContent = `Expires in ${st.minutes} min • Until ${endLocal.toLocaleString()}`;
+    if (st.minutes && Number.isFinite(st.minutes)) {
+    expiryHint.textContent = `Expires in ${formatDurationText(st.minutes)} • Until ${endLocal.toLocaleString()}`;
   } else {
     expiryHint.textContent = `Until ${endLocal.toLocaleString()}`;
   }
@@ -956,7 +966,7 @@ function resetToInitialState() {
       await renderQr(redirectUrl);
 
       const endLocal = new Date(created.expires_at);
-      expiryHint.textContent = `Expires in ${created.minutes} min • Until ${endLocal.toLocaleString()}`;
+      expiryHint.textContent = `Expires in ${formatDurationText(created.minutes)} • Until ${endLocal.toLocaleString()}`;
 
       saveLastState({ redirectUrl, expiresAt: created.expires_at, minutes: created.minutes });
 
