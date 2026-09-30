@@ -17,6 +17,17 @@ async function trackOpenedEvent(origin, payload) {
   }
 }
 
+function isBot(req) {
+  const ua = String(req.headers.get("user-agent") || "").toLowerCase();
+  const bots = [
+    "facebookexternalhit", "twitterbot", "whatsapp", "telegrambot", 
+    "slackbot", "discordbot", "linkedinbot", "googlebot", "bingbot", 
+    "pinterest", "skype", "embedly", "quora link preview", "outbrain", 
+    "vkshare", "w3c_validator", "redditbot", "applebot", "yahoo! slurp"
+  ];
+  return bots.some(bot => ua.includes(bot));
+}
+
 function b64urlToBytes(b64u) {
   const s = b64u.replace(/-/g, "+").replace(/_/g, "/");
   const pad = s.length % 4 ? "=".repeat(4 - (s.length % 4)) : "";
@@ -548,73 +559,53 @@ export default async function handler(req) {
     });
   }
 
-  await trackOpenedEvent(url.origin, {
+    trackOpenedEvent(url.origin, {
     event_type: "link_opened",
     page: url.pathname || "/go",
     link_id: token,
     content_kind: "url",
     referrer: url.searchParams.get("referer") || "",
     user_agent: url.searchParams.get("user-agent") || ""
-  });
+  }).catch(() => {});
 
-  const pageUrl = `${url.origin}/go/${encodeURIComponent(token)}`;
-  const qrUrl = `${url.origin}/api/qr?id=${encodeURIComponent(token)}`;
-  const title = "TempQR — Scan before it expires";
-  const desc = "Scan the QR code or open the link before it expires.";
+    // Ako je bot, vrati HTML sa OG tagovima za pregled linka (Facebook, WhatsApp, itd.)
+  if (isBot(req)) {
+    const pageUrl = `${url.origin}/go/${encodeURIComponent(token)}`;
+    const qrUrl = `${url.origin}/api/qr?id=${encodeURIComponent(token)}`;
+    const title = "TempQR — Scan before it expires";
+    const desc = "Scan the QR code or open the link before it expires.";
 
-  // ALWAYS return HTML with OG tags.
-  // Real users get redirected via meta refresh + JS.
-  const html = `<!doctype html>
+    const html = `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>${escapeHtml(title)}</title>
-
   <meta property="og:type" content="website">
   <meta property="og:title" content="${escapeHtml(title)}">
   <meta property="og:description" content="${escapeHtml(desc)}">
   <meta property="og:image" content="${escapeHtml(qrUrl)}">
   <meta property="og:url" content="${escapeHtml(pageUrl)}">
-
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${escapeHtml(title)}">
   <meta name="twitter:description" content="${escapeHtml(desc)}">
   <meta name="twitter:image" content="${escapeHtml(qrUrl)}">
   <meta name="twitter:url" content="${escapeHtml(pageUrl)}">
-
   <meta http-equiv="refresh" content="0;url=${escapeHtml(dest)}">
-
-  <script>
-    // Fallback JS redirect for clients that ignore meta refresh
-    try { window.location.replace(${JSON.stringify(dest)}); } catch (e) {}
-  </script>
-
-  <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:24px;background:#0b0b0f;color:#e6e6f0}
-    a{color:#7aa7ff;word-break:break-all}
-    .wrap{max-width:520px}
-    .qr{margin-top:12px;border-radius:16px;background:#fff;display:inline-block;padding:10px}
-  </style>
+  <script>try { window.location.replace(${JSON.stringify(dest)}); } catch (e) {}</script>
 </head>
 <body>
-  <div class="wrap">
-    <p><a href="${escapeHtml(dest)}">${escapeHtml(pageUrl)}</a></p>
-    <div class="qr">
-      <img src="${escapeHtml(qrUrl)}" alt="QR code" width="256" height="256">
-    </div>
-    <noscript>
-      <p><a href="${escapeHtml(dest)}">Open destination</a></p>
-    </noscript>
-  </div>
+  <p><a href="${escapeHtml(dest)}">${escapeHtml(pageUrl)}</a></p>
+  <div class="qr"><img src="${escapeHtml(qrUrl)}" alt="QR code" width="256" height="256"></div>
 </body>
 </html>`;
 
-  return new Response(html, {
-    status: 200,
-    headers: {
-      "content-type": "text/html; charset=utf-8",
-      "cache-control": "no-store, max-age=0"
-    }
-  });
+    return new Response(html, {
+      status: 200,
+      headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store, max-age=0" }
+    });
+  }
+
+  // Ako je čovek (nije bot), odmah ga preusmeri (302) - mnogo brže!
+  return Response.redirect(dest, 302);
 }
