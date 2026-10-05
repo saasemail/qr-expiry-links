@@ -25,6 +25,20 @@ function safeText(value, max = 500) {
   return s.slice(0, max);
 }
 
+// Detekcija botova na osnovu User-Agent stringa
+function isBot(userAgent) {
+  if (!userAgent) return false;
+  const ua = userAgent.toLowerCase();
+  const bots = [
+    "bot", "crawler", "spider", "facebookexternalhit", "twitterbot",
+    "whatsapp", "telegrambot", "slackbot", "discordbot", "linkedinbot",
+    "googlebot", "bingbot", "pinterest", "skype", "embedly",
+    "quora link preview", "outbrain", "vkshare", "w3c_validator",
+    "redditbot", "applebot", "yahoo! slurp", "vercel edge functions"
+  ];
+  return bots.some(b => ua.includes(b));
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, error: "Method not allowed" });
@@ -44,6 +58,13 @@ export default async function handler(req, res) {
     const referrer = safeText(body.referrer || req.headers.referer, 500);
     const user_agent = safeText(req.headers["user-agent"], 500);
     const ip = safeText(getClientIp(req), 100);
+    
+    // NOVO: Izvlačimo target_url iz body-ja (ako postoji)
+    const target_url = safeText(body.target_url, 500);
+
+    // NOVO: Vercel automatski šalje zemlju i grad kroz zaglavlja
+    const country = safeText(req.headers["x-vercel-ip-country"], 10);
+    const city = safeText(req.headers["x-vercel-ip-city"], 100);
 
     if (!event_type) {
       return res.status(400).json({ ok: false, error: "Missing event_type" });
@@ -58,6 +79,11 @@ export default async function handler(req, res) {
         referrer,
         user_agent,
         ip,
+        // NOVA POLJA:
+        is_bot: isBot(user_agent),
+        country: country,
+        city: city,
+        target_url: target_url,
       },
     ]);
 

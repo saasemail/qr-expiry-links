@@ -564,8 +564,9 @@ export default async function handler(req) {
     page: url.pathname || "/go",
     link_id: token,
     content_kind: "url",
+    target_url: dest, // <-- DODATO: Originalni link
     referrer: url.searchParams.get("referer") || "",
-    user_agent: url.searchParams.get("user-agent") || ""
+    user_agent: req.headers.get("user-agent") || "" // <-- Ispravljeno: Pravi user agent
   }).catch(() => {});
 
     // Ako je bot, vrati HTML sa OG tagovima za pregled linka (Facebook, WhatsApp, itd.)

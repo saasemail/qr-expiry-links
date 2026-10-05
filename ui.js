@@ -930,7 +930,18 @@ function resetToInitialState() {
 
       urlInput.value = url;
 
-      const created = await createLink(url, minutes);
+            const created = await createLink(url, minutes);
+
+      // --- DODAJ OVO ---
+      trackEvent({
+        event_type: "link_created",
+        page: "/api/create",
+        link_id: created.id,
+        content_kind: "url",
+        target_url: url, // Ovo šalje originalni link
+        referrer: document.referrer || ""
+      });
+      // -----------------
 
       const redirectUrl = `${window.location.origin}/go/${created.id}`;
       lastRedirectUrl = redirectUrl;
