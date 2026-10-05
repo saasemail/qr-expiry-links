@@ -559,18 +559,22 @@ export default async function handler(req) {
     });
   }
 
-    trackOpenedEvent(url.origin, {
-    event_type: "link_opened",
-    page: url.pathname || "/go",
-    link_id: token,
-    content_kind: "url",
-    target_url: dest, // <-- DODATO: Originalni link
-    referrer: url.searchParams.get("referer") || "",
-    user_agent: req.headers.get("user-agent") || "" // <-- Ispravljeno: Pravi user agent
-  }).catch(() => {});
+        // Ako NIJE bot, zabeleži otvaranje
+    if (!isBot(req)) {
+      trackOpenedEvent(url.origin, {
+        event_type: "link_opened",
+        page: url.pathname || "/go",
+        link_id: token,
+        content_kind: "url",
+        target_url: dest,
+        referrer: url.searchParams.get("referer") || "",
+        user_agent: req.headers.get("user-agent") || ""
+      }).catch(() => {});
+    }
 
     // Ako je bot, vrati HTML sa OG tagovima za pregled linka (Facebook, WhatsApp, itd.)
-  if (isBot(req)) {
+    if (isBot(req)) {
+
     const pageUrl = `${url.origin}/go/${encodeURIComponent(token)}`;
     const qrUrl = `${url.origin}/api/qr?id=${encodeURIComponent(token)}`;
     const title = "TempQR — Scan before it expires";
