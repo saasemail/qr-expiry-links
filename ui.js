@@ -593,20 +593,19 @@ async function toggleCustomUI() {
   }
 }
 
-  async function checkProEmail() {
+    async function checkProEmail() {
   
-  // Resetuj overlay na normalno stanje (za slučaj da je bio "no credits" prikaz)
-  const overlay = document.getElementById("proLockOverlay");
-  const title = overlay?.querySelector("h3");
-  const para = overlay?.querySelector("p");
+  // Resetuj overlay na normalno stanje
   const emailField = document.getElementById("proEmailInput");
   const checkBtn = document.getElementById("checkProBtn");
   const buyBtn = document.getElementById("buyNowBtn");
+  const emailSection = document.getElementById("emailSection");
+  const alreadyLink = document.getElementById("alreadyPurchasedLink");
 
-  if (title) title.textContent = "Unlock Custom Duration";
-  if (para) para.textContent = "Already purchased? Enter your email below to unlock it.";
   if (emailField) emailField.style.display = "";
   if (checkBtn) checkBtn.style.display = "";
+  if (emailSection) emailSection.style.display = "block";
+  if (alreadyLink) alreadyLink.style.display = "none";
 
   const emailInput = document.getElementById("proEmailInput");
   const errorMsg = document.getElementById("proErrorMsg");
@@ -995,6 +994,14 @@ async function resetToInitialState() {
   };
 
     document.getElementById("checkProBtn")?.addEventListener("click", checkProEmail);
+
+      // Prikaži email sekciju kada korisnik klikne "Already purchased?"
+  document.getElementById("alreadyPurchasedLink")?.addEventListener("click", () => {
+    const emailSection = document.getElementById("emailSection");
+    const link = document.getElementById("alreadyPurchasedLink");
+    if (emailSection) emailSection.style.display = "block";
+    if (link) link.style.display = "none";
+  });
   
     closeUnlockBtn?.addEventListener("click", () => {
     showProLock(false);
@@ -1004,12 +1011,11 @@ async function resetToInitialState() {
       expirySelect.value = "60";
     }
     
-    // Resetuj overlay na normalno stanje (sakrij Buy Now, vrati email polje)
-    const buyBtn = document.getElementById("buyNowBtn");
-    const emailField = document.getElementById("proEmailInput");
-    const checkBtn = document.getElementById("checkProBtn");
-    if (emailField) emailField.style.display = "";
-    if (checkBtn) checkBtn.style.display = "";
+    // Sakrij email sekciju i vrati "Already purchased?" link
+    const emailSection = document.getElementById("emailSection");
+    const alreadyLink = document.getElementById("alreadyPurchasedLink");
+    if (emailSection) emailSection.style.display = "none";
+    if (alreadyLink) alreadyLink.style.display = "";
     
     toggleCustomUI();
   });
