@@ -607,7 +607,6 @@ async function toggleCustomUI() {
   if (para) para.textContent = "Already purchased? Enter your email below to unlock it.";
   if (emailField) emailField.style.display = "";
   if (checkBtn) checkBtn.style.display = "";
-  if (buyBtn) buyBtn.style.display = "none";
 
   const emailInput = document.getElementById("proEmailInput");
   const errorMsg = document.getElementById("proErrorMsg");
@@ -1009,7 +1008,6 @@ async function resetToInitialState() {
     const buyBtn = document.getElementById("buyNowBtn");
     const emailField = document.getElementById("proEmailInput");
     const checkBtn = document.getElementById("checkProBtn");
-    if (buyBtn) buyBtn.style.display = "none";
     if (emailField) emailField.style.display = "";
     if (checkBtn) checkBtn.style.display = "";
     
