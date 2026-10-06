@@ -628,19 +628,34 @@ async function toggleCustomUI() {
     });
     const data = await res.json();
 
-        if (data.isPro) {
+          if (data.isPro) {
       localStorage.setItem(PRO_EMAIL_KEY, email);
       if (errorMsg) errorMsg.textContent = "";
       showProLock(false);
       
-      // Prikaži broj kredita
       const creditsHint = document.getElementById("creditsHint");
       if (creditsHint && data.credits != null) {
         creditsHint.textContent = `You have ${data.credits} custom link credit${data.credits === 1 ? "" : "s"} available.`;
       }
       
       await toggleCustomUI();
+    } else if (data.found) {
+      // Korisnik postoji, ali NEMA kredita -> prikaži Buy Now
+      if (errorMsg) errorMsg.textContent = "";
+      
+      const emailField = document.getElementById("proEmailInput");
+      const checkBtn = document.getElementById("checkProBtn");
+      const buyBtn = document.getElementById("buyNowBtn");
+      const title = document.querySelector("#proLockOverlay h3");
+      const para = document.querySelector("#proLockOverlay p");
+      
+      if (title) title.textContent = "You've used all your credits";
+      if (para) para.textContent = "Purchase again to create more custom links, or use the free 1-hour option.";
+      if (emailField) emailField.style.display = "none";
+      if (checkBtn) checkBtn.style.display = "none";
+      if (buyBtn) buyBtn.style.display = "block";
     } else {
+      // Korisnik ne postoji u bazi
       if (errorMsg) errorMsg.textContent = "No active purchase found for this email.";
     }
   } catch (err) {

@@ -27,12 +27,13 @@ export default async function handler(req, res) {
       return res.status(500).json({ isPro: false, error: "DB Error" });
     }
 
-    // Korisnik je Pro samo ako je aktivan I ima bar 1 kredit
+        // Korisnik je Pro samo ako je aktivan I ima bar 1 kredit
     const isPro = data?.is_active === true && (data?.credits || 0) > 0;
     
     return res.status(200).json({ 
       isPro, 
-      credits: data?.credits || 0 
+      credits: data?.credits || 0,
+      found: !!data  // <-- DODATO: da li korisnik uopšte postoji u bazi
     });
 
   } catch (error) {
