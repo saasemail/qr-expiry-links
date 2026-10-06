@@ -593,7 +593,22 @@ async function toggleCustomUI() {
   }
 }
 
-async function checkProEmail() {
+  async function checkProEmail() {
+  
+  // Resetuj overlay na normalno stanje (za slučaj da je bio "no credits" prikaz)
+  const overlay = document.getElementById("proLockOverlay");
+  const title = overlay?.querySelector("h3");
+  const para = overlay?.querySelector("p");
+  const emailField = document.getElementById("proEmailInput");
+  const checkBtn = document.getElementById("checkProBtn");
+  const buyBtn = document.getElementById("buyNowBtn");
+
+  if (title) title.textContent = "Unlock Custom Duration";
+  if (para) para.textContent = "Already purchased? Enter your email below to unlock it.";
+  if (emailField) emailField.style.display = "";
+  if (checkBtn) checkBtn.style.display = "";
+  if (buyBtn) buyBtn.style.display = "none";
+
   const emailInput = document.getElementById("proEmailInput");
   const errorMsg = document.getElementById("proErrorMsg");
   const email = emailInput?.value?.trim()?.toLowerCase();
@@ -967,19 +982,25 @@ async function resetToInitialState() {
 
     document.getElementById("checkProBtn")?.addEventListener("click", checkProEmail);
   
-  closeUnlockBtn?.addEventListener("click", () => {
+    closeUnlockBtn?.addEventListener("click", () => {
     showProLock(false);
+    
     // Resetuj na prethodnu vrednost ako je bio custom
     if (expirySelect.value === "custom") {
       expirySelect.value = "60";
     }
+    
+    // Resetuj overlay na normalno stanje (sakrij Buy Now, vrati email polje)
+    const buyBtn = document.getElementById("buyNowBtn");
+    const emailField = document.getElementById("proEmailInput");
+    const checkBtn = document.getElementById("checkProBtn");
+    if (buyBtn) buyBtn.style.display = "none";
+    if (emailField) emailField.style.display = "";
+    if (checkBtn) checkBtn.style.display = "";
+    
     toggleCustomUI();
   });
 
-  closeUnlockBtn?.addEventListener("click", () => {
-    showProLock(false);
-    toggleCustomUI();
-  });
 
   customDays?.addEventListener("input", onCustomChange);
   customHours?.addEventListener("input", onCustomChange);
@@ -1268,10 +1289,35 @@ if (resultHint) {
 
 alert("Unknown mode.");
 
-  } catch (err) {
+    } catch (err) {
     console.error("[ui] Create error:", err);
     showUploadProgress(false);
-    alert(err?.message || "Could not create link.");
+
+    // Ako je greška "No credits", otvori overlay sa porukom
+    const msg = err?.message || "";
+    if (msg.includes("No credits") || msg.includes("credits available")) {
+      // Obriši email iz localStorage jer nema više kredita
+      localStorage.removeItem(PRO_EMAIL_KEY);
+
+      // Prikaži overlay sa porukom
+      const overlay = document.getElementById("proLockOverlay");
+      const title = overlay?.querySelector("h3");
+      const desc = overlay?.querySelector("h4");
+      const para = overlay?.querySelector("p");
+      const emailField = document.getElementById("proEmailInput");
+      const checkBtn = document.getElementById("checkProBtn");
+
+      if (title) title.textContent = "You've used all your credits";
+      if (para) para.textContent = "Purchase again to create more custom links, or use the free 1-hour option.";
+      
+      // Sakrij polje za email jer ne vredi ga unositi
+      if (emailField) emailField.style.display = "none";
+      if (checkBtn) checkBtn.style.display = "none";
+
+      showProLock(true);
+    } else {
+      alert(msg || "Could not create link.");
+    }
   } finally {
     clearTimeout(safety);
     setLoading(false);
