@@ -1315,7 +1315,7 @@ if (resultHint) {
 
 alert("Unknown mode.");
 
-    } catch (err) {
+        } catch (err) {
     console.error("[ui] Create error:", err);
     showUploadProgress(false);
 
@@ -1326,19 +1326,23 @@ alert("Unknown mode.");
       localStorage.removeItem(PRO_EMAIL_KEY);
 
       // Prikaži overlay sa porukom
-      const overlay = document.getElementById("proLockOverlay");
-      const title = overlay?.querySelector("h3");
-      const desc = overlay?.querySelector("h4");
-      const para = overlay?.querySelector("p");
-      const emailField = document.getElementById("proEmailInput");
-      const checkBtn = document.getElementById("checkProBtn");
+      const title = document.getElementById("proOverlayTitle");
+      const desc = document.getElementById("proOverlayDesc");
+      const price = document.getElementById("proOverlayPrice");
+      const emailSection = document.getElementById("emailSection");
+      const alreadyLink = document.getElementById("alreadyPurchasedLink");
+      const buyBtn = document.getElementById("buyNowBtn");
 
       if (title) title.textContent = "You've used all your credits";
-      if (para) para.textContent = "Purchase again to create more custom links, or use the free 1-hour option.";
+      if (desc) desc.textContent = "Purchase again to create more custom links, or use the free 1-hour option.";
+      if (price) price.textContent = "$6.99 one-time = 1 custom link. No subscription.";
       
-      // Sakrij polje za email jer ne vredi ga unositi
-      if (emailField) emailField.style.display = "none";
-      if (checkBtn) checkBtn.style.display = "none";
+      // Sakrij email sekciju i "Already purchased?" link
+      if (emailSection) emailSection.style.display = "none";
+      if (alreadyLink) alreadyLink.style.display = "none";
+      
+      // Prikaži Buy Now dugme
+      if (buyBtn) buyBtn.style.display = "block";
 
       showProLock(true);
     } else {
