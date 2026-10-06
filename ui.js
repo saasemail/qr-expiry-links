@@ -539,19 +539,43 @@ function updateCustomHint() {
   customDurationHint.textContent = `Expires in ${formatDurationText(mins)}.`;
 }
 
-function toggleCustomUI() {
+async function toggleCustomUI() {
   if (!expirySelect || !customExpiryWrap) return;
 
   const isCustom = String(expirySelect.value) === "custom";
+  const email = getProEmail();
 
-  // Ako je izabrao Custom ali NIJE Pro -> prikaži overlay za unos email-a
-  if (isCustom && !isPro()) {
-    customExpiryWrap.classList.add("hidden");
-    showProLock(true);
-    return;
+  // Ako je izabrao Custom
+  if (isCustom) {
+    // Ako NEMA email u localStorage -> prikaži overlay
+    if (!email) {
+      customExpiryWrap.classList.add("hidden");
+      showProLock(true);
+      return;
+    }
+
+    // Ako IMA email, proveri na serveru da li još uvek ima kredita
+    try {
+      const res = await fetch("/api/check-pro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+
+      if (!data.isPro) {
+        // Nema više kredita -> obriši email i prikaži overlay
+        localStorage.removeItem(PRO_EMAIL_KEY);
+        customExpiryWrap.classList.add("hidden");
+        showProLock(true);
+        return;
+      }
+    } catch (err) {
+      console.error("Check failed:", err);
+    }
   }
 
-  // Ako je Pro ili nije izabrao Custom, sakrij overlay
+  // Ako je sve u redu, prikaži polja
   showProLock(false);
   customExpiryWrap.classList.toggle("hidden", !isCustom);
 
@@ -587,7 +611,7 @@ async function checkProEmail() {
       localStorage.setItem(PRO_EMAIL_KEY, email);
       if (errorMsg) errorMsg.textContent = "";
       showProLock(false);
-      toggleCustomUI();
+      await toggleCustomUI();
     } else {
       if (errorMsg) errorMsg.textContent = "No active purchase found for this email.";
     }
@@ -806,7 +830,7 @@ function setCreateAnotherEnabled(enabled) {
 
 setCreateAnotherEnabled(false);
 
-function resetToInitialState() {
+async function resetToInitialState() {
   // stop timers
   clearTimeout(expiryTimer);
   clearInterval(countdownTimer);
@@ -827,7 +851,7 @@ function resetToInitialState() {
   customTouched = false;
   setCustomFromMinutes(0);
   updateCustomHint();
-  toggleCustomUI();
+  await toggleCustomUI();
 
   // hide upload progress
   showUploadProgress(false);
@@ -867,9 +891,9 @@ function resetToInitialState() {
   setCreateAnotherEnabled(false);
 }
 
- createAnotherBtn?.addEventListener("click", () => {
+ createAnotherBtn?.addEventListener("click", async () => {
   if (!linkExpired) return;   // ✅ radi samo kad je expired
-    resetToInitialState();
+  await resetToInitialState();
 
   const formCard = document.querySelector("section.card");
   formCard?.scrollIntoView?.({ behavior: "smooth", block: "start" });
@@ -902,7 +926,7 @@ function resetToInitialState() {
   toggleCustomUI();
 
     // Preset/custom UI behavior
-  expirySelect.addEventListener("change", () => {
+  expirySelect.addEventListener("change", async () => {
     const v = String(expirySelect.value);
 
     if (v !== "custom") {
@@ -915,7 +939,7 @@ function resetToInitialState() {
       }
     }
 
-    toggleCustomUI();
+    await toggleCustomUI();
   });
 
   // Mark custom as touched + update hint live
