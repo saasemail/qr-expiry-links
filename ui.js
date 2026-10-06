@@ -555,7 +555,7 @@ async function toggleCustomUI() {
     }
 
     // Ako IMA email, proveri na serveru da li još uvek ima kredita
-    try {
+        try {
       const res = await fetch("/api/check-pro", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -569,6 +569,12 @@ async function toggleCustomUI() {
         customExpiryWrap.classList.add("hidden");
         showProLock(true);
         return;
+      }
+
+      // Prikaži broj kredita
+      const creditsHint = document.getElementById("creditsHint");
+      if (creditsHint && data.credits != null) {
+        creditsHint.textContent = `You have ${data.credits} custom link credit${data.credits === 1 ? "" : "s"} available.`;
       }
     } catch (err) {
       console.error("Check failed:", err);
@@ -607,10 +613,17 @@ async function checkProEmail() {
     });
     const data = await res.json();
 
-    if (data.isPro) {
+        if (data.isPro) {
       localStorage.setItem(PRO_EMAIL_KEY, email);
       if (errorMsg) errorMsg.textContent = "";
       showProLock(false);
+      
+      // Prikaži broj kredita
+      const creditsHint = document.getElementById("creditsHint");
+      if (creditsHint && data.credits != null) {
+        creditsHint.textContent = `You have ${data.credits} custom link credit${data.credits === 1 ? "" : "s"} available.`;
+      }
+      
       await toggleCustomUI();
     } else {
       if (errorMsg) errorMsg.textContent = "No active purchase found for this email.";
