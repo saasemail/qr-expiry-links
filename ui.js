@@ -1110,6 +1110,13 @@ async function resetToInitialState() {
 
       expiryTimer = setTimeout(() => expireUINow(), Math.max(0, remainingMs));
       startCountdown(created.expires_at);
+
+      // Resetuj expiry select na "1 hour" nakon uspešnog kreiranja
+      if (expirySelect) expirySelect.value = "60";
+      customTouched = false;
+      setCustomFromMinutes(0);
+      updateCustomHint();
+
       return;
     }
 
