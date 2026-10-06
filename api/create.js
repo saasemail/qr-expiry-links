@@ -285,10 +285,11 @@ export default async function handler(req, res) {
     try { body = await readJSONBody(req); }
     catch (e) { return res.status(400).send("Invalid JSON"); }
 
-    const kind = String(body?.kind || "url").trim().toLowerCase(); // "url" | "file" | "text"
+const kind = String(body?.kind || "url").trim().toLowerCase(); // "url" | "file" | "text"
 const rawUrl = String(body?.url || "").trim();
 const minutes = Number(body?.minutes);
 const proToken = body?.token ? String(body.token).trim() : null;
+const proEmail = body?.pro_email ? String(body.pro_email).trim().toLowerCase() : null; // DODATO
 
 const isFile = kind === "file" || rawUrl.startsWith("file:");
 const isText = kind === "text" || rawUrl.startsWith("text:");
@@ -348,11 +349,10 @@ if ((isFile || isText) && !devBypass) {
     let usedByUserId = null;
 
     // If dev token is used, treat as Pro without DB lookup
-  if (isDevProToken) {
+    if (isDevProToken) {
     plan = "pro";
     tier = "dev";
     max_minutes = MAX_MINUTES_10Y;
-
 } else if (proToken) {
   // existing Supabase token lookup...
   const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -376,6 +376,43 @@ if ((isFile || isText) && !devBypass) {
   tier = tok.tier || null;
   max_minutes = Number(tok.max_minutes || MAX_MINUTES_10Y);
   usedByUserId = tok.user_id || null;
+
+// DODATO: Provera Pro statusa preko email-a (za Freemius kupce)
+} else if (proEmail) {
+  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!SUPABASE_URL || !SERVICE_ROLE) return res.status(500).send("Server not configured");
+
+  const { createClient } = await import("@supabase/supabase-js");
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+
+  const { data: proUser, error } = await admin
+    .from("pro_users")
+    .select("is_active, credits")
+    .eq("email", proEmail)
+    .maybeSingle();
+
+  if (error) { console.error("[create] pro_users select error:", error); return res.status(500).send("DB error"); }
+
+  if (proUser?.is_active === true && (proUser?.credits || 0) > 0) {
+    plan = "pro";
+    tier = "freemius";
+    max_minutes = MAX_MINUTES_10Y;
+
+    // UMANJI KREDIT ZA 1
+    const { error: updateErr } = await admin
+      .from("pro_users")
+      .update({ credits: proUser.credits - 1 })
+      .eq("email", proEmail);
+
+    if (updateErr) {
+      console.error("[create] credit update error:", updateErr);
+      return res.status(500).send("DB error");
+    }
+  } else {
+    // Ako nema kredita, ne dozvoljavamo Pro
+    return res.status(402).send("No credits available. Please purchase again.");
+  }
 }
 
     // 2) Ako NEMA tokena, ali postoji Authorization: Bearer <JWT> -> pročitaj Pro iz naloga

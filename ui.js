@@ -65,19 +65,18 @@ const QR_MARGIN = 4;  // quiet zone (modules)
  */
 const LAST_STATE_KEY = "tempqr_last_state_v1";
 
-const PRO_TOKEN_KEY = "tempqr_pro_token_v1";
-const DEV_PRO_TOKEN = "TEMPQR_DEV_PRO"; // privremeno (dok nema checkout)
+const PRO_EMAIL_KEY = "tempqr_pro_email_v1";
 
 const proLockOverlay = document.getElementById("proLockOverlay");
-const unlockCustomBtn = document.getElementById("unlockCustomBtn");
 const closeUnlockBtn = document.getElementById("closeUnlockBtn");
 
-function getProToken(){
-  try { return localStorage.getItem(PRO_TOKEN_KEY) || ""; } catch { return ""; }
+function getProEmail(){
+  try { return localStorage.getItem(PRO_EMAIL_KEY) || ""; } catch { return ""; }
 }
 function isPro(){
-  return getProToken() === DEV_PRO_TOKEN;
+  return !!getProEmail();
 }
+
 function showProLock(show){
   if (!proLockOverlay) return;
   proLockOverlay.style.display = show ? "flex" : "none";
@@ -375,13 +374,17 @@ async function createTextLink({ key, minutes, token }) {
   }, 15000);
 }
 
-async function createLink(url, minutes) {
+async function createLink(url, minutes, proEmail) {
   return fetchJSON(
     "/api/create",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url, minutes })
+      body: JSON.stringify({ 
+        url, 
+        minutes,
+        pro_email: proEmail || null
+      })
     },
     15000
   );
@@ -539,17 +542,57 @@ function updateCustomHint() {
 function toggleCustomUI() {
   if (!expirySelect || !customExpiryWrap) return;
 
-  showProLock(false);
-
   const isCustom = String(expirySelect.value) === "custom";
+
+  // Ako je izabrao Custom ali NIJE Pro -> prikaži overlay za unos email-a
+  if (isCustom && !isPro()) {
+    customExpiryWrap.classList.add("hidden");
+    showProLock(true);
+    return;
+  }
+
+  // Ako je Pro ili nije izabrao Custom, sakrij overlay
+  showProLock(false);
   customExpiryWrap.classList.toggle("hidden", !isCustom);
 
   if (isCustom) {
-    // Always open custom duration with all fields at 0
     if (!customTouched) {
       setCustomFromMinutes(0);
     }
     updateCustomHint();
+  }
+}
+
+async function checkProEmail() {
+  const emailInput = document.getElementById("proEmailInput");
+  const errorMsg = document.getElementById("proErrorMsg");
+  const email = emailInput?.value?.trim()?.toLowerCase();
+
+  if (!email) {
+    if (errorMsg) errorMsg.textContent = "Please enter your email.";
+    return;
+  }
+
+  if (errorMsg) errorMsg.textContent = "Checking...";
+
+  try {
+    const res = await fetch("/api/check-pro", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+
+    if (data.isPro) {
+      localStorage.setItem(PRO_EMAIL_KEY, email);
+      if (errorMsg) errorMsg.textContent = "";
+      showProLock(false);
+      toggleCustomUI();
+    } else {
+      if (errorMsg) errorMsg.textContent = "No active purchase found for this email.";
+    }
+  } catch (err) {
+    if (errorMsg) errorMsg.textContent = "Error checking purchase. Try again.";
   }
 }
 
@@ -885,9 +928,14 @@ function resetToInitialState() {
     updateCustomHint();
   };
 
-    unlockCustomBtn?.addEventListener("click", () => {
+    document.getElementById("checkProBtn")?.addEventListener("click", checkProEmail);
+  
+  closeUnlockBtn?.addEventListener("click", () => {
     showProLock(false);
-    expirySelect.value = "custom";
+    // Resetuj na prethodnu vrednost ako je bio custom
+    if (expirySelect.value === "custom") {
+      expirySelect.value = "60";
+    }
     toggleCustomUI();
   });
 
@@ -930,7 +978,10 @@ function resetToInitialState() {
 
       urlInput.value = url;
 
-            const created = await createLink(url, minutes);
+           // Ako je korisnik Pro, pošalji i njegov email da bi se kredit trošio
+      const proEmail = getProEmail();
+      
+      const created = await createLink(url, minutes, proEmail);
 
       // --- DODAJ OVO ---
       trackEvent({

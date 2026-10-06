@@ -66,14 +66,24 @@ export default async function handler(req, res) {
         process.env.SUPABASE_SERVICE_ROLE_KEY
       );
 
+            // Prvo proverimo da li korisnik već postoji (da znamo koliko kredita ima)
+      const { data: existingUser } = await supabase
+        .from("pro_users")
+        .select("credits")
+        .eq("email", userEmail)
+        .maybeSingle();
+
+      const currentCredits = existingUser?.credits || 0;
+
       const { error } = await supabase.from("pro_users").upsert(
         {
           email: userEmail,
           license_id: licenseId?.toString() || null,
           plan_id: planId?.toString() || null,
           is_active: true,
+          credits: currentCredits + 1, // Dodajemo 1 kredit
         },
-        { onConflict: "email" } // Ako korisnik već postoji, ažuriraj ga
+        { onConflict: "email" }
       );
 
       if (error) {
