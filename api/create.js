@@ -488,6 +488,7 @@ await trackAnalyticsEvent({
   page: "/api/create",
   link_id: token,
   content_kind: isFile ? "file" : isText ? "text" : "url",
+  target_url: url, // <-- DODATO
   referrer: req.headers.referer || "",
   user_agent: req.headers["user-agent"] || "",
   ip
