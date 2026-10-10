@@ -611,6 +611,12 @@ export default async function handler(req) {
     });
   }
 
-  // Ako je čovek (nije bot), odmah ga preusmeri (302) - mnogo brže!
-  return Response.redirect(dest, 302);
+    // Ako je čovek (nije bot), odmah ga preusmeri (302) - mnogo brže!
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: dest,
+      "Cache-Control": "no-store, max-age=0"
+    }
+  });
 }
