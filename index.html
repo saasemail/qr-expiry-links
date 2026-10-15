@@ -1286,24 +1286,19 @@
     color: rgba(255,255,255,0.8);
     text-decoration: none;
   }
-  @media (max-width: 560px) {
+  
+    @media (max-width: 560px) {
     .top-nav {
-      position: static;      /* više nije fiksirano */
-      display: flex;
-      justify-content: flex-end;
-      padding: 0 15px;
-      margin-top: 65px;      /* spušta se ispod logotipa */
-      margin-bottom: 0;
-      gap: 15px;
+      top: 15px;
+      right: 15px;
+      left: auto;
+      transform: none;
+      flex-direction: column;  /* ovo stavlja jedno ispod drugog */
+      align-items: flex-end;   /* poravnava udesno */
+      gap: 6px;                /* mali razmak između redova */
       font-size: 13px;
     }
   }
-</style>
-
-<div class="top-nav">
-  <a href="faq.html">FAQ</a>
-  <a href="mailto:support@tempqr.com">Support</a>
-</div>
 
 </style>
 
@@ -1311,6 +1306,9 @@
   <a href="faq.html">FAQ</a>
   <a href="mailto:support@tempqr.com">Support</a>
 </div>
+
+</style>
+
 
   <main class="container">
     <h2 class="hero-title">Share any link. Set it to expire. Stay in control.</h2>
