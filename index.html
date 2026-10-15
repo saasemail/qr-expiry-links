@@ -1272,9 +1272,35 @@
 </div>
 
 <!-- Top Right Navigation -->
-<div style="position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; gap: 15px; font-size: 14px;">
-  <a href="faq.html" style="color: rgba(255,255,255,0.8); text-decoration: none;">FAQ</a>
-  <a href="mailto:support@tempqr.com" style="color: rgba(255,255,255,0.8); text-decoration: none;">Support</a>
+<style>
+  .top-nav {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    gap: 15px;
+    font-size: 14px;
+  }
+  .top-nav a {
+    color: rgba(255,255,255,0.8);
+    text-decoration: none;
+  }
+  @media (max-width: 560px) {
+    .top-nav {
+      top: 15px;
+      right: auto;
+      left: 50%;
+      transform: translateX(-50%);
+      gap: 20px;
+      font-size: 13px;
+    }
+  }
+</style>
+
+<div class="top-nav">
+  <a href="faq.html">FAQ</a>
+  <a href="mailto:support@tempqr.com">Support</a>
 </div>
 
   <main class="container">
