@@ -18,6 +18,8 @@
     html, body {
       margin: 0;
       padding: 0;
+      overflow-x: hidden;
+      max-width: 100%;
     }
     body::before, html::before {
       display: none !important;
@@ -1317,7 +1319,7 @@
   <p>Months later it's still active.</p>
   <p>Anyone with it can keep opening or share it with others.</p>
   <p>You can’t stop it!</p>
-</main>
+</div>
 
 <div class="solution-block">
   <p>TempQR wraps any link into a private temporary link that expire when you decide.</p>
@@ -1472,7 +1474,7 @@
   </p>
 </section>
 
-</div>
+</main>
 
   <footer class="footer">
     <div class="footer-left">© TempQR</div>
@@ -1488,9 +1490,6 @@
     </div>
   </footer>
 
-    <footer class="footer">
-    ...
-  </footer>
 
   <!-- Pro Lock Overlay -->
 <div id="proLockOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:9999; align-items:center; justify-content:center; padding:20px;">
