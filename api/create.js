@@ -345,6 +345,7 @@ if ((isFile || isText) && !devBypass) {
 
     // 1) Ako postoji eksplicitni token u body-ju -> koristi njega
     let usedByUserId = null;
+    let proCreditToRefund = null;
 
     // If dev token is used, treat as Pro without DB lookup
     if (isDevProToken) {
@@ -407,6 +408,8 @@ if ((isFile || isText) && !devBypass) {
       console.error("[create] credit update error:", updateErr);
       return res.status(500).send("DB error");
     }
+    // DODATO: Zapamti originalni broj kredita za slučaj refundacije
+    proCreditToRefund = proUser.credits; 
   } else {
     // Ako nema kredita, ne dozvoljavamo Pro
     return res.status(402).send("No credits available. Please purchase again.");
@@ -478,6 +481,18 @@ if ((isFile || isText) && !devBypass) {
 
     if (insertError) {
       console.error("[create] insert error:", insertError);
+      // DODATO: Ako je upis pao, vrati kredit nazad korisniku
+      if (proEmail && proCreditToRefund !== null) {
+        try {
+          await supabase
+            .from("pro_users")
+            .update({ credits: proCreditToRefund })
+            .eq("email", proEmail);
+          console.log(`[create] Refunded credit to ${proEmail} due to insert failure.`);
+        } catch (refundErr) {
+          console.error("[create] Critical: Refund failed for", proEmail, refundErr);
+        }
+      }
       return res.status(500).send("DB error");
     }
 
