@@ -27,29 +27,26 @@ export default async function handler(req, res) {
     const signature = req.headers["x-signature"];
     const secret = process.env.FREEMIUS_SECRET_KEY;
 
-    // 1. Verifikacija potpisa (da se uverimo da je zahtev stvarno od Freemiusa)
-    if (secret && signature) {
-      const expectedSignature = crypto
-        .createHmac("sha256", secret)
-        .update(rawBody)
-        .digest("hex");
+       // 1. Verifikacija potpisa (Fail-Closed - ako nema secret/signature, odbij)
+    if (!secret || !signature) {
+      console.error("[webhook] Missing secret or signature");
+      return res.status(401).send("Unauthorized");
+    }
 
-      if (signature !== expectedSignature) {
-        console.error("[webhook] Invalid signature");
-        return res.status(401).send("Invalid signature");
-      }
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(rawBody)
+      .digest("hex");
+
+    if (signature !== expectedSignature) {
+      console.error("[webhook] Invalid signature");
+      return res.status(401).send("Invalid signature");
     }
 
     const payload = JSON.parse(rawBody);
     console.log("[webhook] Received event:", payload.type || "unknown");
 
-    // 2. Reagujemo samo na uspešnu kupovinu/licencu
-    // Freemius šalje različite tipove događaja. Za jednokratnu kupovinu, obično je ovo:
-    if (
-      payload.type === "license.created" || 
-      payload.type === "payment.success" ||
-      payload.type === "subscription.created"
-    ) {
+    if (payload.type === "license.created") {
       // Izvlačimo podatke iz payload-a
       const userEmail = payload.objects?.user?.email || payload.user?.email;
       const licenseId = payload.objects?.license?.id || payload.license?.id;
@@ -74,6 +71,13 @@ export default async function handler(req, res) {
         .maybeSingle();
 
       const currentCredits = existingUser?.credits || 0;
+      
+      // DODATO: Ako je Freemius poslao isti license_id (retry), ignorisemo ga
+      const currentLicenseId = existingUser?.license_id?.toString() || null;
+      if (currentLicenseId && licenseId && currentLicenseId === licenseId.toString()) {
+        console.log(`[webhook] License ${licenseId} already processed. Ignoring.`);
+        return res.status(200).json({ received: true, note: "Already processed" });
+      }
 
       const { error } = await supabase.from("pro_users").upsert(
         {
