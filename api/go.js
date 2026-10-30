@@ -574,8 +574,7 @@ export default async function handler(req) {
     }
 
     // Ako je bot, vrati HTML sa OG tagovima za pregled linka (Facebook, WhatsApp, itd.)
-    if (isBot(req)) {
-
+      if (isBot(req)) {
     const pageUrl = `${url.origin}/go/${encodeURIComponent(token)}`;
     const qrUrl = `${url.origin}/qr/${encodeURIComponent(token)}.png`;
     const title = "TempQR — Scan before it expires";
@@ -587,18 +586,22 @@ export default async function handler(req) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>${escapeHtml(title)}</title>
+  
+  <!-- OG Tags za WhatsApp, Viber, Facebook itd. -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="${escapeHtml(title)}">
   <meta property="og:description" content="${escapeHtml(desc)}">
   <meta property="og:image" content="${escapeHtml(qrUrl)}">
+  <meta property="og:image:width" content="512">
+  <meta property="og:image:height" content="512">
   <meta property="og:url" content="${escapeHtml(pageUrl)}">
+  
+  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${escapeHtml(title)}">
   <meta name="twitter:description" content="${escapeHtml(desc)}">
   <meta name="twitter:image" content="${escapeHtml(qrUrl)}">
   <meta name="twitter:url" content="${escapeHtml(pageUrl)}">
-  <meta http-equiv="refresh" content="0;url=${escapeHtml(dest)}">
-  <script>try { window.location.replace(${JSON.stringify(dest)}); } catch (e) {}</script>
 </head>
 <body>
   <p><a href="${escapeHtml(dest)}">${escapeHtml(pageUrl)}</a></p>
@@ -608,7 +611,10 @@ export default async function handler(req) {
 
     return new Response(html, {
       status: 200,
-      headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store, max-age=0" }
+      headers: { 
+        "content-type": "text/html; charset=utf-8", 
+        "cache-control": "no-store, max-age=0" 
+      }
     });
   }
 
