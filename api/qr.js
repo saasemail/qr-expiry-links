@@ -1,52 +1,12 @@
 // api/qr.js — generates a scannable PNG QR for link previews (og:image)
 
-import crypto from "node:crypto";
+import { createClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
 
-function b64urlToBytes(b64u) {
-  const s = String(b64u || "").replace(/-/g, "+").replace(/_/g, "/");
-  const pad = s.length % 4 ? "=".repeat(4 - (s.length % 4)) : "";
-  return Buffer.from(s + pad, "base64");
-}
-
-function bytesToB64url(buf) {
-  return Buffer.from(buf)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
-}
-
-function hmacB64url(payload, secret, truncBytes = null) {
-  const full = crypto.createHmac("sha256", secret).update(payload, "utf8").digest();
-  const out = truncBytes ? full.subarray(0, truncBytes) : full;
-  return bytesToB64url(out);
-}
-
-function parseV2Payload(bytes) {
-  // [1 byte version=2][4 bytes expirySeconds BE][utf8 url bytes]
-  if (!bytes || bytes.length < 6) return null;
-  if (bytes[0] !== 2) return null;
-
-  const expSec = bytes.readUInt32BE(1);
-  const urlBytes = bytes.subarray(5);
-  const u = urlBytes.toString("utf8");
-  if (!u) return null;
-
-  return { u, eMs: expSec * 1000, v: 2 };
-}
-
-function parseV1Payload(bytes) {
-  try {
-    const str = bytes.toString("utf8");
-    const obj = JSON.parse(str);
-    if (!obj?.u || !obj?.e) return null;
-    const eMs = new Date(obj.e).getTime();
-    if (!Number.isFinite(eMs)) return null;
-    return { u: obj.u, eMs, v: obj.v || 1 };
-  } catch {
-    return null;
-  }
+function getOrigin(req) {
+  const proto = String(req.headers["x-forwarded-proto"] || "https").split(",")[0].trim();
+  const host = String(req.headers["x-forwarded-host"] || req.headers["host"] || "").split(",")[0].trim();
+  return `${proto}://${host}`;
 }
 
 function getOrigin(req) {
@@ -64,32 +24,22 @@ export default async function handler(req, res) {
     id = decodeURIComponent(id);
     if (id.endsWith(".png")) id = id.slice(0, -4);
 
-    if (!id.includes(".")) return res.status(404).send("Not found");
+    // DODATO: Umesto parsiranja potpisa, tražimo link direktno u bazi
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return res.status(500).send("Server misconfigured");
 
-    const [payloadB64, sig] = id.split(".");
-    const secret = process.env.SIGNING_SECRET || "dev-secret";
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-    // validate signature (short or full)
-    const expectedShort = hmacB64url(payloadB64, secret, 12);
-    if (sig !== expectedShort) {
-      const expectedFull = hmacB64url(payloadB64, secret, null);
-      if (sig !== expectedFull) return res.status(400).send("Invalid link");
-    }
+    const { data: link, error } = await supabase
+      .from("links")
+      .select("expires_at")
+      .eq("token", id)
+      .maybeSingle();
 
-    let payloadBytes;
-    try {
-      payloadBytes = b64urlToBytes(payloadB64);
-    } catch {
-      return res.status(400).send("Bad payload");
-    }
+    if (error || !link) return res.status(404).send("Not found");
 
-    const p2 = parseV2Payload(payloadBytes);
-    const p1 = p2 ? null : parseV1Payload(payloadBytes);
-    const payload = p2 || p1;
-
-    if (!payload?.u || !payload?.eMs) return res.status(400).send("Bad payload");
-
-    if (Date.now() > payload.eMs) return res.status(410).send("Expired");
+    if (Date.now() > new Date(link.expires_at).getTime()) return res.status(410).send("Expired");
 
     const origin = getOrigin(req);
     const goUrl = `${origin}/go/${encodeURIComponent(id)}`;
