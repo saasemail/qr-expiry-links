@@ -577,7 +577,7 @@ export default async function handler(req) {
     if (isBot(req)) {
 
     const pageUrl = `${url.origin}/go/${encodeURIComponent(token)}`;
-    const qrUrl = `${url.origin}/api/qr?id=${encodeURIComponent(token)}`;
+    const qrUrl = `${url.origin}/api/qr/${encodeURIComponent(token)}.png`;
     const title = "TempQR — Scan before it expires";
     const desc = "Scan the QR code or open the link before it expires.";
 

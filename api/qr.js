@@ -9,12 +9,6 @@ function getOrigin(req) {
   return `${proto}://${host}`;
 }
 
-function getOrigin(req) {
-  const proto = String(req.headers["x-forwarded-proto"] || "https").split(",")[0].trim();
-  const host = String(req.headers["x-forwarded-host"] || req.headers["host"] || "").split(",")[0].trim();
-  return `${proto}://${host}`;
-}
-
 export default async function handler(req, res) {
   try {
     let id = String(req.query?.id || "").trim();
@@ -24,7 +18,6 @@ export default async function handler(req, res) {
     id = decodeURIComponent(id);
     if (id.endsWith(".png")) id = id.slice(0, -4);
 
-    // DODATO: Umesto parsiranja potpisa, tražimo link direktno u bazi
     const SUPABASE_URL = process.env.SUPABASE_URL;
     const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return res.status(500).send("Server misconfigured");
