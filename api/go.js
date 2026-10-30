@@ -121,7 +121,7 @@ export default async function handler(req) {
     const dest = link.url;
     const origin = url.origin;
 
-    // Expired check
+        // Expired check
     if (Date.now() > new Date(link.expires_at).getTime()){
       const html = `<!doctype html>
 <html lang="en">
@@ -131,19 +131,120 @@ export default async function handler(req) {
   <title>This TempQR link has expired</title>
   <meta name="robots" content="noindex,nofollow">
   <style>
-    body { margin:0; min-height:100vh; font-family:system-ui,sans-serif; background:#080b12; color:#eef4ff; display:flex; align-items:center; justify-content:center; padding:28px 18px; }
-    .card { max-width:600px; text-align:center; padding:40px; border:1px solid rgba(255,255,255,0.1); background:#111827; border-radius:24px; }
-    h1 { font-size:40px; margin:0 0 16px; }
-    p { color:#aab6cc; font-size:18px; line-height:1.6; }
-    a { display:inline-block; margin-top:20px; padding:12px 24px; background:#6ee7f9; color:#000; text-decoration:none; border-radius:99px; font-weight:bold; }
+    :root{
+      --bg:#080b12;
+      --card:#111827;
+      --card2:#0f172a;
+      --text:#eef4ff;
+      --muted:#aab6cc;
+      --line:rgba(255,255,255,.10);
+      --glow:rgba(122,167,255,.26);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(79,70,229,.22), transparent 32%),
+        radial-gradient(circle at 84% 14%, rgba(14,165,233,.16), transparent 30%),
+        linear-gradient(180deg,#080b12 0%,#0b1020 100%);
+      color:var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px 18px;
+    }
+    .expired-brand-badge{
+      position:fixed; top:10px; left:12px; z-index:10;
+      display:inline-flex; align-items:center; gap:10px;
+      text-decoration:none; color:rgba(255,255,255,.95);
+    }
+    .expired-brand-icon img{ width:44px; height:44px; display:block; border-radius:8px; }
+    .expired-brand-name{ font-size:18px; font-weight:700; line-height:1; margin:0; color:rgba(255,255,255,.95); }
+    @media (min-width:561px){
+      .expired-brand-name{ font-size:20px; }
+      .expired-brand-icon img{ width:50px; height:50px; }
+    }
+    @media (max-width:560px){
+      .expired-brand-badge{ top:8px; left:10px; }
+      .expired-brand-icon img{ width:40px; height:40px; }
+    }
+    .wrap{ width:100%; max-width:720px; text-align:center; }
+    .card{
+      position:relative; overflow:hidden;
+      border:1px solid var(--line);
+      background: linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.025)), linear-gradient(135deg,var(--card),var(--card2));
+      border-radius:28px; padding:42px 30px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.38), 0 0 0 1px rgba(255,255,255,.03) inset;
+    }
+    .card:before{
+      content:""; position:absolute; inset:-1px;
+      background: radial-gradient(circle at 50% 0%, rgba(122,167,255,.22), transparent 42%);
+      pointer-events:none;
+    }
+    .content{ position:relative; z-index:1; }
+    .status{
+      width:74px; height:74px; border-radius:24px; margin:0 auto 22px;
+      display:grid; place-items:center;
+      background:rgba(248,113,113,.10);
+      border:1px solid rgba(248,113,113,.22);
+      color:#fecaca; box-shadow:0 18px 48px rgba(248,113,113,.08);
+      font-size:34px; line-height:1;
+    }
+    h1{ margin:0 0 12px; font-size:clamp(34px,7vw,58px); line-height:.98; letter-spacing:-.06em; font-weight:900; }
+    .lead{ margin:0 auto; max-width:560px; color:var(--muted); font-size:clamp(17px,3.5vw,20px); line-height:1.62; }
+    .note{
+      margin:24px auto 0; max-width:540px; padding:16px 18px; border-radius:18px;
+      border:1px solid rgba(122,167,255,.16); background:rgba(122,167,255,.07);
+      color:#d9e6ff; font-size:15px; line-height:1.55;
+    }
+    .actions{ display:flex; justify-content:center; flex-wrap:wrap; gap:12px; margin-top:30px; }
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      min-height:48px; padding:0 18px; border-radius:999px;
+      text-decoration:none; font-weight:800; letter-spacing:-.01em;
+      transition:transform .15s ease, border-color .15s ease, background .15s ease;
+    }
+    .btn-primary{ color:#07111f; background:linear-gradient(135deg,#93c5fd,#c4b5fd); box-shadow:0 16px 45px var(--glow); }
+    .btn-secondary{ color:var(--text); border:1px solid var(--line); background:rgba(255,255,255,.05); }
+    .btn:hover{ transform:translateY(-1px); }
+    .foot{ margin-top:18px; color:rgba(238,244,255,.52); font-size:13px; line-height:1.5; }
+    @media (max-width:520px){
+      body{padding:22px 14px}
+      .card{border-radius:24px;padding:34px 22px}
+      .status{width:64px;height:64px;border-radius:20px;font-size:30px}
+      .actions{display:grid;grid-template-columns:1fr}
+      .btn{width:100%}
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Expired</h1>
-    <p>This TempQR link has expired and is no longer available.</p>
-    <a href="${escapeHtml(origin)}">Create your own expiring link</a>
-  </div>
+  <a class="expired-brand-badge" href="${escapeHtml(origin)}" aria-label="TempQR home">
+    <span class="expired-brand-icon" aria-hidden="true">
+      <img src="${escapeHtml(origin)}/TempQRlogo.svg" alt="" width="44" height="44">
+    </span>
+    <span class="expired-brand-name">TempQR</span>
+  </a>
+
+  <main class="wrap">
+    <section class="card">
+      <div class="content">
+        <div class="status" aria-hidden="true">!</div>
+        <h1>Expired</h1>
+        <p class="lead">This TempQR link has expired and is no longer available.</p>
+        <div class="note">
+          The owner set this link to stop working after a limited time.
+          This helps prevent old links from staying accessible forever.
+        </div>
+        <div class="actions">
+          <a class="btn btn-primary" href="${escapeHtml(origin)}">Create your own expiring link</a>
+          <a class="btn btn-secondary" href="${escapeHtml(origin)}/use-cases.html">See common use cases</a>
+        </div>
+        <p class="foot">TempQR creates temporary links and QR codes that stop working after the time you choose.</p>
+      </div>
+    </section>
+  </main>
 </body>
 </html>`;
       return new Response(html, { status: 410, headers: { "content-type": "text/html; charset=utf-8" } });
