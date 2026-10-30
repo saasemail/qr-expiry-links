@@ -318,8 +318,6 @@ if (isFile) {
 
 if (!Number.isFinite(minutes) || minutes < 1) return res.status(400).send("Bad minutes");
 
-// URL custom duration is allowed for all users
-const isUrlKind = !isFile && !isText;
 const DEV_PRO_TOKEN = String(process.env.DEV_PRO_TOKEN || "TEMPQR_DEV").trim();
 const isDevProToken = !!proToken && proToken === DEV_PRO_TOKEN;
 
@@ -340,10 +338,10 @@ if ((isFile || isText) && !devBypass) {
     // 10 godina max (u minutima): 10 * 365 * 24 * 60 = 5,256,000
     const MAX_MINUTES_10Y = 5256000;
 
-    // default: free
+    // default: free - 60 min limit
     let plan = "free";
     let tier = null;
-    let max_minutes = MAX_MINUTES_10Y;
+    let max_minutes = 60;
 
     // 1) Ako postoji eksplicitni token u body-ju -> koristi njega
     let usedByUserId = null;
