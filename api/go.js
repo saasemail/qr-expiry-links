@@ -23,7 +23,8 @@ function isBot(req) {
     "facebookexternalhit", "twitterbot", "whatsapp", "telegrambot", 
     "slackbot", "discordbot", "linkedinbot", "googlebot", "bingbot", 
     "pinterest", "skype", "embedly", "quora link preview", "outbrain", 
-    "vkshare", "w3c_validator", "redditbot", "applebot", "yahoo! slurp"
+    "vkshare", "w3c_validator", "redditbot", "applebot", "yahoo! slurp",
+    "viber", "line", "kakaotalk", "signal" // DODATO: Viber i ostali messenger botovi
   ];
   return bots.some(bot => ua.includes(bot));
 }
