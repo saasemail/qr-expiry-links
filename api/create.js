@@ -391,7 +391,7 @@ if ((isFile || isText) && !devBypass) {
     .eq("email", proEmail)
     .maybeSingle();
 
-  if (error) { console.error("[create] pro_users select error:", error); return res.status(500).send("DB error"); }
+  if (error) { console.error("[create] pro_users select error:", error); return res.status(500).json({ error: "DB error" }); }
 
   if (proUser?.is_active === true && (proUser?.credits || 0) > 0) {
     plan = "pro";
@@ -412,7 +412,7 @@ if ((isFile || isText) && !devBypass) {
     proCreditToRefund = proUser.credits; 
   } else {
     // Ako nema kredita, ne dozvoljavamo Pro
-    return res.status(402).send("No credits available. Please purchase again.");
+    return res.status(402).json("No credits available. Please purchase again.");
   }
 }
 
