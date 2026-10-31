@@ -62,9 +62,17 @@ export default async function handler(req, res) {
       const licenseId = payload.objects?.license?.id || payload.license?.id;
       const planId = payload.objects?.plan?.id || payload.plan?.id;
       
-      // Freemius šalje billing_cycle u okviru payment-a (1=mesecno, 12=godisnje, 0=one-time)
-      const billingCycle = payload.objects?.payment?.billing_cycle;
-      const isSubscription = billingCycle > 0;
+            // Proveravamo više mesta gde Freemius može da pošalje billing_cycle
+      const billingCycle = 
+        payload.objects?.payment?.billing_cycle ?? 
+        payload.objects?.subscription?.billing_cycle ?? 
+        payload.objects?.license?.billing_cycle;
+        
+      // Ako je tip događaja "subscription", ili ima billing_cycle > 0, ili postoji subscription objekat - to je pretplata!
+      const isSubscription = 
+        payload.type.includes('subscription') || 
+        (billingCycle > 0) || 
+        !!payload.objects?.subscription;
 
       if (!userEmail) {
         console.error("[webhook] No email found in payload");
