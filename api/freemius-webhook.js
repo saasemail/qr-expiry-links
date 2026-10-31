@@ -62,17 +62,13 @@ export default async function handler(req, res) {
       const licenseId = payload.objects?.license?.id || payload.license?.id;
       const planId = payload.objects?.plan?.id || payload.plan?.id;
       
-            // Proveravamo više mesta gde Freemius može da pošalje billing_cycle
-      const billingCycle = 
-        payload.objects?.payment?.billing_cycle ?? 
-        payload.objects?.subscription?.billing_cycle ?? 
-        payload.objects?.license?.billing_cycle;
-        
-      // Ako je tip događaja "subscription", ili ima billing_cycle > 0, ili postoji subscription objekat - to je pretplata!
+            // Freemius šalje billing_cycle (1=mesecno, 12=godisnje, 0=one-time)
+      const billingCycle = payload.objects?.payment?.billing_cycle;
+      
+      // Sigurna provera: Ako postoji subscription objekat ILI je billingCycle veći od 0, to je pretplata
       const isSubscription = 
-        payload.type.includes('subscription') || 
-        (billingCycle > 0) || 
-        !!payload.objects?.subscription;
+        !!payload.objects?.subscription || 
+        (billingCycle > 0);
 
       if (!userEmail) {
         console.error("[webhook] No email found in payload");
@@ -95,13 +91,14 @@ export default async function handler(req, res) {
 
       const currentCredits = existingUser?.credits || 0;
 
-      // Ako je pretplata, upali is_active. Ako je one-time, dodaj 1 kredit.
+            // Ako je pretplata, upali is_active i resetuj kredite na 0.
+      // Ako je one-time, ugasi is_active i dodaj 1 kredit.
       const updateData = {
         email: userEmail,
         license_id: licenseId?.toString() || null,
         plan_id: planId?.toString() || null,
-        is_active: isSubscription ? true : undefined, // Ne diramo ako je one-time
-        credits: isSubscription ? currentCredits : currentCredits + 1
+        is_active: isSubscription ? true : false, // Eksplicitno postavljamo false za one-time
+        credits: isSubscription ? 0 : currentCredits + 1
       };
 
       const { error } = await supabase.from("pro_users").upsert(
