@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     const signature = req.headers["x-signature"];
     const secret = process.env.FREEMIUS_SECRET_KEY;
 
-       // 1. Verifikacija potpisa (Fail-Closed - ako nema secret/signature, odbij)
+    // 1. Verifikacija potpisa (Fail-Closed - ako nema secret/signature, odbij)
     if (!secret || !signature) {
       console.error("[webhook] Missing secret or signature");
       return res.status(401).send("Unauthorized");
@@ -46,47 +46,58 @@ export default async function handler(req, res) {
     const payload = JSON.parse(rawBody);
     console.log("[webhook] Received event:", payload.type || "unknown");
 
-    if (payload.type === "license.created") {
-      // Izvlačimo podatke iz payload-a
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    // 2. Obrada AKTIVACIJE (Pretplate ili One-time kupovine)
+    if (
+      payload.type === "subscription.created" || 
+      payload.type === "subscription.updated" ||
+      payload.type === "payment.success" ||
+      payload.type === "license.created"
+    ) {
       const userEmail = payload.objects?.user?.email || payload.user?.email;
       const licenseId = payload.objects?.license?.id || payload.license?.id;
       const planId = payload.objects?.plan?.id || payload.plan?.id;
+      
+      // Freemius šalje billing_cycle u okviru payment-a (1=mesecno, 12=godisnje, 0=one-time)
+      const billingCycle = payload.objects?.payment?.billing_cycle;
+      const isSubscription = billingCycle > 0;
 
       if (!userEmail) {
         console.error("[webhook] No email found in payload");
         return res.status(400).send("No email found");
       }
 
-      // 3. Upisujemo u Supabase
-      const supabase = createClient(
-        process.env.SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-      );
-
-            // Prvo proverimo da li korisnik već postoji (da znamo koliko kredita ima)
+      // Prvo proverimo da li korisnik već postoji
       const { data: existingUser } = await supabase
         .from("pro_users")
-        .select("credits")
+        .select("credits, license_id")
         .eq("email", userEmail)
         .maybeSingle();
 
-      const currentCredits = existingUser?.credits || 0;
-      
-      // DODATO: Ako je Freemius poslao isti license_id (retry), ignorisemo ga
+      // Zaštita od duplog slanja (retry) istog događaja
       const currentLicenseId = existingUser?.license_id?.toString() || null;
       if (currentLicenseId && licenseId && currentLicenseId === licenseId.toString()) {
         console.log(`[webhook] License ${licenseId} already processed. Ignoring.`);
         return res.status(200).json({ received: true, note: "Already processed" });
       }
 
+      const currentCredits = existingUser?.credits || 0;
+
+      // Ako je pretplata, upali is_active. Ako je one-time, dodaj 1 kredit.
+      const updateData = {
+        email: userEmail,
+        license_id: licenseId?.toString() || null,
+        plan_id: planId?.toString() || null,
+        is_active: isSubscription ? true : undefined, // Ne diramo ako je one-time
+        credits: isSubscription ? currentCredits : currentCredits + 1
+      };
+
       const { error } = await supabase.from("pro_users").upsert(
-        {
-          email: userEmail,
-          license_id: licenseId?.toString() || null,
-          plan_id: planId?.toString() || null,
-          is_active: true,
-          credits: currentCredits + 1, // Dodajemo 1 kredit
-        },
+        updateData,
         { onConflict: "email" }
       );
 
@@ -95,7 +106,26 @@ export default async function handler(req, res) {
         return res.status(500).send("DB Error");
       }
 
-      console.log(`[webhook] Successfully unlocked Pro for: ${userEmail}`);
+      console.log(`[webhook] Successfully processed ${isSubscription ? 'subscription' : 'one-time'} for: ${userEmail}`);
+    }
+    
+    // 3. Obrada OTKAZIVANJA (Kada pretplata istekne ili se otkaže)
+    else if (
+      payload.type === "subscription.cancelled" || 
+      payload.type === "subscription.expired"
+    ) {
+      const userEmail = payload.objects?.user?.email || payload.user?.email;
+      
+      if (userEmail) {
+        const { error } = await supabase
+          .from("pro_users")
+          .update({ is_active: false })
+          .eq("email", userEmail.toLowerCase().trim());
+          
+        if (!error) {
+          console.log(`[webhook] Deactivated Pro subscription for: ${userEmail}`);
+        }
+      }
     }
 
     // Uvek vrati 200 Freemiusu da zna da smo primili

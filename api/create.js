@@ -393,26 +393,29 @@ if ((isFile || isText) && !devBypass) {
 
   if (error) { console.error("[create] pro_users select error:", error); return res.status(500).json({ error: "DB error" }); }
 
-  if (proUser?.is_active === true && (proUser?.credits || 0) > 0) {
+  const isSub = proUser?.is_active === true;
+  const hasCredits = (proUser?.credits || 0) > 0;
+
+  if (isSub || hasCredits) {
     plan = "pro";
     tier = "freemius";
     max_minutes = MAX_MINUTES_30D;
 
-    // UMANJI KREDIT ZA 1
-    const { error: updateErr } = await admin
-      .from("pro_users")
-      .update({ credits: proUser.credits - 1 })
-      .eq("email", proEmail);
+    // Ako je pretplatnik, NE skidamo kredit. Ako je one-time, skidamo 1.
+    if (!isSub) {
+      const { error: updateErr } = await admin
+        .from("pro_users")
+        .update({ credits: proUser.credits - 1 })
+        .eq("email", proEmail);
 
-    if (updateErr) {
-      console.error("[create] credit update error:", updateErr);
-      return res.status(500).send("DB error");
+      if (updateErr) {
+        console.error("[create] credit update error:", updateErr);
+        return res.status(500).send("DB error");
+      }
+      proCreditToRefund = proUser.credits;
     }
-    // DODATO: Zapamti originalni broj kredita za slučaj refundacije
-    proCreditToRefund = proUser.credits; 
   } else {
-    // Ako nema kredita, ne dozvoljavamo Pro
-    return res.status(402).json("No credits available. Please purchase again.");
+    return res.status(402).json({ error: "No active subscription or credits available." });
   }
 }
 

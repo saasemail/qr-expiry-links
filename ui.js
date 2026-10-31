@@ -597,10 +597,14 @@ async function toggleCustomUI() {
         return;
       }
 
-      // Prikaži broj kredita
+            // Prikaži broj kredita ili status pretplate
       const creditsHint = document.getElementById("creditsHint");
-      if (creditsHint && data.credits != null) {
-        creditsHint.textContent = `You have ${data.credits} custom link credit${data.credits === 1 ? "" : "s"} available.`;
+      if (creditsHint) {
+        if (data.isSub) {
+          creditsHint.textContent = `Pro subscription active. Unlimited custom links.`;
+        } else if (data.credits != null) {
+          creditsHint.textContent = `You have ${data.credits} custom link credit${data.credits === 1 ? "" : "s"} available.`;
+        }
       }
     } catch (err) {
       console.error("Check failed:", err);
@@ -652,7 +656,7 @@ async function toggleCustomUI() {
     });
     const data = await res.json();
 
-          if (data.isPro) {
+              if (data.isPro) {
       localStorage.setItem(PRO_EMAIL_KEY, email);
       if (errorMsg) errorMsg.textContent = "";
       showProLock(false);
@@ -660,8 +664,12 @@ async function toggleCustomUI() {
       unlockMaxOpensUI();
       
       const creditsHint = document.getElementById("creditsHint");
-      if (creditsHint && data.credits != null) {
-        creditsHint.textContent = `You have ${data.credits} custom link credit${data.credits === 1 ? "" : "s"} available.`;
+      if (creditsHint) {
+        if (data.isSub) {
+          creditsHint.textContent = `Pro subscription active. Unlimited custom links.`;
+        } else if (data.credits != null) {
+          creditsHint.textContent = `You have ${data.credits} custom link credit${data.credits === 1 ? "" : "s"} available.`;
+        }
       }
       
       await toggleCustomUI();
@@ -675,8 +683,8 @@ async function toggleCustomUI() {
       const title = document.querySelector("#proLockOverlay h3");
       const para = document.querySelector("#proLockOverlay p");
       
-      if (title) title.textContent = "You've used all your credits";
-      if (para) para.textContent = "Purchase again to create more custom links, or use the free 1-hour option.";
+      if (title) title.textContent = "No active subscription";
+      if (para) para.textContent = "Purchase a subscription or a single link to continue.";
       if (emailField) emailField.style.display = "none";
       if (checkBtn) checkBtn.style.display = "none";
       if (buyBtn) buyBtn.style.display = "block";
