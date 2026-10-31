@@ -30,6 +30,13 @@ const downloadBtn      = document.getElementById("downloadBtn");       // PNG
 const shareBtn         = document.getElementById("shareBtn");          // Web Share API
 const downloadSvgBtn   = document.getElementById("downloadSvgBtn");    // SVG (currently hidden in HTML)
 const createAnotherBtn = document.getElementById("createAnotherBtn");
+// --- NEW: Max Opens elements ---
+const opensUnlimited = document.getElementById("opensUnlimited");
+const opensLimited = document.getElementById("opensLimited");
+const maxOpensInput = document.getElementById("maxOpensInput");
+const maxOpensControls = document.getElementById("maxOpensControls");
+const maxOpensLockOverlay = document.getElementById("maxOpensLockOverlay");
+
 // --- NEW: mode + file/text inputs ---
 const modeButtons = Array.from(document.querySelectorAll(".mode-btn"));
 const modePanels  = Array.from(document.querySelectorAll(".mode-panel"));
@@ -80,6 +87,24 @@ function isPro(){
 function showProLock(show){
   if (!proLockOverlay) return;
   proLockOverlay.style.display = show ? "flex" : "none";
+}
+
+// DODATO: Otključavanje Max Opens za Pro korisnike
+function unlockMaxOpensUI() {
+  if (maxOpensControls) {
+    maxOpensControls.style.opacity = "1";
+    maxOpensControls.style.pointerEvents = "auto";
+  }
+  if (maxOpensLockOverlay) {
+    maxOpensLockOverlay.style.display = "none";
+  }
+  const badge = document.getElementById("maxOpensProBadge");
+  if (badge) {
+    badge.textContent = "PRO ACTIVE";
+    badge.style.color = "#10b981"; // zelena boja
+    badge.style.background = "rgba(16,185,129,0.1)";
+    badge.style.borderColor = "rgba(16,185,129,0.3)";
+  }
 }
 
 function safeJSONParse(str) {
@@ -374,7 +399,7 @@ async function createTextLink({ key, minutes, token }) {
   }, 15000);
 }
 
-async function createLink(url, minutes, proEmail) {
+async function createLink(url, minutes, proEmail, maxOpens) {
   return fetchJSON(
     "/api/create",
     {
@@ -383,7 +408,8 @@ async function createLink(url, minutes, proEmail) {
       body: JSON.stringify({ 
         url, 
         minutes,
-        pro_email: proEmail || null
+        pro_email: proEmail || null,
+        max_opens: maxOpens || null // <-- DODATO
       })
     },
     15000
@@ -630,6 +656,8 @@ async function toggleCustomUI() {
       localStorage.setItem(PRO_EMAIL_KEY, email);
       if (errorMsg) errorMsg.textContent = "";
       showProLock(false);
+
+      unlockMaxOpensUI();
       
       const creditsHint = document.getElementById("creditsHint");
       if (creditsHint && data.credits != null) {
@@ -886,8 +914,15 @@ async function resetToInitialState() {
   if (fileInput) fileInput.value = "";
   if (textInput) textInput.value = "";
 
-  // reset expiry to default 10 minutes
+    // reset expiry to default 10 minutes
   if (expirySelect) expirySelect.value = "60";
+  
+  // DODATO: Reset Max Opens
+  if (opensUnlimited) opensUnlimited.checked = true;
+  if (maxOpensInput) {
+    maxOpensInput.value = "";
+    maxOpensInput.disabled = true;
+  }
   lastPresetMinutes = 60;
   customTouched = false;
   setCustomFromMinutes(0);
@@ -941,10 +976,33 @@ async function resetToInitialState() {
   });
 
 
-  // default mode
+    // default mode
   setMode("url");
   setCreateAnotherEnabled(false);
 
+  // DODATO: Logika za Max Opens
+  maxOpensLockOverlay?.addEventListener("click", () => {
+    showProLock(true);
+  });
+
+  opensUnlimited?.addEventListener("change", () => {
+    if (opensUnlimited.checked) {
+      maxOpensInput.disabled = true;
+      maxOpensInput.value = "";
+    }
+  });
+
+  opensLimited?.addEventListener("change", () => {
+    if (opensLimited.checked) {
+      maxOpensInput.disabled = false;
+      maxOpensInput.focus();
+    }
+  });
+
+  // Ako korisnik već ima Pro email u localStorage, odmah otključaj UI
+  if (getProEmail()) {
+    unlockMaxOpensUI();
+  }
 
   // (Optional UX) Normalize on blur so user sees https:// added (but don't force while typing)
   urlInput.addEventListener("blur", () => {
@@ -1055,10 +1113,21 @@ async function resetToInitialState() {
 
       urlInput.value = url;
 
-           // Ako je korisnik Pro, pošalji i njegov email da bi se kredit trošio
+    // Ako je korisnik Pro, pošalji i njegov email da bi se kredit trošio
       const proEmail = getProEmail();
       
-      const created = await createLink(url, minutes, proEmail);
+      // DODATO: Uzmi vrednost za max opens
+      let maxOpensValue = null;
+      if (opensLimited?.checked) {
+        const val = parseInt(maxOpensInput.value, 10);
+        if (!Number.isFinite(val) || val < 1) {
+          alert("Please enter a valid number of opens (at least 1).");
+          return;
+        }
+        maxOpensValue = val;
+      }
+      
+      const created = await createLink(url, minutes, proEmail, maxOpensValue);
 
 
       const redirectUrl = `${window.location.origin}/go/${created.id}`;
