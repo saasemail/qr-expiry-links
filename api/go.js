@@ -110,7 +110,7 @@ export default async function handler(req) {
 
     const { data: link, error } = await supabase
       .from("links")
-      .select("url, expires_at")
+      .select("url, expires_at, max_opens, open_count") // DODATO
       .eq("token", token)
       .maybeSingle();
 
@@ -250,6 +250,56 @@ export default async function handler(req) {
       return new Response(html, { status: 410, headers: { "content-type": "text/html; charset=utf-8" } });
     }
 
+  // DODATO: Provera limita otvaranja (samo za prave ljude, ne botove)
+    const bot = isBot(req);
+    
+    if (!bot) {
+      // Pozivamo sigurnu RPC funkciju iz baze koja proverava i povećava brojač
+      const { data: canOpen, error: rpcError } = await supabase.rpc('increment_open_count', { token_id: token });
+      
+      if (rpcError) {
+        console.error("[go] RPC Error:", rpcError);
+      } else if (canOpen === false) {
+        // Limit je dostignut! Prikazujemo lepu stranicu.
+        const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Link Limit Reached | TempQR</title>
+  <meta name="robots" content="noindex,nofollow">
+  <style>
+    :root{ --bg:#080b12; --card:#111827; --card2:#0f172a; --text:#eef4ff; --muted:#aab6cc; --line:rgba(255,255,255,.10); --glow:rgba(122,167,255,.26); }
+    *{box-sizing:border-box}
+    body{ margin:0; min-height:100vh; font-family:system-ui,-apple-system,sans-serif; background: radial-gradient(circle at 18% 12%, rgba(79,70,229,.22), transparent 32%), radial-gradient(circle at 84% 14%, rgba(14,165,233,.16), transparent 30%), linear-gradient(180deg,#080b12 0%,#0b1020 100%); color:var(--text); display:flex; align-items:center; justify-content:center; padding:28px 18px; }
+    .wrap{ width:100%; max-width:720px; text-align:center; }
+    .card{ position:relative; overflow:hidden; border:1px solid var(--line); background: linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.025)), linear-gradient(135deg,var(--card),var(--card2)); border-radius:28px; padding:42px 30px; box-shadow: 0 24px 80px rgba(0,0,0,.38); }
+    .status{ width:74px; height:74px; border-radius:24px; margin:0 auto 22px; display:grid; place-items:center; background:rgba(239,68,68,.10); border:1px solid rgba(239,68,68,.22); color:#fecaca; font-size:34px; }
+    h1{ margin:0 0 12px; font-size:clamp(30px,7vw,48px); line-height:.98; letter-spacing:-.06em; font-weight:900; }
+    .lead{ margin:0 auto; max-width:560px; color:var(--muted); font-size:clamp(17px,3.5vw,20px); line-height:1.62; }
+    .actions{ display:flex; justify-content:center; flex-wrap:wrap; gap:12px; margin-top:30px; }
+    .btn{ display:inline-flex; align-items:center; justify-content:center; min-height:48px; padding:0 18px; border-radius:999px; text-decoration:none; font-weight:800; }
+    .btn-primary{ color:#07111f; background:linear-gradient(135deg,#93c5fd,#c4b5fd); }
+    .btn-secondary{ color:var(--text); border:1px solid var(--line); background:rgba(255,255,255,.05); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="status" aria-hidden="true">!</div>
+      <h1>Limit Reached</h1>
+      <p class="lead">This link has reached its maximum number of opens and is no longer available.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="${escapeHtml(origin)}">Create your own expiring link</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+        return new Response(html, { status: 410, headers: { "content-type": "text/html; charset=utf-8" } });
+      }
+    }
+
     // R2 file/text redirects
     if (typeof dest === "string" && dest.startsWith("file:")) {
       const rest = dest.slice("file:".length);
@@ -274,7 +324,7 @@ export default async function handler(req) {
     }
 
     // Track opening
-    if (!isBot(req)) {
+    if (!bot) { // Iskoristili smo promenljivu 'bot' koju smo definisali gore
       trackOpenedEvent(url.origin, {
         event_type: "link_opened",
         page: url.pathname || "/go",

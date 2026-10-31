@@ -290,7 +290,7 @@ const rawUrl = String(body?.url || "").trim();
 const minutes = Number(body?.minutes);
 const proToken = body?.token ? String(body.token).trim() : null;
 const proEmail = body?.pro_email ? String(body.pro_email).trim().toLowerCase() : null; // DODATO
-
+let maxOpens = body?.max_opens ? Number(body.max_opens) : null; // DODATO
 const isFile = kind === "file" || rawUrl.startsWith("file:");
 const isText = kind === "text" || rawUrl.startsWith("text:");
 
@@ -457,8 +457,14 @@ if ((isFile || isText) && !devBypass) {
       }
     }
 
-    // primeni limit (globalno hard-cap na 10 godina)
+    // DODATO: Sigurnosna provera - samo Pro korisnici mogu da stave limit otvaranja
+    if (maxOpens !== null && plan !== "pro") {
+      maxOpens = null; // Ako nije Pro, ignorišemo limit i pravimo link kao neograničen
+    }
+
+    // primeni limit (globalno hard-cap na 30 dana)
     const allowed = Math.min(minutes, max_minutes, MAX_MINUTES_30D);
+
 
     // Compact v2 ID:
     // payload = base64url([v=2][expirySeconds][url])
@@ -477,7 +483,12 @@ if ((isFile || isText) && !devBypass) {
 
     const { error: insertError } = await supabase
       .from("links")
-      .insert([{ token, url, expires_at: expiresAt }]);
+      .insert([{ 
+        token, 
+        url, 
+        expires_at: expiresAt,
+        max_opens: maxOpens // DODATO
+      }]);
 
     if (insertError) {
       console.error("[create] insert error:", insertError);
