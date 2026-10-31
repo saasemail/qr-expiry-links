@@ -50,8 +50,8 @@ let linkExpired = false;
 let lastPresetMinutes = 10;
 let customTouched = false;
 
-// Custom duration hard max (10 years in days)
-const CUSTOM_DAYS_MAX = 3650;
+// Custom duration hard max (30 days)
+const CUSTOM_DAYS_MAX = 30;
 
 // QR rendering params (tuned for scan reliability)
 const QR_ECL = "L";   // lower density than M/Q for long strings

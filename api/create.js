@@ -335,8 +335,8 @@ if ((isFile || isText) && !devBypass) {
 
     const SIGNING_SECRET = process.env.SIGNING_SECRET || "dev-secret";
 
-    // 10 godina max (u minutima): 10 * 365 * 24 * 60 = 5,256,000
-    const MAX_MINUTES_10Y = 5256000;
+    // 30 dana max (u minutima): 30 * 24 * 60 = 43,200
+    const MAX_MINUTES_30D = 43200;
 
     // default: free - 60 min limit
     let plan = "free";
@@ -351,7 +351,7 @@ if ((isFile || isText) && !devBypass) {
     if (isDevProToken) {
     plan = "pro";
     tier = "dev";
-    max_minutes = MAX_MINUTES_10Y;
+    max_minutes = MAX_MINUTES_30D;
 } else if (proToken) {
   // existing Supabase token lookup...
   const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -373,7 +373,7 @@ if ((isFile || isText) && !devBypass) {
 
   plan = "pro";
   tier = tok.tier || null;
-  max_minutes = Number(tok.max_minutes || MAX_MINUTES_10Y);
+  max_minutes = Number(tok.max_minutes || MAX_MINUTES_30D);
   usedByUserId = tok.user_id || null;
 
 // DODATO: Provera Pro statusa preko email-a (za Freemius kupce)
@@ -396,7 +396,7 @@ if ((isFile || isText) && !devBypass) {
   if (proUser?.is_active === true && (proUser?.credits || 0) > 0) {
     plan = "pro";
     tier = "freemius";
-    max_minutes = MAX_MINUTES_10Y;
+    max_minutes = MAX_MINUTES_30D;
 
     // UMANJI KREDIT ZA 1
     const { error: updateErr } = await admin
@@ -451,14 +451,14 @@ if ((isFile || isText) && !devBypass) {
           if (best) {
             plan = "pro";
             tier = best.tier || null;
-            max_minutes = Number(best.max_minutes || MAX_MINUTES_10Y);
+            max_minutes = Number(best.max_minutes || MAX_MINUTES_30D);
           }
         }
       }
     }
 
     // primeni limit (globalno hard-cap na 10 godina)
-    const allowed = Math.min(minutes, max_minutes, MAX_MINUTES_10Y);
+    const allowed = Math.min(minutes, max_minutes, MAX_MINUTES_30D);
 
     // Compact v2 ID:
     // payload = base64url([v=2][expirySeconds][url])
