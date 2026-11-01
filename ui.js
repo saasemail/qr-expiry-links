@@ -1100,8 +1100,6 @@ async function resetToInitialState() {
     return;
   }
 
-  clearTimeout(expiryTimer);
-  clearInterval(countdownTimer);
   setLoading(true);
 
   const safety = setTimeout(() => setLoading(false), 9000);
@@ -1136,6 +1134,11 @@ async function resetToInitialState() {
       }
       
       const created = await createLink(url, minutes, proEmail, maxOpensValue);
+
+      // DODATO: Zaustavi stare tajmere tek kada je novi link uspešno napravljen
+      clearTimeout(expiryTimer);
+      clearInterval(countdownTimer);
+
 
 
       const redirectUrl = `${window.location.origin}/go/${created.id}`;
