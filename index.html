@@ -1323,11 +1323,16 @@
   </label>
 </div>
 
-      <label>
-        Expiration Time
-        <select id="expirySelect" aria-label="Expiration Time">
+      <label style="margin-bottom: 1rem; display: block;">
+        <!-- Naslov i PRO oznaka u istom redu, poravnati levo-desno -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 0.95rem; font-weight: 400;">Expiration Time</span>
+          <span style="color: #8b5cf6; font-size: 11px; background: rgba(139,92,246,0.1); padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(139,92,246,0.3); font-weight: 700; letter-spacing: 0.5px;">PRO</span>
+        </div>
+        
+        <select id="expirySelect" aria-label="Expiration Time" style="margin-top: 0;">
           <option value="60">1 hour</option>
-          <option value="custom">Custom duration</option>
+          <option value="custom">Custom duration (PRO)</option>
         </select>
       </label>
       <p class="field-hint">This link &amp; QR will expire after the selected time.</p>
