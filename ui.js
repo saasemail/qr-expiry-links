@@ -1415,6 +1415,20 @@ alert("Unknown mode.");
       const customOption = document.querySelector('#expirySelect option[value="custom"]');
       if (customOption) customOption.textContent = "Custom Duration 🔒";
 
+            // DODATO: Ponovo zaključaj Link Usage Limit
+      if (maxOpensControls) {
+        maxOpensControls.style.opacity = "0.5";
+        maxOpensControls.style.pointerEvents = "none";
+      }
+      if (maxOpensLockOverlay) {
+        maxOpensLockOverlay.style.display = "block";
+      }
+      const maxOpensBadge = document.getElementById("maxOpensProBadge");
+      if (maxOpensBadge) {
+        maxOpensBadge.textContent = "🔒";
+        maxOpensBadge.style.color = "#8b5cf6";
+      }
+
       // Prikaži overlay sa porukom
       const title = document.getElementById("proOverlayTitle");
       const desc = document.getElementById("proOverlayDesc");
