@@ -1265,49 +1265,44 @@
 </head>
 <body>
 
-<!-- Brand badge (replaces navbar) -->
-<div class="brand-badge">
-  <span class="brand-icon" aria-hidden="true">
-    <img src="TempQRlogo.svg" alt="" width="34" height="34" style="display:block; border-radius:8px;" />
-  </span>
-  <span class="brand-name">TempQR</span>
-</div>
+<!-- Novo fiksirano zaglavlje koje sprečava preklapanje -->
+<header style="position: fixed; top: 0; left: 0; right: 0; height: 64px; background: rgba(11, 14, 19, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.05); z-index: 9999; display: flex; align-items: center; justify-content: space-between; padding: 0 16px;">
 
-<!-- Top Right Navigation -->
+  <!-- Brand badge (Logo) -->
+  <div class="brand-badge" style="position: relative; top: 0; left: 0;">
+    <span class="brand-icon" aria-hidden="true">
+      <img src="TempQRlogo.svg" alt="" width="34" height="34" style="display:block; border-radius:8px;" />
+    </span>
+    <span class="brand-name" style="margin-left: 10px;">TempQR</span>
+  </div>
+
+  <!-- Top Right Navigation -->
+  <div class="top-nav" style="position: relative; top: 0; right: 0; display: flex; gap: 15px; font-size: 14px;">
+    <a href="faq.html" style="color: rgba(255,255,255,0.8); text-decoration: none;">FAQ</a>
+    <a href="feedback.html" style="color: rgba(255,255,255,0.8); text-decoration: none;">Contact</a>
+  </div>
+
+</header>
+
+<!-- Ovaj CSS osigurava da sadržaj ne počinje ispod zaglavlja -->
 <style>
-  .top-nav {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 10000;
-    display: flex;
-    gap: 15px;
-    font-size: 14px;
-  }
-  .top-nav a {
-    color: rgba(255,255,255,0.8);
-    text-decoration: none;
-  }
-  
-    @media (max-width: 560px) {
+  @media (max-width: 560px) {
     .top-nav {
-      top: 15px;
-      right: 15px;
-      left: auto;
-      transform: none;
-      flex-direction: column;  /* ovo stavlja jedno ispod drugog */
-      align-items: flex-end;   /* poravnava udesno */
-      gap: 6px;                /* mali razmak između redova */
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
       font-size: 13px;
     }
+    .container {
+      padding-top: 90px !important; /* Više prostora na telefonu zbog dva reda teksta u meniju */
+    }
   }
-
+  @media (min-width: 561px) {
+    .container {
+      padding-top: 80px !important;
+    }
+  }
 </style>
-
-<div class="top-nav">
-  <a href="faq.html">FAQ</a>
-  <a href="feedback.html">Contact</a>
-</div>
 
 
 
