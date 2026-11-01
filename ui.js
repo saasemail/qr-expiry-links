@@ -105,6 +105,12 @@ function unlockMaxOpensUI() {
     badge.style.background = "rgba(16,185,129,0.1)";
     badge.style.borderColor = "rgba(16,185,129,0.3)";
   }
+  
+  // DODATO: Skloni katanac iz padajućeg menija
+  const customOption = document.querySelector('#expirySelect option[value="custom"]');
+  if (customOption) {
+    customOption.textContent = "Custom Duration";
+  }
 }
 
 function safeJSONParse(str) {
@@ -925,6 +931,16 @@ async function resetToInitialState() {
     // reset expiry to default 10 minutes
   if (expirySelect) expirySelect.value = "60";
   
+  // DODATO: Vrati katanac u meni ako korisnik više nije Pro
+  const customOption = document.querySelector('#expirySelect option[value="custom"]');
+  if (customOption) {
+    if (getProEmail()) {
+      customOption.textContent = "Custom Duration";
+    } else {
+      customOption.textContent = "Custom Duration 🔒";
+    }
+  }
+
   // DODATO: Reset Max Opens
   if (opensUnlimited) opensUnlimited.checked = true;
   if (maxOpensInput) {
@@ -1394,6 +1410,10 @@ alert("Unknown mode.");
     if (msg.includes("No credits") || msg.includes("credits available")) {
       // Obriši email iz localStorage jer nema više kredita
       localStorage.removeItem(PRO_EMAIL_KEY);
+
+     // DODATO: Vrati katanac jer više nije Pro
+      const customOption = document.querySelector('#expirySelect option[value="custom"]');
+      if (customOption) customOption.textContent = "Custom Duration 🔒";
 
       // Prikaži overlay sa porukom
       const title = document.getElementById("proOverlayTitle");
