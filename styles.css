@@ -141,6 +141,7 @@ label {
 input[type="url"],
 input[type="number"],
 input[type="text"],
+input[type="email"], /* <-- DODATO OVO */
 input[type="datetime-local"],
 select,
 textarea {

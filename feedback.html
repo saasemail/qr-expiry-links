@@ -118,7 +118,7 @@
           </p>
 
           <div class="feedback-actions" style="margin-top: 1.15rem;">
-            <button class="btn btn-primary" id="submitBtn" type="submit">Submit Feedback</button>
+            <button class="btn btn-primary" id="submitBtn" type="submit">Send message</button>
           </div>
 
           <!-- Fallback (hidden until submit), keeps UI clean but still usable if mailto doesn't open -->
@@ -144,7 +144,7 @@
       <a href="terms.html" rel="nofollow">Terms</a>
       <a href="privacy.html" rel="nofollow">Privacy</a>
       <a href="faq.html" rel="nofollow">FAQ</a>
-      <a href="feedback.html" rel="nofollow">Feedback</a>
+      <a href="feedback.html" rel="nofollow">Contact</a>
     </div>
   </footer>
 
@@ -237,7 +237,7 @@
           return;
         }
 
-        const subject = "TempQR Feedback";
+        const subject = "TempQR Support Request";
         const mailto =
           "mailto:" + encodeURIComponent(to) +
           "?subject=" + encodeURIComponent(subject) +
