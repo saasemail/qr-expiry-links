@@ -1323,16 +1323,13 @@
   </label>
 </div>
 
-      <label style="margin-bottom: 1rem; display: block;">
-        <!-- Naslov i PRO oznaka u istom redu, poravnati levo-desno -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span style="font-size: 0.95rem; font-weight: 400;">Expiration Time</span>
-          <span style="color: #8b5cf6; font-size: 11px; background: rgba(139,92,246,0.1); padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(139,92,246,0.3); font-weight: 700; letter-spacing: 0.5px;">PRO</span>
-        </div>
+  <label style="margin-bottom: 0.5rem; display: block;">
+        <!-- Sklonjen PRO bedž, vraćen običan naslov -->
+        <span style="font-size: 0.95rem; font-weight: 400; display: block; margin-bottom: 8px;">Expiration Time</span>
         
         <select id="expirySelect" aria-label="Expiration Time" style="margin-top: 0;">
           <option value="60">1 hour</option>
-          <option value="custom">Custom duration (PRO)</option>
+          <option value="custom">Custom duration 💎</option>
         </select>
       </label>
       <p class="field-hint">This link &amp; QR will expire after the selected time.</p>
@@ -1360,9 +1357,9 @@
             <!-- NOVO: Limit broja otvaranja -->
       <div id="maxOpensWrap" style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; position: relative;">
         
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <label style="font-weight: 600; margin: 0;">Link Usage Limit</label>
-          <span id="maxOpensProBadge" style="color: #8b5cf6; font-size: 11px; background: rgba(139,92,246,0.1); padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(139,92,246,0.3); font-weight: 700; letter-spacing: 0.5px;">PRO</span>
+          <span id="maxOpensProBadge" style="color: #8b5cf6; font-size: 12px; background: rgba(139,92,246,0.1); padding: 2px 8px; border-radius: 999px; border: 1px solid rgba(139,92,246,0.3); font-weight: 700; line-height: 1; display: inline-flex; align-items: center; justify-content: center;">💎</span>
         </div>
 
         <!-- Kontrole koje zaključavamo -->
