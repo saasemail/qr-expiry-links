@@ -1516,17 +1516,22 @@
 </main>
 
   <footer class="footer">
-    <!-- Umotavamo sve u jedan div i poravnavamo ulevo -->
-    <div style="display: flex; align-items: center; gap: 30px; flex-wrap: wrap; justify-content: flex-start; width: 100%;">
+    <!-- Glavni kontejner poravnat ulevo -->
+    <div style="display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-start; gap: 50px; width: 100%;">
       
+      <!-- 1. Celina: Copyright -->
       <div class="footer-left" style="white-space: nowrap;">© TempQR 2026</div>
       
-      <!-- Svi linkovi u jednom nizu sa razmakom -->
-      <div style="display: flex; gap: 15px; flex-wrap: wrap; font-size: 0.9rem; align-items: center;">
+      <!-- 2. Celina: Alati (Use cases...) -->
+      <div style="display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.9rem; align-items: center;">
         <a href="use-cases.html" style="color: var(--muted); text-decoration: none;">Use cases</a>
         <a href="expiring-link.html" style="color: var(--muted); text-decoration: none;">Expiring link</a>
         <a href="temporary-qr-code.html" style="color: var(--muted); text-decoration: none;">Temporary QR code</a>
         <a href="temporary-link-generator.html" style="color: var(--muted); text-decoration: none;">Temporary link generator</a>
+      </div>
+      
+      <!-- 3. Celina: Pravna i podrška (Terms...) -->
+      <div style="display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.9rem; align-items: center;">
         <a href="terms.html" rel="nofollow" style="color: var(--muted); text-decoration: none;">Terms</a>
         <a href="privacy.html" rel="nofollow" style="color: var(--muted); text-decoration: none;">Privacy</a>
         <a href="faq.html" rel="nofollow" style="color: var(--muted); text-decoration: none;">FAQ</a>
@@ -1535,7 +1540,6 @@
       
     </div>
   </footer>
-
 
   <!-- Pro Lock Overlay -->
 <div id="proLockOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:9999; align-items:center; justify-content:center; padding:20px;">
