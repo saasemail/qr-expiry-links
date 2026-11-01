@@ -11,11 +11,9 @@
 </head>
 <body>
   <nav class="navbar">
-    <div class="nav-left">
+    <div class="nav-left" style="background: transparent; border: none; padding: 0;">
       <span class="brand-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm10 0h2v2h-2v-2Zm2 2h2v2h-2v-2Zm-2 2h2v2h-2v-2Zm4-6h2v6h-2v-6Z" fill="currentColor"/>
-        </svg>
+        <img src="TempQRlogo.svg" alt="TempQR logo" width="40" height="40" style="display:block; border-radius:8px;" />
       </span>
       <h1 class="brand-name">TempQR</h1>
     </div>
@@ -34,26 +32,42 @@
     </header>
 
     <section class="page-card">
-      <div class="prose">
-        <p><strong>Summary.</strong> TempQR is designed to work without accounts and without requesting personal profile information.</p>
+        <div class="prose">
+        <p><strong>Summary.</strong> TempQR is built with a privacy-first approach. We do not require accounts, we do not use tracking cookies, and we do not sell your data.</p>
 
         <div class="kv" aria-label="Privacy summary">
-          <div class="k">Accounts</div><div class="v">No signup required.</div>
-          <div class="k">Tracking cookies</div><div class="v">No intentional tracking cookies.</div>
-          <div class="k">Purpose</div><div class="v">Generate expiring links and QR codes.</div>
+          <div class="k">Accounts</div><div class="v">No signup required (email only for Pro).</div>
+          <div class="k">Tracking cookies</div><div class="v">None. We do not track your behavior across the web.</div>
+          <div class="k">Purpose</div><div class="v">Generate expiring links, QR codes, and process Pro upgrades.</div>
         </div>
 
-        <p><strong>What we process.</strong> When you generate an expiring link, the service processes the target URL and your chosen expiry duration to create the link/QR. Your browser also sends standard request data (e.g., IP address, user agent) to the hosting provider as part of normal web traffic.</p>
+        <h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 18px;">1. Information We Process</h3>
+        <p>When you use TempQR, we process the following information:</p>
+        <ul style="margin-left: 20px; margin-bottom: 16px; color: var(--muted);">
+          <li style="margin-bottom: 8px;"><strong>Link Data:</strong> The target URL you submit and the expiration settings you choose, required to generate your link and QR code.</li>
+          <li style="margin-bottom: 8px;"><strong>Pro Account Data:</strong> If you purchase a Pro plan, we store the email address you provided during checkout to unlock your features.</li>
+          <li style="margin-bottom: 8px;"><strong>Technical Data:</strong> Like all websites, our servers automatically receive standard technical data (such as IP address and browser type) to ensure security, prevent abuse, and maintain service stability.</li>
+        </ul>
 
-        <p><strong>How we use information.</strong> Only to provide the service, maintain security, and prevent abuse.</p>
+        <h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 18px;">2. What We DO NOT Do</h3>
+        <ul style="margin-left: 20px; margin-bottom: 16px; color: var(--muted);">
+          <li style="margin-bottom: 8px;">We do not track who opens your links or their physical location.</li>
+          <li style="margin-bottom: 8px;">We do not use third-party advertising trackers or sell your data.</li>
+          <li style="margin-bottom: 8px;">We do not require passwords or store sensitive personal profiles.</li>
+        </ul>
 
-        <p><strong>Third parties.</strong> The site is hosted on infrastructure providers (e.g., the hosting platform and CDN). They may process basic request logs for security and performance.</p>
+        <h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 18px;">3. Third-Party Services</h3>
+        <p>We use trusted third-party providers to run TempQR:</p>
+        <ul style="margin-left: 20px; margin-bottom: 16px; color: var(--muted);">
+          <li style="margin-bottom: 8px;"><strong>Freemius:</strong> Handles all payment processing and subscription management securely. We do not see or store your credit card information.</li>
+          <li style="margin-bottom: 8px;"><strong>Hosting & Database Providers:</strong> We use secure cloud infrastructure to host the website and store link data.</li>
+        </ul>
 
-        <p><strong>Retention.</strong> Expiring links stop working after the expiry time you select. Some technical logs may be retained by hosting providers for a limited time for security and debugging.</p>
+        <h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 18px;">4. Data Retention</h3>
+        <p>Expiring links stop working automatically after the time you select. We do not keep a permanent history of your generated links. Technical logs are retained only for a limited time for security and debugging purposes.</p>
 
-        <p><strong>Contact.</strong> If you have privacy questions, use the <a href="feedback.html">Feedback</a> page.</p>
-
-        <p class="muted">If you later add analytics/ads, update this policy accordingly.</p>
+        <h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 18px;">5. Contact</h3>
+        <p>If you have any privacy questions or concerns, please contact us at <a href="mailto:support@tempqr.com">support@tempqr.com</a>.</p>
       </div>
     </section>
   </main>
