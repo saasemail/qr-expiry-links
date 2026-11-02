@@ -1174,6 +1174,11 @@ async function resetToInitialState() {
       generatedLink.classList.remove("hidden");
       await renderQr(redirectUrl);
 
+       // DODATO: Skroluj do rezultata
+      setTimeout(() => {
+        resultCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${formatDurationText(created.minutes)} • Until ${endLocal.toLocaleString()}`;
 
