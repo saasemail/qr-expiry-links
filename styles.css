@@ -77,7 +77,7 @@ a:hover { text-decoration: underline; }
   flex: 1;
   max-width: 600px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 100px 1rem 2rem 1rem; /* Gore 100px za logo, dole i levo/desno normalno */
   text-align: center;
 }
 
@@ -338,7 +338,7 @@ section.card:not(#resultCard) .button-group .btn {
 }
 
 @media (max-width: 520px) {
-  .container { padding: 1.5rem 1rem; }
+  .container { padding: 130px 1rem 1.5rem 1rem; }
   .card { padding: 1.4rem; }
   .button-group { flex-wrap: wrap; }
 
