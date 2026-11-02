@@ -1169,17 +1169,12 @@ async function resetToInitialState() {
       generatedLink.classList.remove("hidden");
       await renderQr(redirectUrl);
 
-      resultCard.classList.remove("hidden");
-      qrcodeCanvas.classList.remove("hidden");
-      generatedLink.classList.remove("hidden");
-      await renderQr(redirectUrl);
-
-           // DODATO: Skroluj do rezultata (poboljšano za desktop)
+      // DODATO: Skroluj do rezultata (rešeno preklapanje i skakanje)
       setTimeout(() => {
-        const yOffset = -20; // Malo odstojanje od vrha ekrana
+        const yOffset = -80; // Pomeramo se više nagore jer je header visok 64px (+ malo prostora)
         const y = resultCard.getBoundingClientRect().top + window.pageYOffset + yOffset;
         window.scrollTo({ top: y, behavior: 'smooth' });
-      }, 300); // Povećano na 300ms da se osigura da se QR kod u potpunosti učita i promeni visinu stranice pre skrolovanja
+      }, 400); // 400ms daje pretraživaču dovoljno vremena da "smiri" visinu stranice nakon crtanja QR koda
 
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${formatDurationText(created.minutes)} • Until ${endLocal.toLocaleString()}`;
