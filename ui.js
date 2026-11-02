@@ -1174,10 +1174,12 @@ async function resetToInitialState() {
       generatedLink.classList.remove("hidden");
       await renderQr(redirectUrl);
 
-       // DODATO: Skroluj do rezultata
+           // DODATO: Skroluj do rezultata (poboljšano za desktop)
       setTimeout(() => {
-        resultCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
+        const yOffset = -20; // Malo odstojanje od vrha ekrana
+        const y = resultCard.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }, 300); // Povećano na 300ms da se osigura da se QR kod u potpunosti učita i promeni visinu stranice pre skrolovanja
 
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${formatDurationText(created.minutes)} • Until ${endLocal.toLocaleString()}`;
