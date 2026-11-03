@@ -1169,10 +1169,17 @@ async function resetToInitialState() {
       generatedLink.classList.remove("hidden");
       await renderQr(redirectUrl);
 
-      // DODATO: Skroluj do rezultata (smooth na svim uređajima)
+            // Uklanjamo fokus sa dugmeta da pretraživač ne bi pokušao da ga zadrži na ekranu
+      generateBtn.blur();
+
+      // Koristimo setTimeout + requestAnimationFrame da sačekamo da se QR kod potpuno iscrta
       setTimeout(() => {
-        resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 500); // Povećano na 500ms da se QR kod sigurno iscrta pre skrolovanja
+        requestAnimationFrame(() => {
+          const yOffset = -90; // Malo veći offset da ne bi prekrilo vrh
+          const y = resultCard.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        });
+      }, 300); 
 
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${formatDurationText(created.minutes)} • Until ${endLocal.toLocaleString()}`;
