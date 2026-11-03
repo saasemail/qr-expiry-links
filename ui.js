@@ -1172,21 +1172,13 @@ async function resetToInitialState() {
             // Uklanjamo fokus sa dugmeta da pretraživač ne bi pokušao da ga zadrži na ekranu
       generateBtn.blur();
 
-      // Custom smooth scroll animacija (radi besprekorno na svim desktop pretraživačima)
+      // Custom smooth scroll animacija
       setTimeout(() => {
         const target = resultCard;
-        const rect = target.getBoundingClientRect();
         
-        // Opcija 1: Skroluj do vrha forme (kao i do sada)
-        const topTargetY = rect.top + window.pageYOffset - 80; 
-        
-        // Opcija 2: Skroluj dovoljno nisko da se vidi i dno forme (dugme ispod QR koda)
-        // Ostavljamo 60px praznog prostora ispod forme
-        const bottomTargetY = rect.bottom + window.pageYOffset - window.innerHeight + 60; 
-        
-        // Math.max bira onu opciju koja zahteva skrolovanje niže naniže.
-        // Time se osigurava da se vidi donji deo forme.
-        const targetY = Math.max(topTargetY, bottomTargetY);
+        // Skrolujemo do vrha forme, ali ostavljamo samo 50px prostora iznad.
+        // Ovo osigurava da se vidi ceo vrh forme, a samim tim i što više donjeg dela.
+        const targetY = target.getBoundingClientRect().top + window.pageYOffset - 50; 
 
         const startY = window.pageYOffset;
         const difference = targetY - startY;
@@ -1210,7 +1202,7 @@ async function resetToInitialState() {
           }
         }
         window.requestAnimationFrame(step);
-      }, 100);
+      }, 100); 
 
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${formatDurationText(created.minutes)} • Until ${endLocal.toLocaleString()}`;
