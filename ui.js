@@ -1172,17 +1172,26 @@ async function resetToInitialState() {
             // Uklanjamo fokus sa dugmeta da pretraživač ne bi pokušao da ga zadrži na ekranu
       generateBtn.blur();
 
-      // Custom smooth scroll animacija
+      // Custom smooth scroll animacija sa pametnim pozicioniranjem
       setTimeout(() => {
         const target = resultCard;
+        const rect = target.getBoundingClientRect();
+        const windowH = window.innerHeight;
         
-        // Skrolujemo do vrha forme, ali ostavljamo samo 50px prostora iznad.
-        // Ovo osigurava da se vidi ceo vrh forme, a samim tim i što više donjeg dela.
-        const targetY = target.getBoundingClientRect().top + window.pageYOffset - 50; 
+        // 1. Izračunaj gde bi trebalo da bude vrh forme (ostavljamo 80px prostora iznad)
+        let targetY = rect.top + window.pageYOffset - 80;
+        
+        // 2. Izračunaj gde bi trebalo da bude dno forme (ostavljamo 40px prostora ispod)
+        const bottomY = rect.bottom + window.pageYOffset - windowH + 40;
+        
+        // 3. Ako je donji deo forme odsečen, skroluj malo niže da bi se video
+        if (bottomY > targetY) {
+            targetY = bottomY;
+        }
 
         const startY = window.pageYOffset;
         const difference = targetY - startY;
-        const duration = 500; // Trajanje animacije u milisekundama
+        const duration = 500; // Trajanje animacije
         let startTime = null;
 
         function step(timestamp) {
