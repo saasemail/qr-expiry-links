@@ -1169,25 +1169,15 @@ async function resetToInitialState() {
       generatedLink.classList.remove("hidden");
       await renderQr(redirectUrl);
 
-            // Uklanjamo fokus sa dugmeta da pretraživač ne bi pokušao da ga zadrži na ekranu
+            // Uklanjamo fokus sa dugmeta
       generateBtn.blur();
 
-      // Custom smooth scroll animacija sa pametnim pozicioniranjem
+      // Malo duže čekamo (300ms) da se QR kod potpuno iscrta i da se visina stranice "smiri"
       setTimeout(() => {
         const target = resultCard;
-        const rect = target.getBoundingClientRect();
-        const windowH = window.innerHeight;
         
-        // 1. Izračunaj gde bi trebalo da bude vrh forme (ostavljamo 80px prostora iznad)
-        let targetY = rect.top + window.pageYOffset - 80;
-        
-        // 2. Izračunaj gde bi trebalo da bude dno forme (ostavljamo 40px prostora ispod)
-        const bottomY = rect.bottom + window.pageYOffset - windowH + 40;
-        
-        // 3. Ako je donji deo forme odsečen, skroluj malo niže da bi se video
-        if (bottomY > targetY) {
-            targetY = bottomY;
-        }
+        // Uzimamo poziciju vrha forme i ostavljamo 60px praznog prostora iznad (lepši izgled)
+        const targetY = target.getBoundingClientRect().top + window.pageYOffset - 60; 
 
         const startY = window.pageYOffset;
         const difference = targetY - startY;
@@ -1199,7 +1189,7 @@ async function resetToInitialState() {
           const progress = timestamp - startTime;
           const percentage = Math.min(progress / duration, 1);
           
-          // Ease-in-out matematika za lepši osećaj
+          // Ease-in-out matematika
           const ease = percentage < 0.5 
             ? 4 * percentage * percentage * percentage 
             : 1 - Math.pow(-2 * percentage + 2, 3) / 2;
@@ -1211,7 +1201,7 @@ async function resetToInitialState() {
           }
         }
         window.requestAnimationFrame(step);
-      }, 100); 
+      }, 300); // Povećano sa 100 na 300
 
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${formatDurationText(created.minutes)} • Until ${endLocal.toLocaleString()}`;
