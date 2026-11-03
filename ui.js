@@ -1172,14 +1172,34 @@ async function resetToInitialState() {
             // Uklanjamo fokus sa dugmeta da pretraživač ne bi pokušao da ga zadrži na ekranu
       generateBtn.blur();
 
-      // Koristimo setTimeout + requestAnimationFrame da sačekamo da se QR kod potpuno iscrta
+      // Custom smooth scroll animacija (radi besprekorno na svim desktop pretraživačima)
       setTimeout(() => {
-        requestAnimationFrame(() => {
-          const yOffset = -90; // Malo veći offset da ne bi prekrilo vrh
-          const y = resultCard.getBoundingClientRect().top + window.pageYOffset + yOffset;
-          window.scrollTo({ top: y, behavior: 'smooth' });
-        });
-      }, 300); 
+        const target = resultCard;
+        const targetY = target.getBoundingClientRect().top + window.pageYOffset - 80; // 80px odstupnice od vrha
+        const startY = window.pageYOffset;
+        const difference = targetY - startY;
+        const duration = 500; // Trajanje animacije u milisekundama (pola sekunde)
+        let startTime = null;
+
+        function step(timestamp) {
+          if (!startTime) startTime = timestamp;
+          const progress = timestamp - startTime;
+          const percentage = Math.min(progress / duration, 1);
+          
+          // Ease-in-out matematika za lepši osećaj (ubrzava pa usporava)
+          const ease = percentage < 0.5 
+            ? 4 * percentage * percentage * percentage 
+            : 1 - Math.pow(-2 * percentage + 2, 3) / 2;
+
+          // 'instant' je ključan - sprečava da se CSS ponovo meša u animaciju
+          window.scrollTo({ top: startY + difference * ease, behavior: 'instant' });
+
+          if (progress < duration) {
+            window.requestAnimationFrame(step);
+          }
+        }
+        window.requestAnimationFrame(step);
+      }, 100); 
 
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${formatDurationText(created.minutes)} • Until ${endLocal.toLocaleString()}`;
