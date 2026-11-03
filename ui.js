@@ -968,8 +968,12 @@ async function resetToInitialState() {
   // go back to URL mode (nice default)
   setMode("url");
 
-  // focus URL input
-  setTimeout(() => urlInput?.focus?.(), 0);
+    // focus URL input (preventScroll sprečava da browser naglo skoči i pokvari smooth scroll)
+  setTimeout(() => {
+    if (urlInput) {
+      urlInput.focus({ preventScroll: true }); 
+    }
+  }, 50);
 
   setCreateAnotherEnabled(false);
 }
@@ -1145,7 +1149,7 @@ async function resetToInitialState() {
 
       linkExpired = false;
       setDownloadButtonsEnabled(true);
-      setCreateAnotherEnabled(false);
+      setCreateAnotherEnabled(true);
 
       generatedLink.textContent = makeDisplayLink(redirectUrl);
       generatedLink.href = redirectUrl;
