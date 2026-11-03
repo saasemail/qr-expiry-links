@@ -449,7 +449,7 @@ function computeScannableQrSizePx(text) {
 
   // Target module size: mobile needs bigger modules to scan reliably
   const mobile = window.matchMedia && window.matchMedia("(max-width: 520px)").matches;
-  const pxPerModule = mobile ? 7 : 6; // key scan reliability knob
+  const pxPerModule = mobile ? 7 : 5; // key scan reliability knob
 
   // Estimate module count by building QR matrix
   let moduleCount = 0;
@@ -1172,29 +1172,18 @@ async function resetToInitialState() {
             // Uklanjamo fokus sa dugmeta
       generateBtn.blur();
 
-      // Čekamo 300ms da se QR kod potpuno iscrta i da se visina stranice "smiri"
+      // Čekamo 300ms da se QR kod iscrta
       setTimeout(() => {
-        const cardRect = resultCard.getBoundingClientRect();
-        const cardTop = cardRect.top + window.pageYOffset;
-        const cardHeight = resultCard.offsetHeight;
-        const viewportHeight = window.innerHeight;
-
-        // PAMETNA MATEMATIKA: 
-        // Računamo centar forme, ali ako je forma visoka, ne dozvoljavamo da vrh 
-        // bude bliže od 60px ivici ekrana.
-        let targetY = cardTop - Math.max(60, (viewportHeight - cardHeight) / 2);
-
+        const targetY = resultCard.getBoundingClientRect().top + window.pageYOffset - 80; 
         const startY = window.pageYOffset;
         const difference = targetY - startY;
-        const duration = 500; // Trajanje animacije
+        const duration = 500; 
         let startTime = null;
 
         function step(timestamp) {
           if (!startTime) startTime = timestamp;
           const progress = timestamp - startTime;
           const percentage = Math.min(progress / duration, 1);
-          
-          // Ease-in-out matematika
           const ease = percentage < 0.5 
             ? 4 * percentage * percentage * percentage 
             : 1 - Math.pow(-2 * percentage + 2, 3) / 2;
@@ -1206,7 +1195,7 @@ async function resetToInitialState() {
           }
         }
         window.requestAnimationFrame(step);
-      }, 300); 
+      }, 300);
 
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${formatDurationText(created.minutes)} • Until ${endLocal.toLocaleString()}`;
