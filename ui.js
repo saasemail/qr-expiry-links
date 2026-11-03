@@ -1171,11 +1171,21 @@ async function resetToInitialState() {
             // Uklanjamo fokus sa dugmeta da pretraživač ne bi pokušao da ga zadrži na ekranu
       generateBtn.blur();
 
-            // Custom smooth scroll animacija (radi besprekorno na svim desktop pretraživačima)
+            // Custom smooth scroll animacija (PAMETNO SKROLOVANJE)
       setTimeout(() => {
         const target = resultCard;
-        // SMANJENO: Sa 80px na 70px, kako bi se kartica pomerila malo više uvis
-        const targetY = target.getBoundingClientRect().top + window.pageYOffset - 70; 
+        const rect = target.getBoundingClientRect();
+        const windowHeight = window.innerHeight;
+        
+        // Dinamički izračunavamo koliko prostora treba ostaviti na vrhu.
+        // Ako je forma manja od ekrana, centriramo je. 
+        // Ako je veća, stavljamo je na 40px od vrha (što sakriva Scout Forge bedž).
+        let offsetTop = (windowHeight - rect.height) / 2;
+        if (rect.height > windowHeight - 100 || offsetTop < 40) {
+            offsetTop = 40; 
+        }
+
+        const targetY = window.pageYOffset + rect.top - offsetTop;
         const startY = window.pageYOffset;
         const difference = targetY - startY;
         const duration = 500; // Trajanje animacije u milisekundama (pola sekunde)
@@ -1199,7 +1209,7 @@ async function resetToInitialState() {
           }
         }
         window.requestAnimationFrame(step);
-      }, 100); 
+      }, 100);  
 
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${formatDurationText(created.minutes)} • Until ${endLocal.toLocaleString()}`;
