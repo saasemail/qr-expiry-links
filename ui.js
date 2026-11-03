@@ -472,7 +472,9 @@ function computeScannableQrSizePx(text) {
   // Final: not smaller than min scannable, not larger than maxCss
   // If minCss exceeds maxCss, we still allow it (because otherwise it won't scan),
   // but we cap it to 520 to prevent absurdly huge UI.
-  const css = Math.min(520, Math.max(minCss, Math.min(maxCss, 320)));
+    // Na desktopu (gde je problem sa visinom) forsiramo manji QR (250px) da bi sve stalo na ekran
+  const targetMax = mobile ? 320 : 250;
+  const css = Math.min(520, Math.max(minCss, Math.min(maxCss, targetMax)));
 
   // Make divisible by 4 for nicer output
   return Math.floor(css / 4) * 4;
@@ -1172,30 +1174,10 @@ async function resetToInitialState() {
             // Uklanjamo fokus sa dugmeta
       generateBtn.blur();
 
-      // Čekamo 300ms da se QR kod iscrta
+      // Sačekamo 100ms da se QR kod iscrta i skrolujemo do vrha forme
       setTimeout(() => {
-        const targetY = resultCard.getBoundingClientRect().top + window.pageYOffset - 80; 
-        const startY = window.pageYOffset;
-        const difference = targetY - startY;
-        const duration = 500; 
-        let startTime = null;
-
-        function step(timestamp) {
-          if (!startTime) startTime = timestamp;
-          const progress = timestamp - startTime;
-          const percentage = Math.min(progress / duration, 1);
-          const ease = percentage < 0.5 
-            ? 4 * percentage * percentage * percentage 
-            : 1 - Math.pow(-2 * percentage + 2, 3) / 2;
-
-          window.scrollTo({ top: startY + difference * ease, behavior: 'instant' });
-
-          if (progress < duration) {
-            window.requestAnimationFrame(step);
-          }
-        }
-        window.requestAnimationFrame(step);
-      }, 300);
+        resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);S
 
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${formatDurationText(created.minutes)} • Until ${endLocal.toLocaleString()}`;
