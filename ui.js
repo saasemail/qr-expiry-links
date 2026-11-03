@@ -1175,10 +1175,22 @@ async function resetToInitialState() {
       // Custom smooth scroll animacija (radi besprekorno na svim desktop pretraživačima)
       setTimeout(() => {
         const target = resultCard;
-        const targetY = target.getBoundingClientRect().top + window.pageYOffset - 80; // 80px odstupnice od vrha
+        const rect = target.getBoundingClientRect();
+        
+        // Opcija 1: Skroluj do vrha forme (kao i do sada)
+        const topTargetY = rect.top + window.pageYOffset - 80; 
+        
+        // Opcija 2: Skroluj dovoljno nisko da se vidi i dno forme (dugme ispod QR koda)
+        // Ostavljamo 60px praznog prostora ispod forme
+        const bottomTargetY = rect.bottom + window.pageYOffset - window.innerHeight + 60; 
+        
+        // Math.max bira onu opciju koja zahteva skrolovanje niže naniže.
+        // Time se osigurava da se vidi donji deo forme.
+        const targetY = Math.max(topTargetY, bottomTargetY);
+
         const startY = window.pageYOffset;
         const difference = targetY - startY;
-        const duration = 500; // Trajanje animacije u milisekundama (pola sekunde)
+        const duration = 500; // Trajanje animacije u milisekundama
         let startTime = null;
 
         function step(timestamp) {
@@ -1186,12 +1198,11 @@ async function resetToInitialState() {
           const progress = timestamp - startTime;
           const percentage = Math.min(progress / duration, 1);
           
-          // Ease-in-out matematika za lepši osećaj (ubrzava pa usporava)
+          // Ease-in-out matematika za lepši osećaj
           const ease = percentage < 0.5 
             ? 4 * percentage * percentage * percentage 
             : 1 - Math.pow(-2 * percentage + 2, 3) / 2;
 
-          // 'instant' je ključan - sprečava da se CSS ponovo meša u animaciju
           window.scrollTo({ top: startY + difference * ease, behavior: 'instant' });
 
           if (progress < duration) {
@@ -1199,7 +1210,7 @@ async function resetToInitialState() {
           }
         }
         window.requestAnimationFrame(step);
-      }, 100); 
+      }, 100);
 
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${formatDurationText(created.minutes)} • Until ${endLocal.toLocaleString()}`;
