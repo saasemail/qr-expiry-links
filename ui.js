@@ -445,7 +445,8 @@ function computeScannableQrSizePx(text) {
   // Container/viewport constraints
   const cardW = resultCard?.getBoundingClientRect?.().width || 0;
   const usable = cardW ? Math.max(240, Math.floor(cardW - 64)) : Math.max(240, Math.floor(window.innerWidth * 0.78));
-  const maxCss = Math.min(420, Math.max(280, usable)); // allow bigger when needed, but keep it reasonable
+  // SMANJENO: Sa 420 na 300 piksela maksimum na desktopu
+  const maxCss = Math.min(300, Math.max(240, usable)); 
 
   // Target module size: mobile needs bigger modules to scan reliably
   const mobile = window.matchMedia && window.matchMedia("(max-width: 520px)").matches;
@@ -469,10 +470,8 @@ function computeScannableQrSizePx(text) {
   // Required minimum CSS size for scannability
   const minCss = Math.ceil(totalModules * pxPerModule);
 
-  // Final: not smaller than min scannable, not larger than maxCss
-  // If minCss exceeds maxCss, we still allow it (because otherwise it won't scan),
-  // but we cap it to 520 to prevent absurdly huge UI.
-  const css = Math.min(520, Math.max(minCss, Math.min(maxCss, 320)));
+  // SMANJENO: Maksimalna veličina sa 520/320 na 340/260
+  const css = Math.min(340, Math.max(minCss, Math.min(maxCss, 260)));
 
   // Make divisible by 4 for nicer output
   return Math.floor(css / 4) * 4;
@@ -1172,10 +1171,11 @@ async function resetToInitialState() {
             // Uklanjamo fokus sa dugmeta da pretraživač ne bi pokušao da ga zadrži na ekranu
       generateBtn.blur();
 
-      // Custom smooth scroll animacija (radi besprekorno na svim desktop pretraživačima)
+            // Custom smooth scroll animacija (radi besprekorno na svim desktop pretraživačima)
       setTimeout(() => {
         const target = resultCard;
-        const targetY = target.getBoundingClientRect().top + window.pageYOffset - 80; // 80px odstupnice od vrha
+        // SMANJENO: Sa 80px na 70px, kako bi se kartica pomerila malo više uvis
+        const targetY = target.getBoundingClientRect().top + window.pageYOffset - 70; 
         const startY = window.pageYOffset;
         const difference = targetY - startY;
         const duration = 500; // Trajanje animacije u milisekundama (pola sekunde)
