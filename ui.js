@@ -742,7 +742,7 @@ async function restoreLastResultIfAny() {
   lastRedirectUrl = st.redirectUrl;
   linkExpired = false;
   setDownloadButtonsEnabled(true);
-  setCreateAnotherEnabled(false);
+  setCreateAnotherEnabled(true);
 
 
   generatedLink.textContent = makeDisplayLink(st.redirectUrl);
@@ -974,12 +974,12 @@ async function resetToInitialState() {
   setCreateAnotherEnabled(false);
 }
 
- createAnotherBtn?.addEventListener("click", async () => {
-  if (!linkExpired) return;   // ✅ radi samo kad je expired
+  createAnotherBtn?.addEventListener("click", async () => {
+  // Uklonjen uslov if (!linkExpired) kako bi dugme radilo uvek
   await resetToInitialState();
 
-  const formCard = document.querySelector("section.card");
-  formCard?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  // Lagano skrolovanje do samog vrha (gde je glavna forma)
+  window.scrollTo({ top: 0, behavior: "smooth" });
   });
 
 
@@ -1286,7 +1286,7 @@ async function resetToInitialState() {
 
       linkExpired = false;
       setDownloadButtonsEnabled(true);
-      setCreateAnotherEnabled(false);
+      setCreateAnotherEnabled(true);
 
       generatedLink.textContent = makeDisplayLink(redirectUrl);
       generatedLink.href = redirectUrl;
