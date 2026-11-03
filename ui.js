@@ -53,6 +53,30 @@ let countdownTimer = null;
 let lastRedirectUrl = "";
 let linkExpired = false;
 
+function customSmoothScroll(targetY, duration = 500) {
+  const startY = window.pageYOffset;
+  const difference = targetY - startY;
+  let startTime = null;
+
+  function step(timestamp) {
+    if (!startTime) startTime = timestamp;
+    const progress = timestamp - startTime;
+    const percentage = Math.min(progress / duration, 1);
+    
+    // Ease-in-out matematika za lepši osećaj (ubrzava pa usporava)
+    const ease = percentage < 0.5 
+      ? 4 * percentage * percentage * percentage 
+      : 1 - Math.pow(-2 * percentage + 2, 3) / 2;
+
+    window.scrollTo({ top: startY + difference * ease, behavior: 'instant' });
+
+    if (progress < duration) {
+      window.requestAnimationFrame(step);
+    }
+  }
+  window.requestAnimationFrame(step);
+}
+
 // Track last preset minutes so switching to Custom can prefill nicely
 let lastPresetMinutes = 10;
 let customTouched = false;
@@ -223,9 +247,9 @@ function setDownloadButtonsEnabled(enabled) {
 
 function setCreateAnotherEnabled(enabled) {
   if (!createAnotherBtn) return;
-  createAnotherBtn.disabled = !enabled;
-  createAnotherBtn.style.opacity = enabled ? "1" : "0.45";
-  createAnotherBtn.style.cursor = enabled ? "pointer" : "not-allowed";
+  createAnotherBtn.disabled = false; // Uvek omogućeno
+  createAnotherBtn.style.opacity = "1"; // Uvek puna boja
+  createAnotherBtn.style.cursor = "pointer";
 }
 
 function expireUINow() {
@@ -978,12 +1002,31 @@ async function resetToInitialState() {
   setCreateAnotherEnabled(false);
 }
 
-  createAnotherBtn?.addEventListener("click", async () => {
-  // Uklonjen uslov if (!linkExpired) kako bi dugme radilo uvek
-  await resetToInitialState();
+    createAnotherBtn?.addEventListener("click", () => {
+    // 1. Skroluj lagano na sam vrh forme
+    customSmoothScroll(0);
 
-  // Lagano skrolovanje do samog vrha (gde je glavna forma)
-  window.scrollTo({ top: 0, behavior: "smooth" });
+    // 2. Očisti polja za unos kako bi bila spremna za novi link
+    if (urlInput) urlInput.value = "";
+    if (expirySelect) expirySelect.value = "60";
+    
+    // Reset Max Opens polja
+    if (opensUnlimited) opensUnlimited.checked = true;
+    if (maxOpensInput) {
+      maxOpensInput.value = "";
+      maxOpensInput.disabled = true;
+    }
+
+    // 3. Resetuj custom duration
+    customTouched = false;
+    setCustomFromMinutes(0);
+    updateCustomHint();
+    if (typeof toggleCustomUI === "function") toggleCustomUI();
+
+    // 4. Fokusiraj input bez naglog skoka (preventScroll)
+    setTimeout(() => {
+      if (urlInput) urlInput.focus({ preventScroll: true });
+    }, 550); // Sačekaj da se skrolovanje završi
   });
 
 
@@ -1181,38 +1224,13 @@ async function resetToInitialState() {
         const rect = target.getBoundingClientRect();
         const windowHeight = window.innerHeight;
         
-        // Dinamički izračunavamo koliko prostora treba ostaviti na vrhu.
-        // Ako je forma manja od ekrana, centriramo je. 
-        // Ako je veća, stavljamo je na 40px od vrha (što sakriva Scout Forge bedž).
         let offsetTop = (windowHeight - rect.height) / 2;
         if (rect.height > windowHeight - 100 || offsetTop < 40) {
             offsetTop = 40; 
         }
 
         const targetY = window.pageYOffset + rect.top - offsetTop;
-        const startY = window.pageYOffset;
-        const difference = targetY - startY;
-        const duration = 500; // Trajanje animacije u milisekundama (pola sekunde)
-        let startTime = null;
-
-        function step(timestamp) {
-          if (!startTime) startTime = timestamp;
-          const progress = timestamp - startTime;
-          const percentage = Math.min(progress / duration, 1);
-          
-          // Ease-in-out matematika za lepši osećaj (ubrzava pa usporava)
-          const ease = percentage < 0.5 
-            ? 4 * percentage * percentage * percentage 
-            : 1 - Math.pow(-2 * percentage + 2, 3) / 2;
-
-          // 'instant' je ključan - sprečava da se CSS ponovo meša u animaciju
-          window.scrollTo({ top: startY + difference * ease, behavior: 'instant' });
-
-          if (progress < duration) {
-            window.requestAnimationFrame(step);
-          }
-        }
-        window.requestAnimationFrame(step);
+        customSmoothScroll(targetY);
       }, 100);  
 
       const endLocal = new Date(created.expires_at);
