@@ -1172,12 +1172,17 @@ async function resetToInitialState() {
             // Uklanjamo fokus sa dugmeta
       generateBtn.blur();
 
-      // Malo duže čekamo (300ms) da se QR kod potpuno iscrta i da se visina stranice "smiri"
+      // Čekamo 300ms da se QR kod potpuno iscrta i da se visina stranice "smiri"
       setTimeout(() => {
-        const target = resultCard;
-        
-        // Uzimamo poziciju vrha forme i ostavljamo 60px praznog prostora iznad (lepši izgled)
-        const targetY = target.getBoundingClientRect().top + window.pageYOffset - 60; 
+        const cardRect = resultCard.getBoundingClientRect();
+        const cardTop = cardRect.top + window.pageYOffset;
+        const cardHeight = resultCard.offsetHeight;
+        const viewportHeight = window.innerHeight;
+
+        // PAMETNA MATEMATIKA: 
+        // Računamo centar forme, ali ako je forma visoka, ne dozvoljavamo da vrh 
+        // bude bliže od 60px ivici ekrana.
+        let targetY = cardTop - Math.max(60, (viewportHeight - cardHeight) / 2);
 
         const startY = window.pageYOffset;
         const difference = targetY - startY;
@@ -1201,7 +1206,7 @@ async function resetToInitialState() {
           }
         }
         window.requestAnimationFrame(step);
-      }, 300); // Povećano sa 100 na 300
+      }, 300); 
 
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${formatDurationText(created.minutes)} • Until ${endLocal.toLocaleString()}`;
