@@ -449,7 +449,7 @@ function computeScannableQrSizePx(text) {
 
   // Target module size: mobile needs bigger modules to scan reliably
   const mobile = window.matchMedia && window.matchMedia("(max-width: 520px)").matches;
-  const pxPerModule = mobile ? 7 : 5; // key scan reliability knob
+  const pxPerModule = mobile ? 7 : 6; // key scan reliability knob
 
   // Estimate module count by building QR matrix
   let moduleCount = 0;
@@ -472,9 +472,7 @@ function computeScannableQrSizePx(text) {
   // Final: not smaller than min scannable, not larger than maxCss
   // If minCss exceeds maxCss, we still allow it (because otherwise it won't scan),
   // but we cap it to 520 to prevent absurdly huge UI.
-    // Na desktopu (gde je problem sa visinom) forsiramo manji QR (250px) da bi sve stalo na ekran
-  const targetMax = mobile ? 320 : 250;
-  const css = Math.min(520, Math.max(minCss, Math.min(maxCss, targetMax)));
+  const css = Math.min(520, Math.max(minCss, Math.min(maxCss, 320)));
 
   // Make divisible by 4 for nicer output
   return Math.floor(css / 4) * 4;
@@ -1171,13 +1169,37 @@ async function resetToInitialState() {
       generatedLink.classList.remove("hidden");
       await renderQr(redirectUrl);
 
-            // Uklanjamo fokus sa dugmeta
+            // Uklanjamo fokus sa dugmeta da pretraživač ne bi pokušao da ga zadrži na ekranu
       generateBtn.blur();
 
-      // Sačekamo 100ms da se QR kod iscrta i skrolujemo do vrha forme
+      // Custom smooth scroll animacija (radi besprekorno na svim desktop pretraživačima)
       setTimeout(() => {
-        resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);S
+        const target = resultCard;
+        const targetY = target.getBoundingClientRect().top + window.pageYOffset - 80; // 80px odstupnice od vrha
+        const startY = window.pageYOffset;
+        const difference = targetY - startY;
+        const duration = 500; // Trajanje animacije u milisekundama (pola sekunde)
+        let startTime = null;
+
+        function step(timestamp) {
+          if (!startTime) startTime = timestamp;
+          const progress = timestamp - startTime;
+          const percentage = Math.min(progress / duration, 1);
+          
+          // Ease-in-out matematika za lepši osećaj (ubrzava pa usporava)
+          const ease = percentage < 0.5 
+            ? 4 * percentage * percentage * percentage 
+            : 1 - Math.pow(-2 * percentage + 2, 3) / 2;
+
+          // 'instant' je ključan - sprečava da se CSS ponovo meša u animaciju
+          window.scrollTo({ top: startY + difference * ease, behavior: 'instant' });
+
+          if (progress < duration) {
+            window.requestAnimationFrame(step);
+          }
+        }
+        window.requestAnimationFrame(step);
+      }, 100); 
 
       const endLocal = new Date(created.expires_at);
       expiryHint.textContent = `Expires in ${formatDurationText(created.minutes)} • Until ${endLocal.toLocaleString()}`;
