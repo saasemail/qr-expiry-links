@@ -2,7 +2,7 @@
   --bg: #0b0e13;
   --card: #121723;
   --text: #e8edf5;
-  --muted: #a6b0c3;
+  --muted: #b8c2d1;
   --accent1: #6ee7f9;
   --accent2: #8b5cf6;
   --border: #ffffff1a;
@@ -654,4 +654,21 @@ textarea:focus{
   gap: 10px;
   justify-content: center;
   flex-wrap: wrap;
+}
+
+/* --- Scout Forge Contrast Fixes --- */
+.feature-card p,
+.usecase-card p,
+.simple-usecase-card p,
+.benefit-text,
+.seo-explainer p,
+.prose .muted {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+/* Malo svetliji tekst za sekundarne informacije u formi */
+.field-hint,
+.custom-duration-hint,
+.hint {
+  color: rgba(255, 255, 255, 0.65) !important;
 }
