@@ -1305,6 +1305,24 @@
       font-size: 13px;
     }
   }
+
+      /* --- Grouping footer tools on mobile --- */
+    @media (max-width: 640px) {
+      .footer-tools {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px 10px !important;
+        width: 100%;
+        max-width: 320px;
+        margin: 10px auto;
+        justify-items: center;
+      }
+      
+      .footer-tools a {
+        text-align: center;
+        font-size: 0.85rem;
+      }
+    }
 </style>
 
 <div class="top-nav">
@@ -1526,8 +1544,8 @@
     <!-- 1. Levo: Copyright -->
     <div class="footer-left" style="white-space: nowrap;">© TempQR 2026</div>
     
-    <!-- 2. Sredina: Alati -->
-    <div style="display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.9rem; align-items: center;">
+        <!-- 2. Sredina: Alati -->
+    <div class="footer-tools" style="display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.9rem; align-items: center;">
       <a href="use-cases.html" style="color: var(--muted); text-decoration: none;">Use cases</a>
       <a href="expiring-link.html" style="color: var(--muted); text-decoration: none;">Expiring link</a>
       <a href="temporary-qr-code.html" style="color: var(--muted); text-decoration: none;">Temporary QR code</a>
