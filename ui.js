@@ -954,7 +954,7 @@ async function resetToInitialState() {
     maxOpensInput.value = "";
     maxOpensInput.disabled = true;
   }
-  lastPresetMinutes = 60;
+  lastPresetMinutes = 1440;
   customTouched = false;
   setCustomFromMinutes(0);
   updateCustomHint();
@@ -1120,7 +1120,7 @@ async function resetToInitialState() {
     
     // Resetuj na prethodnu vrednost ako je bio custom
     if (expirySelect.value === "custom") {
-      expirySelect.value = "60";
+      expirySelect.value = "1440";
     }
     
     // Sakrij email sekciju i vrati "Already purchased?" link
