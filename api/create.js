@@ -338,10 +338,10 @@ if ((isFile || isText) && !devBypass) {
     // 30 dana max (u minutima): 30 * 24 * 60 = 43,200
     const MAX_MINUTES_30D = 43200;
 
-    // default: free - 60 min limit
+    // default: free - 24 hours limit (1440 minutes)
     let plan = "free";
     let tier = null;
-    let max_minutes = 60;
+    let max_minutes = 1440;
 
     // 1) Ako postoji eksplicitni token u body-ju -> koristi njega
     let usedByUserId = null;

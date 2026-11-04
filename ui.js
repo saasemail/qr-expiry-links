@@ -78,7 +78,7 @@ function customSmoothScroll(targetY, duration = 500) {
 }
 
 // Track last preset minutes so switching to Custom can prefill nicely
-let lastPresetMinutes = 10;
+let lastPresetMinutes = 1440;
 let customTouched = false;
 
 // Custom duration hard max (30 days)
@@ -945,8 +945,8 @@ async function resetToInitialState() {
   if (fileInput) fileInput.value = "";
   if (textInput) textInput.value = "";
 
-    // reset expiry to default 10 minutes
-  if (expirySelect) expirySelect.value = "60";
+  // reset expiry to default 24 hours
+  if (expirySelect) expirySelect.value = "1440";
   
   // DODATO: Reset Max Opens
   if (opensUnlimited) opensUnlimited.checked = true;
@@ -1008,7 +1008,7 @@ async function resetToInitialState() {
 
     // 2. Očisti polja za unos kako bi bila spremna za novi link
     if (urlInput) urlInput.value = "";
-    if (expirySelect) expirySelect.value = "60";
+    if (expirySelect) expirySelect.value = "1440";
     
     // Reset Max Opens polja
     if (opensUnlimited) opensUnlimited.checked = true;
@@ -1072,8 +1072,8 @@ async function resetToInitialState() {
   }
 
   // Initialize custom duration from default preset (1 hour)
-  lastPresetMinutes = parseInt(String(expirySelect.value || "60"), 10);
-  if (!Number.isFinite(lastPresetMinutes) || lastPresetMinutes < 1) lastPresetMinutes = 60;
+  lastPresetMinutes = parseInt(String(expirySelect.value || "1440"), 10);
+  if (!Number.isFinite(lastPresetMinutes) || lastPresetMinutes < 1) lastPresetMinutes = 1440;
   setCustomFromMinutes(0);
   updateCustomHint();
   toggleCustomUI();
@@ -1244,8 +1244,8 @@ async function resetToInitialState() {
       expiryTimer = setTimeout(() => expireUINow(), Math.max(0, remainingMs));
       startCountdown(created.expires_at);
 
-      // Resetuj expiry select na "1 hour" nakon uspešnog kreiranja
-      if (expirySelect) expirySelect.value = "60";
+      // Resetuj expiry select na "24 hours" nakon uspešnog kreiranja
+      if (expirySelect) expirySelect.value = "1440";
       customTouched = false;
       setCustomFromMinutes(0);
       updateCustomHint();
@@ -1463,8 +1463,8 @@ alert("Unknown mode.");
       const buyBtn = document.getElementById("buyNowBtn");
 
       if (title) title.textContent = "You've used all your credits";
-      if (desc) desc.textContent = "Purchase again to create more custom links, or use the free 1-hour option.";
-      if (price) price.textContent = "$6.99 one-time = 1 custom link. No subscription.";
+      if (desc) desc.textContent = "Purchase again to create more custom links, or use the free 24-hour option.";
+      if (price) price.textContent = "Single Link: $2.99 / or subscribe for unlimited links.";
       
       // Sakrij email sekciju i "Already purchased?" link
       if (emailSection) emailSection.style.display = "none";
