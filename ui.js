@@ -602,7 +602,7 @@ async function toggleCustomUI() {
     showProLock(false);
     
     if (!customTouched) {
-      if (customHours) customHours.value = "24";
+      if (customHours) customHours.value = "0";
       if (customMinutes) customMinutes.value = "0";
     }
     updateCustomHint();
@@ -653,7 +653,7 @@ async function toggleCustomUI() {
     }
 
     customExpiryWrap.classList.remove("hidden");
-    if (!customTouched) setCustomFromMinutes(60); // Podrazumevano 1h za Pro
+    if (!customTouched) setCustomFromMinutes(0); // Podrazumevano 1h za Pro
     updateCustomHint();
     return;
   }
