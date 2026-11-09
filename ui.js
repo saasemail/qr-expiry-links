@@ -640,7 +640,7 @@ async function toggleCustomUI() {
       const creditsHint = document.getElementById("creditsHint");
       if (creditsHint) {
         if (data.isSub) {
-          creditsHint.textContent = `Pro subscription active. Unlimited custom links.`;
+          creditsHint.textContent = `Subscription active. Unlimited 30-day links.`;
         } else if (data.credits != null) {
           creditsHint.textContent = `You have ${data.credits} custom link credit${data.credits === 1 ? "" : "s"} available.`;
         }
