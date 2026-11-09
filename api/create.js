@@ -460,10 +460,6 @@ if ((isFile || isText) && !devBypass) {
       }
     }
 
-    // DODATO: Sigurnosna provera - samo Pro korisnici mogu da stave limit otvaranja
-    if (maxOpens !== null && plan !== "pro") {
-      maxOpens = null; // Ako nije Pro, ignorišemo limit i pravimo link kao neograničen
-    }
 
     // primeni limit (globalno hard-cap na 30 dana)
     const allowed = Math.min(minutes, max_minutes, MAX_MINUTES_30D);

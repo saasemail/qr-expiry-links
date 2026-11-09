@@ -35,7 +35,6 @@ const opensUnlimited = document.getElementById("opensUnlimited");
 const opensLimited = document.getElementById("opensLimited");
 const maxOpensInput = document.getElementById("maxOpensInput");
 const maxOpensControls = document.getElementById("maxOpensControls");
-const maxOpensLockOverlay = document.getElementById("maxOpensLockOverlay");
 
 // --- NEW: mode + file/text inputs ---
 const modeButtons = Array.from(document.querySelectorAll(".mode-btn"));
@@ -113,24 +112,67 @@ function showProLock(show){
   proLockOverlay.style.display = show ? "flex" : "none";
 }
 
-// DODATO: Otključavanje Max Opens za Pro korisnike
-function unlockMaxOpensUI() {
-  if (maxOpensControls) {
-    maxOpensControls.style.opacity = "1";
-    maxOpensControls.style.pointerEvents = "auto";
+async function toggleCustomUI() {
+  if (!expirySelect || !customExpiryWrap) return;
+
+  const isCustom = String(expirySelect.value) === "custom";
+  const email = getProEmail();
+  const daysField = document.getElementById("daysField");
+
+  // Ako je izabrao Custom
+  if (isCustom) {
+    // Sakrij polje za dane ako korisnik NIJE Pro
+    if (!email) {
+      if (daysField) daysField.style.display = "none";
+      // Postavi max sati na 23 i minuta na 59 (podrazumevano)
+      customDays.value = "0"; 
+    } else {
+      if (daysField) daysField.style.display = "block";
+    }
+
+    // Ako IMA email, proveri na serveru da li još uvek ima kredita
+    if (email) {
+      try {
+        const res = await fetch("/api/check-pro", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+
+        if (!data.isPro) {
+          // Nema više kredita -> obriši email, sakrij dane
+          localStorage.removeItem(PRO_EMAIL_KEY);
+          if (daysField) daysField.style.display = "none";
+          customDays.value = "0";
+        } else {
+          // Prikaži broj kredita ili status pretplate
+          const creditsHint = document.getElementById("creditsHint");
+          if (creditsHint) {
+            if (data.isSub) {
+              creditsHint.textContent = `Pro subscription active. Unlimited custom links.`;
+            } else if (data.credits != null) {
+              creditsHint.textContent = `You have ${data.credits} custom link credit${data.credits === 1 ? "" : "s"} available.`;
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Check failed:", err);
+      }
+    }
   }
-  if (maxOpensLockOverlay) {
-    maxOpensLockOverlay.style.display = "none";
-  }
-  const badge = document.getElementById("maxOpensProBadge");
-  if (badge) {
-    badge.textContent = "PRO ACTIVE";
-    badge.style.color = "#10b981"; // zelena boja
-    badge.style.background = "rgba(16,185,129,0.1)";
-    badge.style.borderColor = "rgba(16,185,129,0.3)";
+
+  // Ako je sve u redu, prikaži polja
+  showProLock(false);
+  customExpiryWrap.classList.toggle("hidden", !isCustom);
+
+  if (isCustom) {
+    if (!customTouched) {
+      setCustomFromMinutes(0);
+    }
+    updateCustomHint();
   }
 }
-
 function safeJSONParse(str) {
   try { return JSON.parse(str); } catch { return null; }
 }
@@ -678,13 +720,10 @@ async function toggleCustomUI() {
       body: JSON.stringify({ email })
     });
     const data = await res.json();
-
-              if (data.isPro) {
+      if (data.isPro) {
       localStorage.setItem(PRO_EMAIL_KEY, email);
       if (errorMsg) errorMsg.textContent = "";
       showProLock(false);
-
-      unlockMaxOpensUI();
       
       const creditsHint = document.getElementById("creditsHint");
       if (creditsHint) {
@@ -954,7 +993,7 @@ async function resetToInitialState() {
     maxOpensInput.value = "";
     maxOpensInput.disabled = true;
   }
-  lastPresetMinutes = 1440;
+  lastPresetMinutes = 60;
   customTouched = false;
   setCustomFromMinutes(0);
   updateCustomHint();
@@ -1035,10 +1074,6 @@ async function resetToInitialState() {
   setCreateAnotherEnabled(false);
 
   // DODATO: Logika za Max Opens
-  maxOpensLockOverlay?.addEventListener("click", () => {
-    showProLock(true);
-  });
-
   opensUnlimited?.addEventListener("change", () => {
     if (opensUnlimited.checked) {
       maxOpensInput.disabled = true;
@@ -1053,9 +1088,9 @@ async function resetToInitialState() {
     }
   });
 
-  // Ako korisnik već ima Pro email u localStorage, odmah otključaj UI
+   // Ako korisnik već ima Pro email, ažuriraj UI za custom trajanje (dani)
   if (getProEmail()) {
-    unlockMaxOpensUI();
+    toggleCustomUI();
   }
 
   // (Optional UX) Normalize on blur so user sees https:// added (but don't force while typing)
@@ -1117,11 +1152,7 @@ async function resetToInitialState() {
   
     closeUnlockBtn?.addEventListener("click", () => {
     showProLock(false);
-    
-    // Resetuj na prethodnu vrednost ako je bio custom
-    if (expirySelect.value === "custom") {
-      expirySelect.value = "1440";
-    }
+  
     
     // Sakrij email sekciju i vrati "Already purchased?" link
     const emailSection = document.getElementById("emailSection");
@@ -1143,6 +1174,13 @@ async function resetToInitialState() {
     minutes = getSelectedMinutesOrThrow();
   } catch (e) {
     alert(e?.message || "Invalid expiration time.");
+    return;
+  }
+
+  // Provera: Free korisnici mogu max 24h (1440 minuta)
+  const isUserPro = !!getProEmail();
+  if (!isUserPro && minutes > 1440) {
+    alert("Free users can only create links up to 24 hours. Upgrade to Pro for durations up to 30 days.");
     return;
   }
 

@@ -1354,8 +1354,7 @@
         
         <select id="expirySelect" aria-label="Expiration Time" style="margin-top: 0;">
           <option value="1440">24 hour</option>
-          <!-- Katanac stavljen ISPRED teksta za savršeno poravnanje -->
-          <option value="custom">Custom Duration 🔒</option>
+          <option value="custom">Custom Duration</option>
         </select>
       </label>
       <!-- Dodat margin-top da se tekst ne lepi za meni -->
@@ -1364,7 +1363,7 @@
       <div id="customExpiryWrap" class="custom-expiry hidden">
           <!-- PRO lock overlay (shown when not Pro) -->
         <div class="custom-grid" role="group" aria-label="Custom duration">
-          <div class="custom-field">
+          <div class="custom-field" id="daysField">
             <span class="custom-field-label">Days</span>
             <input type="number" id="customDays" min="0" max="30" step="1" value="0" inputmode="numeric" />
           </div>
@@ -1386,11 +1385,10 @@
         
      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding-left: 0.6rem;">
       <label style="font-weight: 600; margin: 0;">Link Usage Limit</label>
-      <span id="maxOpensProBadge" style="color: #8b5cf6; font-size: 16px; line-height: 1;">🔒</span>
      </div>
 
-        <!-- Kontrole koje zaključavamo -->
-        <div id="maxOpensControls" style="opacity: 0.5; pointer-events: none; transition: opacity 0.2s ease;">
+        <!-- Kontrole -->
+        <div id="maxOpensControls">
           <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
             <input type="radio" id="opensUnlimited" name="maxOpensRadio" value="unlimited" checked style="width: auto; margin: 0; cursor: pointer;">
             <label for="opensUnlimited" style="margin: 0; cursor: pointer; font-weight: normal;">Unlimited (Default)</label>
@@ -1405,11 +1403,7 @@
             </label>
           </div>
 
-          <p class="field-hint" style="margin-top: 0;">Set a maximum number of times this link or QR code can be opened. Link previews (bots) are not counted.</p>
-        </div>
-        
-        <!-- Nevidljivi sloj preko kog se klikne za paywall -->
-        <div id="maxOpensLockOverlay" style="position: absolute; inset: 0; cursor: pointer; z-index: 5; -webkit-tap-highlight-color: transparent; outline: none;" title="Upgrade to PRO to unlock"></div>
+        <p class="field-hint" style="margin-top: 0;">Set a maximum number of times this link or QR code can be opened. Link previews (bots) are not counted.</p>
       </div>
 
         <div class="button-group" style="margin-top: 20px;">
