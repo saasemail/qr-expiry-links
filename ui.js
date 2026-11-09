@@ -639,9 +639,6 @@ function updateCustomHint() {
 async function toggleCustomUI() {
   if (!expirySelect || !customExpiryWrap) return;
 
-async function toggleCustomUI() {
-  if (!expirySelect || !customExpiryWrap) return;
-
   const selectedValue = String(expirySelect.value);
   const isFreeCustom = selectedValue === "1440"; // Opcija "Up to 24 hours"
   const isProCustom = selectedValue === "custom"; // Opcija "Custom Duration"
@@ -713,7 +710,6 @@ async function toggleCustomUI() {
   // Fallback
   customExpiryWrap.classList.add("hidden");
   showProLock(false);
- }
 }
 
     async function checkProEmail() {
@@ -1186,19 +1182,22 @@ async function resetToInitialState() {
     if (link) link.style.display = "none";
   });
   
-    closeUnlockBtn?.addEventListener("click", () => {
-    showProLock(false);
+closeUnlockBtn?.addEventListener("click", () => {
+  showProLock(false);
   
-    
-    // Sakrij email sekciju i vrati "Already purchased?" link
-    const emailSection = document.getElementById("emailSection");
-    const alreadyLink = document.getElementById("alreadyPurchasedLink");
-    if (emailSection) emailSection.style.display = "none";
-    if (alreadyLink) alreadyLink.style.display = "";
-    
-    toggleCustomUI();
-  });
-
+  // Vrati na "Up to 24 hours" da se overlay ne bi ponovo otvorio
+  if (expirySelect.value === "custom") {
+    expirySelect.value = "1440";
+  }
+  
+  // Sakrij email sekciju i vrati "Already purchased?" link
+  const emailSection = document.getElementById("emailSection");
+  const alreadyLink = document.getElementById("alreadyPurchasedLink");
+  if (emailSection) emailSection.style.display = "none";
+  if (alreadyLink) alreadyLink.style.display = "";
+  
+  toggleCustomUI();
+});
 
   customDays?.addEventListener("input", onCustomChange);
   customHours?.addEventListener("input", onCustomChange);
