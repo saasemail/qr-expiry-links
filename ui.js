@@ -112,67 +112,7 @@ function showProLock(show){
   proLockOverlay.style.display = show ? "flex" : "none";
 }
 
-async function toggleCustomUI() {
-  if (!expirySelect || !customExpiryWrap) return;
 
-  const isCustom = String(expirySelect.value) === "custom";
-  const email = getProEmail();
-  const daysField = document.getElementById("daysField");
-
-  // Ako je izabrao Custom
-  if (isCustom) {
-    // Sakrij polje za dane ako korisnik NIJE Pro
-    if (!email) {
-      if (daysField) daysField.style.display = "none";
-      // Postavi max sati na 23 i minuta na 59 (podrazumevano)
-      customDays.value = "0"; 
-    } else {
-      if (daysField) daysField.style.display = "block";
-    }
-
-    // Ako IMA email, proveri na serveru da li još uvek ima kredita
-    if (email) {
-      try {
-        const res = await fetch("/api/check-pro", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email })
-        });
-        const data = await res.json();
-
-        if (!data.isPro) {
-          // Nema više kredita -> obriši email, sakrij dane
-          localStorage.removeItem(PRO_EMAIL_KEY);
-          if (daysField) daysField.style.display = "none";
-          customDays.value = "0";
-        } else {
-          // Prikaži broj kredita ili status pretplate
-          const creditsHint = document.getElementById("creditsHint");
-          if (creditsHint) {
-            if (data.isSub) {
-              creditsHint.textContent = `Pro subscription active. Unlimited custom links.`;
-            } else if (data.credits != null) {
-              creditsHint.textContent = `You have ${data.credits} custom link credit${data.credits === 1 ? "" : "s"} available.`;
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Check failed:", err);
-      }
-    }
-  }
-
-  // Ako je sve u redu, prikaži polja
-  showProLock(false);
-  customExpiryWrap.classList.toggle("hidden", !isCustom);
-
-  if (isCustom) {
-    if (!customTouched) {
-      setCustomFromMinutes(0);
-    }
-    updateCustomHint();
-  }
-}
 function safeJSONParse(str) {
   try { return JSON.parse(str); } catch { return null; }
 }
@@ -646,14 +586,19 @@ async function toggleCustomUI() {
   const daysField = document.getElementById("daysField");
 
   if (isFreeCustom) {
-    // FREE OPCIJA: Prikaži sate i minute, sakrij dane
     customExpiryWrap.classList.remove("hidden");
     if (daysField) daysField.style.display = "none";
     if (customDays) customDays.value = "0";
-    if (customHours) customHours.max = "24"; // Dozvoli 24 sata
+    if (customHours) {
+      customHours.max = "24";
+      customHours.min = "0";
+    }
     showProLock(false);
     
-    if (!customTouched) setCustomFromMinutes(1440); // Podrazumevano 24h
+    if (!customTouched) {
+      if (customHours) customHours.value = "24";
+      if (customMinutes) customMinutes.value = "0";
+    }
     updateCustomHint();
     return;
   }
@@ -1015,7 +960,6 @@ async function resetToInitialState() {
   if (opensUnlimited) opensUnlimited.checked = true;
   if (maxOpensInput) {
     maxOpensInput.value = "";
-    maxOpensInput.disabled = true;
   }
   lastPresetMinutes = 60;
   customTouched = false;
@@ -1077,9 +1021,7 @@ async function resetToInitialState() {
     if (opensUnlimited) opensUnlimited.checked = true;
     if (maxOpensInput) {
       maxOpensInput.value = "";
-      maxOpensInput.disabled = true;
     }
-
     // 3. Resetuj custom duration
     customTouched = false;
     setCustomFromMinutes(0);
@@ -1099,16 +1041,23 @@ async function resetToInitialState() {
 
   // DODATO: Logika za Max Opens
   opensUnlimited?.addEventListener("change", () => {
-    if (opensUnlimited.checked) {
-      maxOpensInput.disabled = true;
+    if (opensUnlimited.checked && maxOpensInput) {
       maxOpensInput.value = "";
     }
   });
 
   opensLimited?.addEventListener("change", () => {
-    if (opensLimited.checked) {
-      maxOpensInput.disabled = false;
+    if (opensLimited.checked && maxOpensInput) {
       maxOpensInput.focus();
+    }
+  });
+
+  maxOpensInput?.addEventListener("input", () => {
+    const val = parseInt(maxOpensInput.value, 10);
+    if (Number.isFinite(val) && val >= 1) {
+      if (opensLimited) opensLimited.checked = true;
+    } else if (!maxOpensInput.value) {
+      if (opensUnlimited) opensUnlimited.checked = true;
     }
   });
 

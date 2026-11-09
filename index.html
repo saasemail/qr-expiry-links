@@ -1360,24 +1360,23 @@
       <!-- Dodat margin-top da se tekst ne lepi za meni -->
       <p class="field-hint" style="margin-top: 8px; margin-bottom: 16px;">This link &amp; QR will expire after the selected time.</p>
 
-      <div id="customExpiryWrap" class="custom-expiry hidden">
-          <!-- PRO lock overlay (shown when not Pro) -->
+      <div id="customExpiryWrap" class="custom-expiry">
         <div class="custom-grid" role="group" aria-label="Custom duration">
-          <div class="custom-field" id="daysField">
+          <div class="custom-field" id="daysField" style="display:none;">
             <span class="custom-field-label">Days</span>
             <input type="number" id="customDays" min="0" max="30" step="1" value="0" inputmode="numeric" />
           </div>
           <div class="custom-field">
             <span class="custom-field-label">Hours</span>
-            <input type="number" id="customHours" min="0" max="23" step="1" value="0" inputmode="numeric" />
+            <input type="number" id="customHours" min="0" max="24" step="1" value="24" inputmode="numeric" />
           </div>
           <div class="custom-field">
             <span class="custom-field-label">Minutes</span>
-            <input type="number" id="customMinutes" min="0" max="59" step="1" value="10" inputmode="numeric" />
+            <input type="number" id="customMinutes" min="0" max="59" step="1" value="0" inputmode="numeric" />
           </div>
         </div>
         <p class="custom-duration-hint" id="customDurationHint"></p>
-            <p id="creditsHint" style="font-size:13px; color:rgba(125,95,255,0.95); margin:6px 0 0; font-weight:600;"></p>
+        <p id="creditsHint" style="font-size:13px; color:rgba(125,95,255,0.95); margin:6px 0 0; font-weight:600;"></p>
       </div>
 
             <!-- NOVO: Limit broja otvaranja -->
@@ -1389,19 +1388,12 @@
 
         <!-- Kontrole -->
         <div id="maxOpensControls">
-          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-            <input type="radio" id="opensUnlimited" name="maxOpensRadio" value="unlimited" checked style="width: auto; margin: 0; cursor: pointer;">
-            <label for="opensUnlimited" style="margin: 0; cursor: pointer; font-weight: normal;">Unlimited (Default)</label>
-          </div>
-
-          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-            <input type="radio" id="opensLimited" name="maxOpensRadio" value="limited" style="width: auto; margin: 0; cursor: pointer;">
-            <label for="opensLimited" style="margin: 0; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: normal;">
-              Limit to 
-              <input type="number" id="maxOpensInput" min="1" max="10000" placeholder="e.g. 5" disabled style="width: 80px; padding: 6px 10px; margin: 0; text-align: center;">
-              opens
-            </label>
-          </div>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+        <input type="radio" id="opensLimited" name="maxOpensRadio" value="limited" style="width: auto; margin: 0; cursor: pointer;">
+        <label for="opensLimited" style="margin: 0; cursor: pointer; font-weight: normal;">Limit to</label>
+        <input type="number" id="maxOpensInput" min="1" max="10000" placeholder="e.g. 5" style="width: 80px; padding: 6px 10px; margin: 0; text-align: center;">
+        <span>opens</span>
+      </div>
 
         <p class="field-hint" style="margin-top: 0;">Set a maximum number of times this link or QR code can be opened. Link previews (bots) are not counted.</p>
       </div>
