@@ -612,9 +612,15 @@ function setCustomFromMinutes(mins) {
 }
 
 function getCustomMinutes() {
+  const isFreeCustom = String(expirySelect?.value) === "1440";
   const d = clampInt(customDays?.value, 0, CUSTOM_DAYS_MAX);
-  const h = clampInt(customHours?.value, 0, 23);
+  const h = clampInt(customHours?.value, 0, isFreeCustom ? 24 : 23);
   const m = clampInt(customMinutes?.value, 0, 59);
+  
+  // Ako je Free korisnik uneo 24 sata, minuti moraju biti 0
+  if (isFreeCustom && h === 24 && m > 0) {
+     return 1440;
+  }
   return partsToMinutes(d, h, m);
 }
 
@@ -633,20 +639,39 @@ function updateCustomHint() {
 async function toggleCustomUI() {
   if (!expirySelect || !customExpiryWrap) return;
 
-  const isCustom = String(expirySelect.value) === "custom";
-  const email = getProEmail();
+async function toggleCustomUI() {
+  if (!expirySelect || !customExpiryWrap) return;
 
-  // Ako je izabrao Custom
-  if (isCustom) {
-    // Ako NEMA email u localStorage -> prikaži overlay
+  const selectedValue = String(expirySelect.value);
+  const isFreeCustom = selectedValue === "1440"; // Opcija "Up to 24 hours"
+  const isProCustom = selectedValue === "custom"; // Opcija "Custom Duration"
+  const email = getProEmail();
+  const daysField = document.getElementById("daysField");
+
+  if (isFreeCustom) {
+    // FREE OPCIJA: Prikaži sate i minute, sakrij dane
+    customExpiryWrap.classList.remove("hidden");
+    if (daysField) daysField.style.display = "none";
+    if (customDays) customDays.value = "0";
+    if (customHours) customHours.max = "24"; // Dozvoli 24 sata
+    showProLock(false);
+    
+    if (!customTouched) setCustomFromMinutes(1440); // Podrazumevano 24h
+    updateCustomHint();
+    return;
+  }
+
+  if (isProCustom) {
+    // PRO OPCIJA: Prikaži sve (dani, sati, minuti) uz proveru plaćanja
+    if (customHours) customHours.max = "23"; // Ako ima dana, sati su max 23
+    
     if (!email) {
       customExpiryWrap.classList.add("hidden");
       showProLock(true);
       return;
     }
 
-    // Ako IMA email, proveri na serveru da li još uvek ima kredita
-        try {
+    try {
       const res = await fetch("/api/check-pro", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -655,14 +680,15 @@ async function toggleCustomUI() {
       const data = await res.json();
 
       if (!data.isPro) {
-        // Nema više kredita -> obriši email i prikaži overlay
         localStorage.removeItem(PRO_EMAIL_KEY);
         customExpiryWrap.classList.add("hidden");
         showProLock(true);
         return;
       }
 
-            // Prikaži broj kredita ili status pretplate
+      if (daysField) daysField.style.display = "block";
+      showProLock(false);
+      
       const creditsHint = document.getElementById("creditsHint");
       if (creditsHint) {
         if (data.isSub) {
@@ -673,19 +699,21 @@ async function toggleCustomUI() {
       }
     } catch (err) {
       console.error("Check failed:", err);
+      customExpiryWrap.classList.add("hidden");
+      showProLock(true);
+      return;
     }
-  }
 
-  // Ako je sve u redu, prikaži polja
-  showProLock(false);
-  customExpiryWrap.classList.toggle("hidden", !isCustom);
-
-  if (isCustom) {
-    if (!customTouched) {
-      setCustomFromMinutes(0);
-    }
+    customExpiryWrap.classList.remove("hidden");
+    if (!customTouched) setCustomFromMinutes(60); // Podrazumevano 1h za Pro
     updateCustomHint();
+    return;
   }
+
+  // Fallback
+  customExpiryWrap.classList.add("hidden");
+  showProLock(false);
+ }
 }
 
     async function checkProEmail() {
@@ -1133,10 +1161,18 @@ async function resetToInitialState() {
   // Mark custom as touched + update hint live
   const onCustomChange = () => {
     customTouched = true;
-    // Clamp inputs immediately for clean UX
+    const isFreeCustom = String(expirySelect.value) === "1440";
+    
     if (customDays) customDays.value = String(clampInt(customDays.value, 0, CUSTOM_DAYS_MAX));
-    if (customHours) customHours.value = String(clampInt(customHours.value, 0, 23));
-    if (customMinutes) customMinutes.value = String(clampInt(customMinutes.value, 0, 59));
+    if (customHours) customHours.value = String(clampInt(customHours.value, 0, isFreeCustom ? 24 : 23));
+    
+    if (customMinutes) {
+       let maxMins = 59;
+       if (isFreeCustom && parseInt(customHours.value, 10) === 24) {
+         maxMins = 0; // Ako je 24 sata, minuti su zaključani na 0
+       }
+       customMinutes.value = String(clampInt(customMinutes.value, 0, maxMins));
+    }
     updateCustomHint();
   };
 
