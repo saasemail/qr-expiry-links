@@ -721,7 +721,7 @@ async function toggleCustomUI() {
       const para = document.querySelector("#proLockOverlay p");
       
       if (title) title.textContent = "No active subscription";
-      if (para) para.textContent = "Purchase a subscription or a single link to continue.";
+      if (para) para.textContent = "Purchase a plan or a single link to unlock 30-day durations.";
       if (emailField) emailField.style.display = "none";
       if (checkBtn) checkBtn.style.display = "none";
       if (buyBtn) buyBtn.style.display = "block";
@@ -1495,8 +1495,8 @@ alert("Unknown mode.");
       const buyBtn = document.getElementById("buyNowBtn");
 
       if (title) title.textContent = "You've used all your credits";
-      if (desc) desc.textContent = "Purchase again to create more custom links, or use the free 24-hour option.";
-      if (price) price.textContent = "Single Link: $2.99 / or subscribe for unlimited links.";
+      if (desc) desc.textContent = "Purchase again to create more 30-day links, or use the free 24-hour option.";
+      if (price) price.textContent = "Single Link: $2.99 / or subscribe for unlimited 30-day links.";
       
       // Sakrij email sekciju i "Already purchased?" link
       if (emailSection) emailSection.style.display = "none";
