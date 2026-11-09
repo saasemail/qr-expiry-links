@@ -53,6 +53,16 @@ let countdownTimer = null;
 let lastRedirectUrl = "";
 let linkExpired = false;
 
+function updateProOptionLock(isUserPro) {
+  if (!expirySelect) return;
+  const customOption = expirySelect.querySelector('option[value="custom"]');
+  if (customOption) {
+    // Osnovni tekst ostaje isti, samo dodajemo ili sklanjamo katanac
+    const baseText = "Up to 30 days";
+    customOption.textContent = isUserPro ? baseText : `${baseText} 🔒`;
+  }
+}
+
 function customSmoothScroll(targetY, duration = 500) {
   const startY = window.pageYOffset;
   const difference = targetY - startY;
@@ -640,6 +650,8 @@ async function toggleCustomUI() {
         return;
       }
 
+      updateProOptionLock(true);
+
       if (daysField) daysField.style.display = "block";
       showProLock(false);
       
@@ -703,6 +715,7 @@ async function toggleCustomUI() {
     const data = await res.json();
       if (data.isPro) {
       localStorage.setItem(PRO_EMAIL_KEY, email);
+      updateProOptionLock(true);
       if (errorMsg) errorMsg.textContent = "";
       showProLock(false);
       
@@ -1117,9 +1130,12 @@ async function resetToInitialState() {
     }
   });
 
-   // Ako korisnik već ima Pro email, ažuriraj UI za custom trajanje (dani)
+   // Ako korisnik već ima Pro email, ažuriraj UI za custom trajanje (dani) i skloni katanac
   if (getProEmail()) {
+    updateProOptionLock(true);
     toggleCustomUI();
+  } else {
+    updateProOptionLock(false);
   }
 
   // (Optional UX) Normalize on blur so user sees https:// added (but don't force while typing)
