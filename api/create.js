@@ -518,7 +518,14 @@ await trackAnalyticsEvent({
 });
 
 res.setHeader("Content-Type", "application/json");
-return res.status(200).json({ id: token, expires_at: expiresAt, plan, tier, minutes: allowed });
+return res.status(200).json({ 
+  id: token, 
+  expires_at: expiresAt, 
+  plan, 
+  tier, 
+  minutes: allowed,
+  max_opens: maxOpens || null // <-- DODATO
+});
 } catch (e) {
   console.error("[create] ERROR:", e?.message || e);
   return res.status(500).send("Internal Server Error");

@@ -24,6 +24,7 @@ const qrcodeCanvas     = document.getElementById("qrcode");
 const generatedLink    = document.getElementById("generatedLink");
 const expiryHint       = document.getElementById("expiryHint");
 const countdownEl      = document.getElementById("countdown");
+const opensLeftBadge  = document.getElementById("opensLeftBadge");
 
 const copyBtn          = document.getElementById("copyBtn");
 const downloadBtn      = document.getElementById("downloadBtn");       // PNG
@@ -247,6 +248,11 @@ function expireUINow() {
 
   countdownEl.textContent = "";
   expiryHint.textContent = "";
+  
+  if (opensLeftBadge) {
+    opensLeftBadge.style.display = "none";
+    opensLeftBadge.textContent = "";
+  }
 
   qrcodeCanvas.classList.add("hidden");
 
@@ -734,6 +740,40 @@ async function toggleCustomUI() {
   }
 }
 
+function updateOpensLeftBadge(maxOpens, openCount) {
+  if (!opensLeftBadge) return;
+  
+  if (!maxOpens || maxOpens <= 0) {
+    opensLeftBadge.style.display = "none";
+    opensLeftBadge.textContent = "";
+    return;
+  }
+
+  const remaining = maxOpens - openCount;
+  
+  if (remaining <= 0) {
+    opensLeftBadge.textContent = "Opens limit reached";
+    opensLeftBadge.style.color = "#f87171"; // Crvena boja
+  } else {
+    opensLeftBadge.textContent = `Opens left: ${remaining} of ${maxOpens}`;
+    opensLeftBadge.style.color = "#6ee7f9"; // Plava boja
+  }
+  
+  opensLeftBadge.style.display = "block";
+}
+
+async function fetchAndUpdateOpensLeft(tokenId) {
+  if (!tokenId) return;
+  try {
+    const res = await fetch(`/api/link-status?id=${tokenId}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    updateOpensLeftBadge(data.max_opens, data.open_count);
+  } catch (e) {
+    console.error("Failed to fetch link status", e);
+  }
+}
+
 function getSelectedMinutesOrThrow() {
   const mode = String(expirySelect?.value || "");
 
@@ -806,6 +846,12 @@ async function restoreLastResultIfAny() {
   qrcodeCanvas.classList.remove("hidden");
   generatedLink.classList.remove("hidden");
   await renderQr(st.redirectUrl);
+
+  // DODATO: Povuci trenutno stanje otvaranja sa servera
+  const tokenId = st.redirectUrl.split("/go/").pop();
+  if (tokenId) {
+    fetchAndUpdateOpensLeft(tokenId);
+  }
 
   const endLocal = new Date(st.expiresAt);
     if (st.minutes && Number.isFinite(st.minutes)) {
@@ -1233,6 +1279,7 @@ closeUnlockBtn?.addEventListener("click", () => {
       if (resultTitle) resultTitle.textContent = "Your Expiring Link Is Ready";
       if (resultLead) resultLead.textContent = "Share as a link or QR code.";
       if (resultLinkRow) resultLinkRow.classList.remove("hidden");
+      updateOpensLeftBadge(created.max_opens, 0);
       if (resultActions) resultActions.classList.remove("hidden");
       if (resultHint) {
         resultHint.innerHTML = "<em>No history is stored—save the link and download the PNG before leaving if you need multiple usage.</em>";
