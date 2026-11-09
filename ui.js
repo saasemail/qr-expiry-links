@@ -752,7 +752,7 @@ function getSelectedMinutesOrThrow() {
   // custom duration (radi i za Pro "custom" i za Free "1440")
   const minutes = getCustomMinutes();
   if (!Number.isFinite(minutes) || minutes < 1) {
-    throw new Error("Custom duration must be at least 1 minute.");
+    throw new Error("Duration must be at least 1 minute.");
   }
   return minutes;
 }
