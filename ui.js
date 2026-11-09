@@ -585,6 +585,12 @@ async function toggleCustomUI() {
   const email = getProEmail();
   const daysField = document.getElementById("daysField");
 
+  if (selectedValue === "") {
+    customExpiryWrap.classList.add("hidden");
+    showProLock(false);
+    return;
+  }
+
   if (isFreeCustom) {
     customExpiryWrap.classList.remove("hidden");
     if (daysField) daysField.style.display = "none";
@@ -729,9 +735,13 @@ async function toggleCustomUI() {
 }
 
 function getSelectedMinutesOrThrow() {
-  const mode = String(expirySelect?.value || "10");
+  const mode = String(expirySelect?.value || "");
 
-  if (mode !== "custom") {
+  if (mode === "") {
+    throw new Error("Please select an expiration time.");
+  }
+
+  if (mode !== "custom" && mode !== "1440") {
     const minutes = parseInt(mode, 10);
     if (!Number.isFinite(minutes) || minutes < 1) {
       throw new Error("Please choose a valid expiration time.");
@@ -739,7 +749,7 @@ function getSelectedMinutesOrThrow() {
     return minutes;
   }
 
-  // custom duration
+  // custom duration (radi i za Pro "custom" i za Free "1440")
   const minutes = getCustomMinutes();
   if (!Number.isFinite(minutes) || minutes < 1) {
     throw new Error("Custom duration must be at least 1 minute.");
@@ -954,7 +964,7 @@ async function resetToInitialState() {
   if (textInput) textInput.value = "";
 
   // reset expiry to default 24 hours
-  if (expirySelect) expirySelect.value = "1440";
+  if (expirySelect) expirySelect.value = "";
   
   // DODATO: Reset Max Opens
   if (opensUnlimited) opensUnlimited.checked = true;
@@ -1015,7 +1025,7 @@ async function resetToInitialState() {
 
     // 2. Očisti polja za unos kako bi bila spremna za novi link
     if (urlInput) urlInput.value = "";
-    if (expirySelect) expirySelect.value = "1440";
+    if (expirySelect) expirySelect.value = "";
     
     // Reset Max Opens polja
     if (opensUnlimited) opensUnlimited.checked = true;
@@ -1267,7 +1277,7 @@ closeUnlockBtn?.addEventListener("click", () => {
       startCountdown(created.expires_at);
 
       // Resetuj expiry select na "24 hours" nakon uspešnog kreiranja
-      if (expirySelect) expirySelect.value = "1440";
+      if (expirySelect) expirySelect.value = "";
       customTouched = false;
       setCustomFromMinutes(0);
       updateCustomHint();
