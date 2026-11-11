@@ -62,13 +62,20 @@ export default async function handler(req, res) {
       const licenseId = payload.objects?.license?.id || payload.license?.id;
       const planId = payload.objects?.plan?.id || payload.plan?.id;
       
-            // Freemius šalje billing_cycle (1=mesecno, 12=godisnje, 0=one-time)
-      let billingCycle = payload.objects?.payment?.billing_cycle || payload.objects?.subscription?.billing_cycle;
+      // Freemius šalje billing_cycle (1=mesecno, 12=godisnje, 0=one-time)
+      // Nekada payment dođe kao array, pa proveravamo i to
+      let paymentObj = payload.objects?.payment;
+      if (Array.isArray(paymentObj)) paymentObj = paymentObj[0];
+
+      let billingCycle = paymentObj?.billing_cycle 
+                      || payload.objects?.subscription?.billing_cycle 
+                      || payload.objects?.license?.billing_cycle
+                      || payload.billing_cycle;
       
       // Sigurna provera: Ako postoji subscription objekat ILI je billingCycle veći od 0, to je pretplata
       const isSubscription = 
         !!payload.objects?.subscription || 
-        (billingCycle > 0);
+        (Number(billingCycle) > 0);
 
       // Ako je pretplata, a billingCycle iz nekog razloga nije stigao, postavljamo na 1 (mesecno) kao fallback
       if (isSubscription && !billingCycle) billingCycle = 1;
