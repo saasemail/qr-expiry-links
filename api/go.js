@@ -281,9 +281,34 @@ export default async function handler(req) {
     .btn{ display:inline-flex; align-items:center; justify-content:center; min-height:48px; padding:0 18px; border-radius:999px; text-decoration:none; font-weight:800; }
     .btn-primary{ color:#07111f; background:linear-gradient(135deg,#93c5fd,#c4b5fd); }
     .btn-secondary{ color:var(--text); border:1px solid var(--line); background:rgba(255,255,255,.05); }
+    
+    /* DODATO: CSS za Logo */
+    .expired-brand-badge{
+      position:fixed; top:10px; left:12px; z-index:10;
+      display:inline-flex; align-items:center; gap:10px;
+      text-decoration:none; color:rgba(255,255,255,.95);
+    }
+    .expired-brand-icon img{ width:44px; height:44px; display:block; border-radius:8px; }
+    .expired-brand-name{ font-size:18px; font-weight:700; line-height:1; margin:0; color:rgba(255,255,255,.95); }
+    @media (min-width:561px){
+      .expired-brand-name{ font-size:20px; }
+      .expired-brand-icon img{ width:50px; height:50px; }
+    }
+    @media (max-width:560px){
+      .expired-brand-badge{ top:8px; left:10px; }
+      .expired-brand-icon img{ width:40px; height:40px; }
+    }
   </style>
 </head>
 <body>
+  <!-- DODATO: TempQR Logo -->
+  <a class="expired-brand-badge" href="${escapeHtml(origin)}" aria-label="TempQR home">
+    <span class="expired-brand-icon" aria-hidden="true">
+      <img src="${escapeHtml(origin)}/TempQRlogo.svg" alt="" width="44" height="44">
+    </span>
+    <span class="expired-brand-name">TempQR</span>
+  </a>
+
   <div class="wrap">
     <div class="card">
       <div class="status" aria-hidden="true">!</div>
