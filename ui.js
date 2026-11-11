@@ -660,7 +660,7 @@ async function toggleCustomUI() {
         if (data.isSub) {
           creditsHint.textContent = `Subscription active. Unlimited 30-day links.`;
         } else if (data.credits != null) {
-          creditsHint.textContent = `You have ${data.credits} custom link credit${data.credits === 1 ? "" : "s"} available.`;
+          creditsHint.textContent = `You have ${data.credits} 30-day link credit${data.credits === 1 ? "" : "s"} available.`;
         }
       }
     } catch (err) {
@@ -724,7 +724,7 @@ async function toggleCustomUI() {
         if (data.isSub) {
           creditsHint.textContent = `Pro subscription active. Unlimited custom links.`;
         } else if (data.credits != null) {
-          creditsHint.textContent = `You have ${data.credits} custom link credit${data.credits === 1 ? "" : "s"} available.`;
+          creditsHint.textContent = `You have ${data.credits} 30-day link credit${data.credits === 1 ? "" : "s"} available.`;
         }
       }
       
