@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
     const { data, error } = await supabase
       .from("pro_users")
-      .select("is_active, credits")
+      .select("is_active, credits, billing_cycle")
       .eq("email", email.toLowerCase().trim())
       .maybeSingle();
 
@@ -35,6 +35,7 @@ export default async function handler(req, res) {
       isPro, 
       isSub, // Šaljemo frontendu da zna da li je pretplatnik
       credits: data?.credits || 0,
+      billing_cycle: data?.billing_cycle || null,
       found: !!data
     });
 

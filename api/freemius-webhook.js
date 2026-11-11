@@ -63,12 +63,16 @@ export default async function handler(req, res) {
       const planId = payload.objects?.plan?.id || payload.plan?.id;
       
             // Freemius šalje billing_cycle (1=mesecno, 12=godisnje, 0=one-time)
-      const billingCycle = payload.objects?.payment?.billing_cycle;
+      let billingCycle = payload.objects?.payment?.billing_cycle || payload.objects?.subscription?.billing_cycle;
       
       // Sigurna provera: Ako postoji subscription objekat ILI je billingCycle veći od 0, to je pretplata
       const isSubscription = 
         !!payload.objects?.subscription || 
         (billingCycle > 0);
+
+      // Ako je pretplata, a billingCycle iz nekog razloga nije stigao, postavljamo na 1 (mesecno) kao fallback
+      if (isSubscription && !billingCycle) billingCycle = 1;
+      if (!isSubscription) billingCycle = 0;
 
       if (!userEmail) {
         console.error("[webhook] No email found in payload");
@@ -97,8 +101,9 @@ export default async function handler(req, res) {
         email: userEmail,
         license_id: licenseId?.toString() || null,
         plan_id: planId?.toString() || null,
-        is_active: isSubscription ? true : false, // Eksplicitno postavljamo false za one-time
-        credits: isSubscription ? 0 : currentCredits + 1
+        is_active: isSubscription ? true : false,
+        credits: isSubscription ? 0 : currentCredits + 1,
+        billing_cycle: Number(billingCycle) // <-- DODATO: Cuvamo 1 ili 12 (ili 0 za one-time)
       };
 
       const { error } = await supabase.from("pro_users").upsert(

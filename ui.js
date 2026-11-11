@@ -658,7 +658,11 @@ async function toggleCustomUI() {
       const creditsHint = document.getElementById("creditsHint");
       if (creditsHint) {
         if (data.isSub) {
-          creditsHint.textContent = `Subscription active. Unlimited 30-day links.`;
+          let planName = "Active";
+          if (data.billing_cycle === 12) planName = "Annual";
+          else if (data.billing_cycle === 1) planName = "Monthly";
+
+          creditsHint.textContent = `${planName} subscription active. Unlimited 30-day links.`;
         } else if (data.credits != null) {
           creditsHint.textContent = `You have ${data.credits} 30-day link credit${data.credits === 1 ? "" : "s"} available.`;
         }
@@ -719,10 +723,14 @@ async function toggleCustomUI() {
       if (errorMsg) errorMsg.textContent = "";
       showProLock(false);
       
-      const creditsHint = document.getElementById("creditsHint");
+     const creditsHint = document.getElementById("creditsHint");
       if (creditsHint) {
         if (data.isSub) {
-          creditsHint.textContent = `Pro subscription active. Unlimited custom links.`;
+          let planName = "Active";
+          if (data.billing_cycle === 12) planName = "Annual";
+          else if (data.billing_cycle === 1) planName = "Monthly";
+
+          creditsHint.textContent = `${planName} subscription active. Unlimited 30-day links.`;
         } else if (data.credits != null) {
           creditsHint.textContent = `You have ${data.credits} 30-day link credit${data.credits === 1 ? "" : "s"} available.`;
         }
