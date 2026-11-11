@@ -1356,6 +1356,18 @@
         gap: 15px;
       }
     }
+
+        /* Za prelamanje reda na desktopu */
+    .no-signup-text {
+      display: inline; /* Na telefonu se nastavlja u istom redu */
+    }
+
+    @media (min-width: 641px) {
+      .no-signup-text {
+        display: block; /* Na desktopu prelazi u novi red */
+        margin-top: 4px; /* Mali razmak da ne bude previše zbijeno */
+      }
+    }
 </style>
 
 <div class="top-nav">
@@ -1367,8 +1379,8 @@
 
   <main class="container" role="main">
     <!-- Novi H1 naslov i kratak podnaslov -->
-    <h1 class="hero-title" style="font-size: clamp(1.8rem, 4vw, 2.5rem); line-height: 1.15; margin-bottom: 8px;">Share any link. Set it to expire. Stay in control.</h1>
-    <p class="subtitle" style="margin-bottom: 20px; font-size: 15px; line-height: 1.4;">Create temporary links and QR codes that expire exactly when you decide. No signup required.</p>
+    <h1 class="hero-title" style="font-size: clamp(1.8rem, 4vw, 2.5rem); line-height: 1.15; margin-bottom: 8px;">Expiring links & QR codes with time and usage limits.</h1>
+    <p class="subtitle" style="margin-bottom: 20px; font-size: 15px; line-height: 1.4;">Create temporary links and QR codes that expire exactly when you decide. <span class="no-signup-text">No signup required.</span></p>
 
     <section class="card" style="padding-top: 24px;">
 
