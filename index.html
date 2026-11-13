@@ -1349,16 +1349,29 @@
       height: auto;
     }
 
-    /* Desktop layout: sva tri u jednom redu i iste visine */
+    /* Desktop layout: dozvoljava 4 bedža da se lepo rasporede */
     @media (min-width: 641px) {
       .badges-container {
         flex-direction: row;
-        flex-wrap: nowrap;
+        flex-wrap: wrap; /* Dozvoljava prelazak u novi red ako nema mesta */
+        max-width: 850px; /* Dovoljno široko da stanu sva 4 ili da se lepo prelome */
       }
       
       .badges-container img {
-        max-height: 56px; /* Ovo ih smanjuje da bi stali u jedan red */
-        width: auto !important; /* poništava fiksne širine iz HTML-a */
+        max-height: 50px; /* Malo ih smanjujemo da bi bili u ravni */
+        width: auto !important; 
+      }
+    }
+
+    /* Za prelamanje reda na desktopu */
+    .no-signup-text {
+      display: inline; /* Na telefonu se nastavlja u istom redu */
+    }
+
+    @media (min-width: 641px) {
+      .no-signup-text {
+        display: block; /* Na desktopu prelazi u novi red */
+        margin-top: 4px;
       }
     }
 
@@ -1499,6 +1512,11 @@
       <!-- SaaSHub (NOVO) -->
       <a href="https://www.saashub.com/tempqr?utm_source=badge&utm_campaign=badge&utm_content=tempqr&badge_variant=color&badge_kind=approved" target="_blank" rel="noopener">
         <img src="https://cdn-b.saashub.com/img/badges/approved-color.png?v=1" alt="TempQR badge" style="max-width: 150px; height: auto;" />
+      </a>
+
+      <!-- Product Hunt (NOVO) -->
+      <a href="https://www.producthunt.com/products/tempqr/reviews/new?utm_source=badge-product_review&utm_medium=badge&utm_source=badge-tempqr" target="_blank" rel="noopener">
+        <img src="https://api.producthunt.com/widgets/embed-image/v1/product_review.svg?product_id=1150421&theme=dark" alt="TempQR - Expiring links & QR codes with time and open limits. | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" />
       </a>
     </div>
 
