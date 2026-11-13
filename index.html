@@ -1327,20 +1327,20 @@
     /* --- Badges Container --- */
     .badges-container {
       display: flex;
-      flex-direction: row;
-      flex-wrap: wrap; /* Dozvoljava prelamanje u novi red ako nema mesta */
+      flex-direction: column; /* Na telefonu podrazumevano idu jedan ispod drugog */
       justify-content: center;
       align-items: center;
       gap: 15px;
       margin: 20px auto 30px;
-      padding: 0 15px;
+      padding: 0;
       width: 100%;
-      max-width: 800px; /* Povećano da bi sva tri stala u jedan red na desktopu */
     }
 
     .badges-container a {
-      display: inline-block;
-      flex-shrink: 0; /* Sprečava da se slike smanje */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-shrink: 0;
     }
 
     .badges-container img {
@@ -1349,12 +1349,28 @@
       height: auto;
     }
 
-    /* Na telefonima ih stavljamo jedan ispod drugog */
-    @media (max-width: 640px) {
+    /* Desktop layout: sva tri u jednom redu i iste visine */
+    @media (min-width: 641px) {
       .badges-container {
-        flex-direction: column;
-        flex-wrap: wrap;
-        gap: 15px;
+        flex-direction: row;
+        flex-wrap: nowrap;
+      }
+      
+      .badges-container img {
+        max-height: 56px; /* Ovo ih smanjuje da bi stali u jedan red */
+        width: auto !important; /* poništava fiksne širine iz HTML-a */
+      }
+    }
+
+    /* Za prelamanje reda na desktopu */
+    .no-signup-text {
+      display: inline;
+    }
+
+    @media (min-width: 641px) {
+      .no-signup-text {
+        display: block;
+        margin-top: 4px;
       }
     }
 
