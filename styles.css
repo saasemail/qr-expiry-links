@@ -1,11 +1,12 @@
 :root {
-  --bg: #0b0e13;
-  --card: #121723;
-  --text: #e8edf5;
-  --muted: #b8c2d1;
+  --bg: #080b12;
+  --card: #111827;
+  --card2: #0f172a;
+  --text: #eef4ff;
+  --muted: #aab6cc;
   --accent1: #6ee7f9;
   --accent2: #8b5cf6;
-  --border: #ffffff1a;
+  --border: rgba(255, 255, 255, 0.10);
   --radius: 1rem;
 }
 
@@ -13,7 +14,10 @@
 
 body {
   margin: 0;
-  background-color: var(--bg);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(79,70,229,.22), transparent 32%),
+    radial-gradient(circle at 84% 14%, rgba(14,165,233,.16), transparent 30%),
+    linear-gradient(180deg, #080b12 0%, #0b1020 100%);
   color: var(--text);
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
@@ -93,7 +97,7 @@ a:hover { text-decoration: underline; }
   background:
     radial-gradient(closest-side, rgba(139,92,246,0.18), rgba(110,231,249,0.10), rgba(0,0,0,0) 70%);
   filter: blur(18px);
-  opacity: 0.9;
+  opacity: 0.4;
   pointer-events: none;
   z-index: 0;
 }
@@ -106,13 +110,31 @@ a:hover { text-decoration: underline; }
 .subtitle { color: var(--muted); margin-bottom: 2rem; }
 
 .card {
-  background-color: var(--card);
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.025)), linear-gradient(135deg, var(--card), var(--card2));
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.75rem;
   margin: 1.5rem auto;
   text-align: left;
-  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  box-shadow: 0 24px 80px rgba(0,0,0,.38), 0 0 0 1px rgba(255,255,255,.03) inset;
+}
+
+/* Sjaj na vrhu kartice, identican kao na Expired stranici */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  background: radial-gradient(circle at 50% 0%, rgba(122,167,255,.22), transparent 42%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Osigurava da tekst i inputi budu IZNAD sjaja */
+.card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .card h2 { margin-bottom: 1rem; }
@@ -368,7 +390,7 @@ section.card:not(#resultCard) .button-group .btn {
   .container::before {
     top: 240px;
     height: 520px;
-    opacity: 0.85;
+    opacity: 0.4;
   }
 
   .custom-grid {
